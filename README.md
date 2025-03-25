@@ -181,7 +181,38 @@ REST API：处理非实时请求。
 
 
 
-# 5. 待更新
+## 5. 数据库部署
+
+### 5.1. 使用docker-compose部署
+
+1. 确保已安装Docker和docker-compose
+2. 在项目根目录执行以下命令启动服务：
+```bash
+docker-compose up -d
+```
+
+### 5.2. 服务信息
+
+#### PostgreSQL数据库
+- 访问地址：localhost:5432
+- 用户名：quant
+- 密码：quant123
+- 数据库名称：quantdb
+
+#### pgAdmin管理界面
+- 访问地址：http://localhost:8080
+- 登录邮箱：admin@quant.com
+- 登录密码：admin123
+
+### 5.3. 环境变量（可选）
+可以在docker-compose.yml中修改以下环境变量：
+- POSTGRES_USER：数据库用户名
+- POSTGRES_PASSWORD：数据库密码
+- POSTGRES_DB：数据库名称
+- PGADMIN_DEFAULT_EMAIL：pgAdmin登录邮箱
+- PGADMIN_DEFAULT_PASSWORD：pgAdmin登录密码
+
+# 6. 待更新
 - [ ] streamlit rerun需要耗费大量时间重新计算数据,使用数据库
 - [ ] 仔细检查回测思路
 - [x] 买卖点绘制

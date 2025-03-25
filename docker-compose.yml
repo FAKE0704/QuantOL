@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: quant123
       POSTGRES_DB: quantdb
     ports:
-      - "5432:5432"
+      - "8080:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -22,8 +22,10 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@quant.com
       PGADMIN_DEFAULT_PASSWORD: admin123
+      SERVER_MODE: "True"
+      GUNICORN_CMD_ARGS: "--bind 0.0.0.0:80"
     ports:
-      - "8080:80"
+      - "8081:80"
     networks:
       - quant_network
     restart: unless-stopped

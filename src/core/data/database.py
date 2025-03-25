@@ -24,7 +24,7 @@ class StockData(Base):
 class DatabaseManager:
     """数据库管理类"""
     def __init__(self, db_url: Optional[str] = None):
-        self.db_url = db_url or os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/quant')
+        self.db_url = db_url or os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@113.45.40.20:8081/quant')
         self.engine = create_engine(self.db_url, pool_size=5, max_overflow=10)
         self.Session = sessionmaker(bind=self.engine)
         

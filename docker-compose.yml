@@ -1,4 +1,4 @@
-version: '3.8'
+#version: '3.8'
 
 services:
   postgres:
@@ -26,6 +26,7 @@ services:
       GUNICORN_CMD_ARGS: "--bind 0.0.0.0:80"
     ports:
       - "8081:80"
+      - "8443:443"
     networks:
       - quant_network
     restart: unless-stopped
@@ -38,3 +39,7 @@ volumes:
 networks:
   quant_network:
     driver: bridge
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

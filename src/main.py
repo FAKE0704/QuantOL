@@ -2,7 +2,7 @@
 
 from core.data import *
 from core.data.database import Data
-
+import asyncio
 from core.strategy import *
 from core.execution import *
 from core.risk import *
@@ -28,14 +28,17 @@ import matplotlib.pyplot as plt
 #     holidays.extend(get_china_holidays(year))
 # holidays = [holiday.strftime("%Y-%m-%d") for holiday in holidays]
 
-def test():
-    # 数据加载与展示代码
-    st.title("股票数据测试")
-    df = Data("光大嘉宝数据","5")
-    df = df.data_source.load_data("sh.600622", "2025-03-01", "2025-03-23")
-    st.write(df)
 
-test()
+### 测试 #####
+# st.title("股票数据测试")
+# async def test():
+#     # 数据加载与展示代码
+#     data = Data(name = "光大嘉宝数据",frequency = "5")
+#     exists = data.data_source.check_data_exists("sh.600622")
+#     df = await data.data_source.load_data("sh.600622", "2025-03-01", "2025-03-23")
+#     print(df.shape[0])
+#     return df
+# asyncio.run(test())
 
 
 

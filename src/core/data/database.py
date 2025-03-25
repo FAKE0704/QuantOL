@@ -29,7 +29,6 @@ class Data:
         self.volume = pd.DataFrame()
         self.strategy = [{"name": "策略名", "strategy": "逻辑"}]
         self.data = None
-        self.load()
         
         
 
@@ -37,51 +36,8 @@ class Data:
         """
         加载截止今日最近的全部最新数据。
         """
-        script_path = os.path.abspath(__file__)
-        directory_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(script_path))), "Data"
-        )
-        stock_info = os.path.join(directory_path, "股票信息.xlsx")
-        df = pd.read_excel(stock_info)
-
-        # 根据freq的不同,使用不同方式
-        if df.loc[df["code_name"] == self.name, :].empty:
-            print(f"{self.name}-不存在，请确认名称")
-        else:
-            self.stock_code = df.loc[df["code_name"] == self.name, "code"].iloc[
-                0
-            ]  # string
-        self.start_date = pd.to_datetime(
-            df.loc[df["code"] == self.stock_code, "ipoDate"].iloc[0]
-        ).strftime(
-            "%Y-%m-%d"
-        )  # string
-        self.path = os.path.join(
-            directory_path, f"{self.name}{self.frequency}数据.xlsx"
-        )
-
-        end_date = df.loc[df["code"] == self.stock_code, "outDate"]
-
-        # 若有数据可以读,则读取数据,若没有,则获取新数据
-        # print(os.path.isfile(self.path)) # test
-        if os.path.isfile(self.path):
-            data = pd.read_excel(self.path, index_col=None)
-            data = data.astype({
-                'date': 'datetime64[ns]',
-                'close': 'float64',
-                'high': 'float64',
-                'open': 'float64',
-                'low': 'float64',
-                'volume': 'int64'
-            })
-
-            # 处理时间字段
-            if 'time' in data.columns and self.frequency in ["1", "5", "15", "30", "60"]:
-                data['time'] = pd.to_datetime(data['time'], format="%Y%m%d%H%M")
-            
-            self.data = data
-            print(f"==={self.name}数据加载完成!==")
-    # def update_data_m(self,)
+        
+        
 
     async def update_data(self, data_end_date):
         """

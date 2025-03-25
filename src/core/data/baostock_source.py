@@ -23,6 +23,9 @@ class BaostockDataSource(DataSource):
         freq = frequency if frequency is not None else self.default_frequency
         cache_key = f"{symbol}_{freq}_{start_date}_{end_date}"
         
+        # 确保使用正确的frequency进行API调用
+        api_frequency = freq
+        
         # 首先检查内存缓存
         if cache_key in self.cache:
             return self.cache[cache_key]
@@ -38,7 +41,7 @@ class BaostockDataSource(DataSource):
         # 使用baostock获取数据
         lg = bs.login()
         
-        if frequency in ["1", "5", "15", "30", "60"]:
+        if api_frequency in ["1", "5", "15", "30", "60"]:
             fields = "date,time,code,open,high,low,close,volume,amount,adjustflag"
         else:
             fields = "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST"
@@ -48,7 +51,7 @@ class BaostockDataSource(DataSource):
             fields,
             start_date=start_date,
             end_date=end_date,
-            frequency=frequency,
+            frequency=api_frequency,
             adjustflag="3"
         )
         
@@ -59,7 +62,7 @@ class BaostockDataSource(DataSource):
         bs.logout()
         
         if not data_list:
-            raise DataSourceError(f"未获取到数据, symbol: {symbol}, frequency: {frequency}")
+            raise DataSourceError(f"未获取到数据, symbol: {symbol}, frequency: {api_frequency}")
             
         df = pd.DataFrame(data_list, columns=rs.fields)
         df = self._transform_data(df)
@@ -71,12 +74,38 @@ class BaostockDataSource(DataSource):
             
         return df
 
+    def check_data_exists(self, symbol: str, frequency: Optional[str] = None) -> bool:
+        """检查指定股票和频率的数据是否存在"""
+        if not self.cache_dir:
+            return False
+            
+        freq = frequency if frequency is not None else self.default_frequency
+        cache_file = os.path.join(self.cache_dir, f"{symbol}_{freq}.parquet")
+        return os.path.exists(cache_file)
+
+    def save_data(self, data: pd.DataFrame, symbol: str, frequency: str) -> bool:
+        """保存数据到本地缓存"""
+        if not self.cache_dir:
+            return False
+            
+        try:
+            cache_file = os.path.join(self.cache_dir, f"{symbol}_{frequency}.parquet")
+            data.to_parquet(cache_file)
+            return True
+        except Exception as e:
+            print(f"保存数据失败: {str(e)}")
+            return False
+
     def _transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """标准化数据格式"""
         if 'date' in data.columns:
             data['date'] = pd.to_datetime(data['date'])
         if 'time' in data.columns:
-            data['time'] = pd.to_datetime(data['time'], format="%Y%m%d%H%M")
+            # 截取前14位字符并转换为datetime
+            data['time'] = pd.to_datetime(
+                data['time'].str[:14], 
+                format="%Y%m%d%H%M%S"
+            )
             
         data = data.rename(columns={
             'open': 'Open',

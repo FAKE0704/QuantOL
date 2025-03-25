@@ -18,15 +18,23 @@ class BaostockDataSource(DataSource):
             os.makedirs(cache_dir)
 
     async def load_data(self, symbol: str, start_date: str, end_date: str, frequency: Optional[str] = None) -> pd.DataFrame:
-        """异步加载数据"""
-        # 使用传入的frequency，如果未传入则使用默认值
+        """智能加载数据，优先从数据库获取，不存在则从API获取"""
         freq = frequency if frequency is not None else self.default_frequency
         cache_key = f"{symbol}_{freq}_{start_date}_{end_date}"
         
-        # 确保使用正确的frequency进行API调用
+        # 首先尝试从数据库获取数据
+        db_manager = DatabaseManager()
+        db_data = db_manager.load_stock_data(symbol, start_date, end_date, freq)
+        
+        # 如果数据库中存在完整数据，直接返回
+        if not db_data.empty:
+            self.cache[cache_key] = db_data
+            return db_data
+            
+        # 如果数据库中没有数据，则从API获取
         api_frequency = freq
         
-        # 首先检查内存缓存
+        # 检查内存缓存
         if cache_key in self.cache:
             return self.cache[cache_key]
             
@@ -36,9 +44,11 @@ class BaostockDataSource(DataSource):
             if os.path.exists(cache_file):
                 df = pd.read_parquet(cache_file)
                 self.cache[cache_key] = df
+                # 将缓存数据保存到数据库
+                db_manager.save_stock_data(df, symbol, freq)
                 return df
 
-        # 使用baostock获取数据
+        # 从API获取数据
         lg = bs.login()
         
         if api_frequency in ["1", "5", "15", "30", "60"]:
@@ -63,6 +73,9 @@ class BaostockDataSource(DataSource):
         
         if not data_list:
             raise DataSourceError(f"未获取到数据, symbol: {symbol}, frequency: {api_frequency}")
+            
+        # 将获取到的数据保存到数据库
+        db_manager.save_stock_data(df, symbol, freq)
             
         df = pd.DataFrame(data_list, columns=rs.fields)
         df = self._transform_data(df)

@@ -1,0 +1,42 @@
+{
+	"nodes":[
+		{"id":"3879455adb04d5ce","type":"group","x":972,"y":1210,"width":468,"height":945,"label":"Method"},
+		{"id":"b9e6d78093e7ec6a","type":"group","x":1680,"y":1180,"width":292,"height":780,"label":"Model"},
+		{"id":"df1442b705ec53c1","type":"group","x":580,"y":1235,"width":292,"height":725,"label":"Aspects"},
+		{"id":"1a6753c53f58773f","type":"text","text":"股票交易stock trading","x":-187,"y":-21,"width":250,"height":60},
+		{"id":"4f1873f552489db4","type":"text","text":"统计学","x":160,"y":-21,"width":250,"height":60},
+		{"id":"fb1fb5957cc81667","type":"text","text":"指标：移动平均线（Moving Average,MA）\n$$\\textbf{MA}_{t}(n)=\\frac{\\sum\\limits_{i=1}^{n}P_{t-i}}{n}$$\n其中$P_{t}$代表第$t$天的价格(Price)。\n示例：$\\textbf{MA}_{t}(2)=\\frac{P_{t-1}+P_{t-2}}{2}$也叫“股票2日线。\n- 优点：综合过去$n$天的价格信息，了解平均估值\n- 缺点：10日线适用于各种交易策略，尤其是短线交易，因为它能够快速响应价格变动，帮助交易者捕捉短期内的交易机会\n\n```python\n\n#df为股票数据集，格式为DataFrame，收盘价为'close'，类型为float\ndf['close_MA_10'] = df['close'].rolling(window=10).mean() #收盘价的10日线\n```\n\n![[Pasted image 20241015234818.png]]\n黄色线为收盘价10日线，比实际价格更平滑，更少波动，作为近期估值的参考。","x":543,"y":-381,"width":684,"height":881},
+		{"id":"e65127a179b37b04","type":"text","text":"Prediction","x":60,"y":1080,"width":252,"height":60},
+		{"id":"b4142077159a2756","type":"text","text":"time series forecasting","x":993,"y":1230,"width":252,"height":50},
+		{"id":"1b9e5bf576aa7275","type":"text","text":"Regression Analysis","x":993,"y":1360,"width":252,"height":50},
+		{"id":"f6ab7e0790a59b08","type":"text","text":"volatility Prediction","x":600,"y":1255,"width":252,"height":32},
+		{"id":"668fc9fbc3750d25","type":"text","text":"Price Prediction","x":600,"y":1385,"width":252,"height":50},
+		{"id":"828d0400cdc8c27e","type":"text","text":"Trend Prediction","x":186,"y":1820,"width":252,"height":50},
+		{"id":"f9e39be7057a0e1f","type":"text","text":"Risk Prediction","x":186,"y":1900,"width":252,"height":50},
+		{"id":"f3e9ac50adabe7b0","type":"text","text":"Return Prediction","x":186,"y":1980,"width":252,"height":50},
+		{"id":"f09d8a188f34f462","type":"text","text":"Liquidity Prediction","x":186,"y":2070,"width":252,"height":50},
+		{"id":"9eca5026e75d3841","type":"text","text":"Event-Driven Prediction","x":186,"y":2155,"width":252,"height":50},
+		{"id":"e9f81852aacbfb98","type":"text","text":"Sentiment Analysis","x":186,"y":2240,"width":252,"height":50},
+		{"id":"d07f7d70984184fa","type":"text","text":"Fundamental Analysis","x":186,"y":2320,"width":252,"height":50},
+		{"id":"2c75370399741935","type":"text","text":"Technical Indicator Prediction","x":186,"y":2400,"width":252,"height":50},
+		{"id":"43a365d6eab1a202","type":"text","text":"Macroeconomic Factor Prediction","x":186,"y":2480,"width":252,"height":50},
+		{"id":"e5fef547d778161b","type":"text","text":"LSTM(Long Short-Term Memor)","x":1700,"y":1330,"width":252,"height":75},
+		{"id":"d89fc223352bf009","type":"text","text":"ARCH(Autoregressive Conditional Heteroskedasticity)","x":1700,"y":1455,"width":252,"height":115},
+		{"id":"cbf899b204e92d34","type":"text","text":"GARCH","x":1700,"y":1620,"width":252,"height":50},
+		{"id":"06ff483340600b85","type":"text","text":"GRU(Gated Recurrent Units)","x":1700,"y":1700,"width":252,"height":64},
+		{"id":"5f4b4d587446828e","type":"text","text":"[[TimeMixer]]","x":1700,"y":1200,"width":252,"height":50},
+		{"id":"ce385a093c4e24da","type":"text","text":"Deep Learning","x":993,"y":1659,"width":252,"height":66},
+		{"id":"c7a0a5770f1c15be","type":"text","text":"Technical Analysis\n\n技术指标（如移动平均线、相对强弱指数）","x":993,"y":1739,"width":407,"height":161},
+		{"id":"78ebc74e98dfea48","type":"text","text":"Machine Learning Algorithms\nIncluding:决策树、随机森林、支持向量机（SVM）、神经网络等模型，通过特征学习来预测价格","x":993,"y":1488,"width":367,"height":132},
+		{"id":"ee2bdb9db83ccb56","type":"text","text":"short-term fluctuations\nand long-term trends frequently require distinct treatment","x":1480,"y":2330,"width":535,"height":120,"color":"#b6e01f"},
+		{"id":"02e690baedfc1915","type":"text","text":"LLM","x":993,"y":1950,"width":252,"height":50}
+	],
+	"edges":[
+		{"id":"e489c4a3fe0cfde4","fromNode":"1a6753c53f58773f","fromSide":"right","toNode":"4f1873f552489db4","toSide":"left"},
+		{"id":"8e64a64976e60ac5","fromNode":"4f1873f552489db4","fromSide":"right","toNode":"fb1fb5957cc81667","toSide":"left"},
+		{"id":"01b44e46e9488b62","fromNode":"df1442b705ec53c1","fromSide":"right","toNode":"3879455adb04d5ce","toSide":"left"},
+		{"id":"b0f43468e03ba322","fromNode":"e65127a179b37b04","fromSide":"right","toNode":"df1442b705ec53c1","toSide":"left"},
+		{"id":"926bbc773d085ccd","fromNode":"1a6753c53f58773f","fromSide":"right","toNode":"e65127a179b37b04","toSide":"left"},
+		{"id":"0e3fc5eeee7748cd","fromNode":"ce385a093c4e24da","fromSide":"right","toNode":"b9e6d78093e7ec6a","toSide":"left"}
+	]
+}

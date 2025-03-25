@@ -48,14 +48,47 @@ awesome-Qsys/src/
 - `load_data(symbol, start_date, end_date, frequency)`: 异步加载股票数据
 - `_transform_data(data)`: 标准化数据格式
 
-### 1.4.3. 数据获取流程
+### 1.4.3. 数据库模块
+功能：通过PostgreSQL数据库进行数据存储和查询
+
+#### 1.4.3.1. 数据库表结构
+- StockData: 存储股票历史数据
+  - id: 主键
+  - symbol: 股票代码
+  - date: 日期时间
+  - open: 开盘价
+  - high: 最高价
+  - low: 最低价
+  - close: 收盘价
+  - volume: 成交量
+  - frequency: 数据频率
+
+#### 1.4.3.2. 核心方法：
+- `init_db()`: 初始化数据库表结构
+- `save_stock_data(data, symbol, frequency)`: 保存股票数据到数据库
+- `load_stock_data(symbol, start_date, end_date, frequency)`: 从数据库加载股票数据
+
+#### 1.4.3.3. 使用示例：
+```python
+# 初始化数据库
+db_manager = DatabaseManager()
+db_manager.init_db()
+
+# 保存数据
+success = db_manager.save_stock_data(df, "sh.600622", "5")
+
+# 查询数据
+df = db_manager.load_stock_data("sh.600622", "2025-03-01", "2025-03-25", "5")
+```
+
+### 1.4.4. 数据获取流程
 1. 检查内存缓存
 2. 检查磁盘缓存
 3. 从Baostock API获取数据
 4. 缓存新数据
 5. 返回标准化后的数据
 
-### 1.4.4. 数据库表
+### 1.4.5. 数据库表
 - Market_Data
 - Trade_Records
 - Positions
@@ -67,7 +100,7 @@ awesome-Qsys/src/
 - Risk_Management
 - Logs
 
-### 1.4.5. 数据格式标准化
+### 1.4.6. 数据格式标准化
 - 统一时间字段格式
 - 统一列名命名规范
 - 处理缺失值和异常值

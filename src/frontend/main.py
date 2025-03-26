@@ -1,6 +1,9 @@
 from .navigation import initialize_navigation
 from .history import show_history_page
 from .indicators import show_indicators_page
+from .backtesting import show_backtesting_page
+from .trading import show_trading_page
+from .settings import show_settings_page
 import streamlit as st
 
 def show_home_page():
@@ -17,14 +20,11 @@ def main():
     elif page == "技术指标":
         show_indicators_page()
     elif page == "回测":
-        st.title("回测")
-        # TODO: 添加回测页面内容
+        show_backtesting_page()
     elif page == "交易管理":
-        st.title("交易管理")
-        # TODO: 添加交易管理页面内容
+        show_trading_page()
     elif page == "系统设置":
-        st.title("系统设置")
-        # TODO: 添加系统设置页面内容
+        show_settings_page()
 
 if __name__ == "__main__":
     main()

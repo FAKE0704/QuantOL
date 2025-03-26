@@ -5,23 +5,28 @@
 C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys
 ## 1.3. 文件结构
 awesome-Qsys/src/
+├── frontend/                     # 前端模块
+│   ├── main.py                   # 前端主程序
+├── backend/                      # 后端模块
+│   ├── api/                      # API接口
 ├── core/                         # 核心模块
 │   ├── data/                     # 数据模块
-│   │   ├── database.py           # 数据库操作
-│   ├── strategy/                 # 策略模块
-│   │   ├── backtesting.py        # 回测功能
-│   │   ├── strategy.py           # 策略实现
+│   │   ├── database.py
+│   │   ├── baostock_source.py
+│   │   ├── data_source.py
 │   ├── execution/                # 执行模块
 │   │   ├── Trader.py             # 交易执行
+│   │   ├── TradeDatabaseManager.py # 交易数据管理
 │   ├── risk/                     # 风险模块
-├── frontend/                     # 前端模块
-│   ├── drawer.py                 # 数据可视化
-├── backend/                      # 后端模块
+│   ├── strategy/                 # 策略模块
+│   │   ├── strategy.py
+│   ├── backtest.py               # 回测引擎
+├── notification/                 # 通知模块
 ├── support/                      # 支持模块
-│   ├── log/                      # 日志模块
-│   ├── monitor/                  # 监控模块
 ├── venvQuant/                    # 虚拟环境文件夹
+├── database.log                  # 数据库日志
 ├── main.py                       # 项目主函数文件
+├── myimports.py                  # 自定义导入
 
 
 ## 1.4. 数据模块

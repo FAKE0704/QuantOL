@@ -23,7 +23,8 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@quant.com
       PGADMIN_DEFAULT_PASSWORD: admin123
       SERVER_MODE: "True"
-      GUNICORN_CMD_ARGS: "--bind 0.0.0.0:80"
+      PGADMIN_LISTEN_ADDRESS: "0.0.0.0"
+      GUNICORN_CMD_ARGS: "--bind 0.0.0.0:80 --workers=1 --threads=25"
     ports:
       - "8081:80"
     networks:
@@ -39,6 +40,3 @@ networks:
   quant_network:
     driver: bridge
     enable_ipv6: false
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16

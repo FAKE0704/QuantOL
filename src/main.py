@@ -1,5 +1,4 @@
 
-
 from core.data import *
 from core.data.database import DatabaseManager
 from core.data.baostock_source import BaostockDataSource
@@ -31,24 +30,19 @@ import matplotlib.pyplot as plt
 
 
 ### 测试 #####
-db_manager = DatabaseManager()
-# 初始化数据库
-db_manager.init_db()
 
+
+# 初始化数据库
+db_manager = DatabaseManager()
+db_manager.init_db()
 st.title("股票数据测试")
 async def test():
-    # 数据加载与展示代码
-    data = BaostockDataSource(frequency = "5")
-    exists = data.data_source.check_data_exists("sh.600622")
-    df = await data.data_source.load_data("sh.600622", "2025-03-01", "2025-03-23")
-    # 保存数据
-    success = db_manager.save_stock_data(df, "sh.600622", "5")
-    return df
+    # 从数据库获取数据
+    df =await db_manager.load_stock_data("sh.600622", "20250101", "20250307", frequency = "5")
+    print(df.head(2))
 asyncio.run(test())
 
-# 查询数据
-df = db_manager.load_stock_data("sh.600622", "2025-03-01", "2025-03-25", "5")
-st.write(df.head(2))
+# st.write(df)
 
 
 

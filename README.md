@@ -63,12 +63,76 @@ awesome-Qsys/src/
   - volume: 成交量
   - frequency: 数据频率
 
-#### 1.4.3.2. 核心方法：
-- `init_db()`: 初始化数据库表结构
-- `save_stock_data(data, symbol, frequency)`: 保存股票数据到数据库
-- `load_stock_data(symbol, start_date, end_date, frequency)`: 从数据库加载股票数据
+#### 1.4.3.2. DatabaseManager类
 
-#### 1.4.3.3. 使用示例：
+```python
+class DatabaseManager:
+    """
+    数据库管理类，负责与PostgreSQL数据库的交互
+    """
+    def __init__(self, host='113.45.40.20', port=8080, dbname='quantdb', 
+                 user='quant', password='quant123', admin_db='quantdb'):
+        """
+        初始化数据库连接配置
+        :param host: 数据库主机地址
+        :param port: 数据库端口
+        :param dbname: 数据库名称
+        :param user: 用户名
+        :param password: 密码
+        :param admin_db: 管理数据库名称
+        """
+
+#### 1.4.3.3. 特性说明：
+1. 异步数据加载：
+   - 支持异步加载股票数据，提高系统响应速度
+   - 自动检查并补充缺失数据
+   
+2. 数据完整性检查：
+   - 精确计算缺失日期范围
+   - 支持跨日期范围的数据完整性验证
+
+3. 日志记录：
+   - 详细记录每个操作步骤
+   - 支持错误日志和调试信息
+
+4. 错误处理：
+   - 增强的异常处理机制
+   - 自动回滚失败的事务
+
+#### 1.4.3.4. 核心方法：
+
+1. `init_db() -> None`
+   - 功能：初始化数据库表结构
+   - 参数：无
+   - 返回：无
+
+2. `save_stock_data(data: pd.DataFrame, symbol: str, frequency: str) -> bool`
+   - 功能：保存股票数据到数据库
+   - 参数：
+     - data: 包含股票数据的DataFrame
+     - symbol: 股票代码
+     - frequency: 数据频率（如"5"表示5分钟数据）
+   - 返回：保存是否成功
+
+3. `async load_stock_data(symbol: str, start_date: str, end_date: str, frequency: str) -> pd.DataFrame`
+   - 功能：从数据库异步加载股票数据
+   - 参数：
+     - symbol: 股票代码
+     - start_date: 开始日期
+     - end_date: 结束日期
+     - frequency: 数据频率
+   - 返回：包含股票数据的DataFrame
+
+4. `check_data_completeness(symbol: str, start_date: str, end_date: str) -> list[tuple[str, str]]`
+   - 功能：检查数据完整性并返回缺失日期范围
+   - 参数：
+     - symbol: 股票代码
+     - start_date: 开始日期
+     - end_date: 结束日期
+   - 返回：缺失日期范围列表，每个元素为(start_date, end_date)元组
+
+
+#### 1.4.3.4. 使用示例：
 ```python
 # 初始化数据库
 db_manager = DatabaseManager()
@@ -84,9 +148,10 @@ df = db_manager.load_stock_data("sh.600622", "2025-03-01", "2025-03-25", "5")
 ### 1.4.4. 数据获取流程
 1. 检查内存缓存
 2. 检查磁盘缓存
-3. 从Baostock API获取数据
-4. 缓存新数据
-5. 返回标准化后的数据
+3. 从数据库获取数据
+4. 从Baostock API获取数据
+5. 缓存新数据
+6. 更新数据库表数据
 
 ### 1.4.5. 数据库表
 - Market_Data
@@ -111,12 +176,55 @@ df = db_manager.load_stock_data("sh.600622", "2025-03-01", "2025-03-25", "5")
 策略模板：提供策略开发的基类和接口。
 策略市场：存储和管理用户创建的策略。
 策略回测：支持策略的历史回测功能。
+
 ## 1.6. 交易模块 Buyer class
 功能：负责交易订单的生成和执行。
 子模块：
-订单管理：创建、修改、取消订单。
-执行引擎：对接交易所 API，执行交易。
-交易记录：记录所有交易细节。
+订单管理：创建、修改、取消订单。通过OrderManager类提供RESTful API接口
+执行引擎：对接交易所 API，执行交易。实现与交易所API的对接，支持异步订单执行
+交易记录：记录所有交易细节。将交易数据持久化到数据库，提供查询接口
+
+
+### OrderManager 订单管理类
+负责订单的创建、修改、取消
+主要方法：create_order(), modify_order(), cancel_order()
+### ExecutionEngine 执行引擎类
+负责与交易所API的对接和订单执行
+主要方法：execute_order(), cancel_execution()
+- format_for_ths(): 格式化指令以适应交易所(同花顺)
+
+### TradeRecorder 交易记录类
+负责记录所有交易细节
+主要方法：record_trade(), query_trades()
+### 数据库表设计：
+Orders 订单表
+- order_id (主键)
+- symbol 标的代码
+- order_type 订单类型 (市价/限价)
+- quantity 数量
+- price 价格
+- status 状态 (新建/已提交/已完成/已取消)
+- create_time 创建时间
+- update_time 更新时间
+
+Executions 执行表
+- execution_id (主键)
+- order_id (外键)
+- exec_price 执行价格
+- exec_quantity 执行数量
+- exec_time 执行时间
+- status 执行状态 (成功/失败)
+
+TradeHistory 交易历史表
+
+- trade_id (主键)
+- symbol 标的代码
+- trade_time 交易时间
+- trade_price 交易价格
+- trade_quantity 交易数量
+- trade_type 交易类型 (买入/卖出)
+
+
 
 
 ## 1.7. 风险模块

@@ -5,8 +5,8 @@ from tqdm import tqdm
 import time
 import pandas as pd
 from pandas import Series
-from src.data.database import Strategy
-from src.data.database import Data
+from core.strategy.strategy import Strategy 
+from core.data.database import DatabaseManager
 
 
 class BackTesting:
@@ -28,7 +28,7 @@ class BackTesting:
 
         # 后结算
         self.Strategy: Strategy = strategy
-        self.Data: Data = strategy.Data
+        self.DatabaseManager: DatabaseManager= strategy.DatabaseManager
         self.buyTrade: Series = pd.Series([0])  # 买入量
         self.buyAmount: Series = pd.Series([0])  # 买入金额
         self.sellTrade: Series = pd.Series([0])
@@ -489,13 +489,13 @@ class BackTesting:
                     return [False, limit, "未触发止盈"]
 
     # 收益计算
-    def backtest(self):
+    def run_backtest(self):
         """
         基于买入量和卖出量,计算股票交易的收益和风险指标。
 
         更新profit,cose,
         参数:
-        self.Strategy.Data.data (DataFrame): 包含交易数据的DataFrame，应包括'BuyTrade', 'SellTrade', 'close'等列。
+        self.Strategy.Data.DatabaseManager(DataFrame): 包含交易数据的DataFrame，应包括'BuyTrade', 'SellTrade', 'close'等列。
         字段含义：
         Profit：累计收益
         Return：累计净收益率 --- 小数
@@ -723,7 +723,7 @@ class Drawer:
         self.default_line_width = 0.8
         self.fig = go.Figure()
         self.Strategy: Strategy = backtest.Strategy
-        self.Data: Data = backtest.Data
+        self.Data: DatabaseManager= backtest.Data
         self.BackTesting: BackTesting = backtest
 
     def plot_boxplot(self, indices, columns):
@@ -923,4 +923,5 @@ class Drawer:
         )
 
     def clean_fig(self):
-        self.fig.data = []
+        self.fig.DatabaseManager= []
+

@@ -4,11 +4,31 @@ def show_navigation():
     """
     显示应用导航栏
     """
-    st.sidebar.title("导航")
-    page = st.sidebar.radio(
-        "选择页面",
-        options=["首页", "历史行情", "技术指标", "回测", "交易管理", "系统设置"]
-    )
+    # 样式注入
+    st.markdown("""
+    <style>
+        [data-testid="stSidebar"] { padding: 20px !important; }
+        .stRadio > div { padding: 10px 0; }
+        .stButton > button { width: 100%; margin-top: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.sidebar:
+        st.title("🚀 智能量化平台")
+        st.markdown("---")
+        
+        page = st.radio(
+            "导航菜单",
+            options=["首页", "历史行情", "技术指标", "回测", "交易管理", "系统设置"],
+            index=0,
+            help="选择要进入的功能模块"
+        )
+        
+        st.markdown("---")
+        if st.button("清空缓存", help="重置所有配置"):
+            st.cache_data.clear()
+            st.success("缓存已清空")
+        
     return page
 
 def show_user_status():
@@ -22,11 +42,11 @@ def show_user_status():
         st.sidebar.success(f"欢迎, {st.session_state.get('username', '用户')}")
         if st.sidebar.button("退出登录"):
             st.session_state['logged_in'] = False
-            st.experimental_rerun()
+            st.rerun()
     else:
         if st.sidebar.button("登录"):
             st.session_state['logged_in'] = True
-            st.experimental_rerun()
+            st.rerun()
 
 def initialize_navigation():
     """

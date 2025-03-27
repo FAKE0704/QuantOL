@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from ..core.data import get_technical_indicators
+from core.data.database import DatabaseManager
 
 def show_indicators_page():
     st.title("技术指标分析")
@@ -58,8 +58,8 @@ def show_indicators_page():
                 "period": period,
                 "std_dev": std_dev
             })
-        
-        data = get_technical_indicators(stock_code, **params)
+        db_manager = DatabaseManager()
+        data = db_manager.get_technical_indicators(stock_code, start_date, end_date)
         
         if data is not None:
             st.success("指标计算成功！")

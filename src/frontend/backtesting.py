@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from ..core.backtest import run_backtest
+from core.strategy.backtesting import BackTesting
 
 def show_backtesting_page():
     st.title("策略回测")

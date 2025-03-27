@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from ..core.config import get_config, update_config, get_system_logs
 
 def show_settings_page():
     st.title("系统设置")
@@ -36,7 +35,7 @@ def show_settings_page():
         st.subheader("API密钥管理")
         
         # 显示当前API密钥
-        api_keys = get_config("api_keys", {})
+        api_keys = get_config("api_keys")
         if api_keys:
             st.dataframe(pd.DataFrame.from_dict(api_keys, orient='index'))
         else:
@@ -64,8 +63,17 @@ def show_settings_page():
     
     with tab3:
         st.subheader("系统日志")
-        logs = get_system_logs()
-        if logs:
-            st.text_area("日志内容", logs, height=400)
-        else:
-            st.info("没有系统日志")
+        # TODO
+        # logs = get_system_logs()
+        # if logs:
+        #     st.text_area("日志内容", logs, height=400)
+        # else:
+        #     st.info("没有系统日志")
+
+def get_config(key: str):
+    """获取配置项"""
+    return {}
+
+def update_config(updates: dict):
+    """更新配置项"""
+    pass

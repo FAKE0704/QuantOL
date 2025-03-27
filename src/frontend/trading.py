@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from ..core.execution import get_orders, get_positions, get_trade_history
+from core.execution import Trader
 
 def show_trading_page():
     st.title("交易管理")

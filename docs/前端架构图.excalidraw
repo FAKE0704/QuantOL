@@ -1,13 +1,15 @@
-{
-  "type": "excalidraw",
-  "version": 2,
-  "source": "https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor",
-  "elements": [],
-  "appState": {
-    "gridSize": 20,
-    "gridStep": 5,
-    "gridModeEnabled": false,
-    "viewBackgroundColor": "#ffffff"
-  },
-  "files": {}
-}
+[StreamlitApp前端架构]
+|
+|-- [用户认证]
+|   |-- 登录/注册
+|   |-- 权限管理
+|
+|-- [数据展示]
+|   |-- 实时行情
+|   |-- 历史数据
+|   |-- 技术指标
+|
+|-- [交易管理]
+    |-- 下单界面
+    |-- 订单管理
+    |-- 交易记录

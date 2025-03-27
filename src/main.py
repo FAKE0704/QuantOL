@@ -10,13 +10,13 @@ def show_home_page():
     st.title("欢迎使用量化交易系统")
     st.write("请从左侧导航栏选择功能")
 
-def main():
+async def main():
     page = initialize_navigation()
     
     if page == "首页":
         show_home_page()
     elif page == "历史行情":
-        show_history_page()
+        await show_history_page()
     elif page == "技术指标":
         show_indicators_page()
     elif page == "回测":
@@ -27,4 +27,5 @@ def main():
         show_settings_page()
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())

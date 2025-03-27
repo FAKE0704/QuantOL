@@ -4,7 +4,7 @@ from typing import Optional
 import pandas as pd
 import chinese_calendar as calendar
 from .stock import Stock
-
+import streamlit as st# debug
 
 class DatabaseManager:
     def __init__(self, host='113.45.40.20', port=8080, dbname='quantdb', 
@@ -41,14 +41,29 @@ class DatabaseManager:
 
     def _get_connection(self):
         """获取数据库连接，自动初始化连接"""
-        if not self.connection or self.connection.closed:
-            if not self._initialized:
-                self._init_db()
-                self._initialized = True
-            self.connection = psycopg2.connect(**self.connection_config)
+        try:
+            if not self.connection or self.connection.closed:
+                if not self._initialized:
+                    self.logger.debug("Initializing database connection")
+                    self._init_db()
+                    self._initialized = True
+                
+                self.logger.debug(f"Creating new connection to {self.connection_config['host']}")
+                self.connection = psycopg2.connect(
+                    **self.connection_config,
+                    connect_timeout=5,
+                    keepalives=1,
+                    keepalives_idle=30,
+                    keepalives_interval=10,
+                    keepalives_count=3
+                )
+                self.connection.autocommit = True
 
-        # print(self.connection) #debug    
-        return self.connection
+            self.logger.debug("Using existing connection")
+            return self.connection
+        except Exception as e:
+            self.logger.error(f"Failed to get database connection: {str(e)}")
+            raise
 
     def _init_db(self):
         """Initialize database and tables"""
@@ -83,7 +98,10 @@ class DatabaseManager:
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                DROP TABLE StockData
+                DROP TABLE StockInfo;
+                
+                DROP TABLE StockData;
+
                 """
             )
 
@@ -109,8 +127,8 @@ class DatabaseManager:
                     code_name VARCHAR(50) NOT NULL,
                     ipoDate DATE NOT NULL,
                     outDate DATE,
-                    type VARCHAR(20) CHECK(type IN ('A股','B股','指数','ETF')),
-                    status VARCHAR(10) CHECK(status IN ('上市','退市','停牌'))
+                    type VARCHAR(20),
+                    status VARCHAR(10) 
                 );
                 """
             )
@@ -217,7 +235,7 @@ class DatabaseManager:
             
             # Fetch missing data ranges from Baostock
             if missing_ranges:
-                self.logger.info(f"Fetching missing data ranges for {symbol}")
+                self.logger.info(f"Fetching missing data ranges for {symbol}")  #bug:获取数据但没有存入数据库
                 from .baostock_source import BaostockDataSource
                 data_source = BaostockDataSource(frequency)
                 for range_start, range_end in missing_ranges:
@@ -273,9 +291,7 @@ class DatabaseManager:
         """
         try:
             # 检查数据是否最新
-            print("####debug2####")
             if self._is_stock_info_up_to_date():
-                print("####debug2.5####")
                 query = "SELECT * FROM StockInfo"
                 with self._get_connection().cursor() as cursor:
                     cursor.execute(query)
@@ -285,10 +301,10 @@ class DatabaseManager:
             else:
                 # 调用baostock_source更新数据
                 from .baostock_source import BaostockDataSource
-                print("####debug3####")
                 data_source = BaostockDataSource()
                 df = data_source._get_all_stocks()
                 # 将数据保存到数据库
+                st.write(df) # debug
                 self._update_stock_info(df)
                 return df
         except Exception as e:
@@ -303,43 +319,95 @@ class DatabaseManager:
                 SELECT MAX(ipoDate) as latest_ipo 
                 FROM StockInfo
             """
-            print("####debug2.1####")
             with self._get_connection().cursor() as cursor:
-                print("####debug2.2####")
                 cursor.execute(query) 
                 latest_ipo = cursor.fetchone()[0]
-                print("####debug2.3####")
                 # 如果最新IPO日期在最近30天内，则认为数据是最新的
                 return (pd.Timestamp.now() - pd.Timestamp(latest_ipo)) < pd.Timedelta(days=30)
         except Exception as e:
             self.logger.error(f"检查StockInfo表状态失败: {str(e)}")
             return False
 
-    def _update_stock_info(self, df: pd.DataFrame) -> None:
-        """更新StockInfo表数据"""
+    def _validate_stock_info(self, row: pd.Series) -> tuple:
+        """验证并转换股票信息格式"""
         try:
-            with self._get_connection().cursor() as cursor:
-                # 清空现有数据
-                cursor.execute("TRUNCATE TABLE StockInfo")
+            # 验证必填字段
+            required_fields = ['code', 'code_name', 'ipoDate', 'type', 'status']
+            for field in required_fields:
+                if pd.isna(row[field]) or row[field] == '':
+                    raise ValueError(f"Missing required field: {field}")
+
+            # 验证ipoDate
+            if not isinstance(row['ipoDate'], str) or len(row['ipoDate']) != 10:
+                raise ValueError(f"Invalid ipoDate format: {row['ipoDate']}")
                 
-                # 插入新数据
-                for _, row in df.iterrows():
-                    cursor.execute("""
+            ipo_date = pd.to_datetime(row['ipoDate'], format='%Y-%m-%d', errors='coerce')
+            if pd.isna(ipo_date):
+                raise ValueError(f"Invalid ipoDate value: {row['ipoDate']}")
+            ipo_date = ipo_date.date()
+
+            # 处理outDate
+            out_date = None
+            if not pd.isna(row.get('outDate')) and row.get('outDate') != '':
+                out_date = pd.to_datetime(row['outDate'], format='%Y-%m-%d', errors='coerce')
+                if pd.isna(out_date):
+                    raise ValueError(f"Invalid outDate value: {row['outDate']}")
+                out_date = out_date.date()
+
+            return (
+                str(row['code']),
+                str(row['code_name']),
+                ipo_date,
+                out_date,
+                str(row['type']),
+                str(row['status'])
+            )
+        except Exception as e:
+            self.logger.error(f"数据验证失败: {str(e)} - 行数据: {row.to_dict()}")
+            raise
+
+    def _update_stock_info(self, df: pd.DataFrame) -> tuple:
+        """更新StockInfo表数据
+        返回: (成功插入行数, 失败行数)
+        """
+        valid_data = []
+        invalid_rows = []
+        
+        # 先验证所有数据，这里遍历验证没有效率
+        for idx, row in df.iterrows():
+            try:
+                validated_data = self._validate_stock_info(row)
+                valid_data.append(validated_data)
+            except Exception as e:
+                invalid_rows.append((idx, str(e)))
+                self.logger.error(f"第{idx}行数据验证失败: {str(e)}")
+        
+        if not valid_data:
+            self.logger.warning("没有有效数据可以插入")
+            return 0, len(df)
+            
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # 清空现有数据
+                    self.logger.debug("Truncating StockInfo table")
+                    cursor.execute("TRUNCATE TABLE StockInfo")
+                    
+                    # 执行批量插入
+                    self.logger.debug(f"Inserting {len(valid_data)} rows into StockInfo")
+                    cursor.executemany("""
                         INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
                         VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (
-                        row['code'],
-                        row['code_name'],
-                        row['ipoDate'],
-                        row.get('outDate'),
-                        row['type'],
-                        row['status']
-                    ))
-            self.connection.commit()
-            self.logger.info("成功更新StockInfo表数据")
+                    """, valid_data)
+                    
+                    conn.commit()
+                    
+            self.logger.info(f"成功更新StockInfo表数据，成功插入{len(valid_data)}行，失败{len(invalid_rows)}行")
+            return len(valid_data), len(invalid_rows)
+            
         except Exception as e:
-            self.connection.rollback()
-            self.logger.error(f"更新StockInfo表数据失败: {str(e)}")
+            conn.rollback()
+            self.logger.error(f"批量插入失败: {str(e)}")
             raise
 
     def get_stock_info(self, code: str) -> dict:

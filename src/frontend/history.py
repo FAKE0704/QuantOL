@@ -1,27 +1,44 @@
 import streamlit as st
 import pandas as pd
+import time
+import asyncio
 from services.stock_search import StockSearchService
 from services.chart_service import ChartService
 from core.data.database import DatabaseManager
 
-def show_history_page():
+async def show_history_page():
     st.title("历史行情")
     
     # 初始化服务
     search_service = StockSearchService()
     db = DatabaseManager()
     
-    print("####debug1####")
     # 股票搜索（带筛选的下拉框）
-    selected = st.selectbox(
-        "搜索并选择股票",
-        options=search_service.get_all_stocks(),
-        format_func=lambda x: f"{x[0]} {x[1]}",
-        help="输入股票代码或名称进行筛选"
-    )
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        # 初始化缓存
+        if 'stock_cache' not in st.session_state or st.session_state.stock_cache is None:
+            with st.spinner("正在加载股票列表..."):
+                try:
+                    st.session_state.stock_cache = search_service.get_all_stocks()
+                    st.session_state.last_stock_update = time.time()
+                except Exception as e:
+                    st.error(f"加载股票列表失败: {str(e)}")
+                    st.session_state.stock_cache = []
+        
+        selected = st.selectbox(
+            "搜索并选择股票",
+            options=st.session_state.stock_cache,
+            format_func=lambda x: f"{x[0]} {x[1]}",
+            help="输入股票代码或名称进行筛选"
+        )
+    with col2:
+        if st.button("🔄 刷新列表", help="点击手动更新股票列表"):
+            st.session_state.stock_cache = None
+            st.experimental_rerun()
     
     if selected:
-        stock_code = selected.split()[0]
+        stock_code = selected[0]  # selected is a tuple (code, name)
         
         # 时间范围选择
         col1, col2 , col3= st.columns(3)
@@ -38,7 +55,8 @@ def show_history_page():
             
             try:
                 # 获取历史数据
-                data = db.load_stock_data(stock_code, start_date, end_date, frequency)
+                st.write([stock_code, start_date, end_date, frequency])
+                data = await db.load_stock_data(stock_code, start_date, end_date, frequency)
                 status.update(label="数据获取成功!", state="complete")
             except Exception as e:
                 status.update(label=f"获取失败: {str(e)}", state="error")
@@ -57,13 +75,13 @@ def show_history_page():
                 chart_service = ChartService(data)
                 
                 # K线图
-                st.subheader("K线图")
-                kline = chart_service.create_kline(title=f"{stock_code} K线图")
-                st.plotly_chart(kline, use_container_width=True)
+                # st.subheader("K线图")
+                # kline = chart_service.create_kline(title=f"{stock_code} K线图")
+                # st.plotly_chart(kline, use_container_width=True)
                 
-                # 成交量图
-                st.subheader("成交量图")
-                volume = chart_service.create_volume_chart()
-                st.plotly_chart(volume, use_container_width=True)
+                # # 成交量图
+                # st.subheader("成交量图")
+                # volume = chart_service.create_volume_chart()
+                # st.plotly_chart(volume, use_container_width=True)
             else:
                 st.error("获取数据失败，请检查股票代码和日期范围")

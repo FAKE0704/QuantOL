@@ -52,9 +52,9 @@ class BaostockDataSource(DataSource):
             raise DataSourceError(f"获取历史数据失败: {rs.error_msg}")
         
         data_list = []
-        total = rs.get_row_count()
+        total = len(rs.data)
         processed = 0
-        while (rs.error_code == "0") & rs.next():
+        while rs.next():
             data_list.append(rs.get_row_data())
             processed += 1
             progress_service.update_progress(task_id, processed / total)
@@ -131,11 +131,11 @@ class BaostockDataSource(DataSource):
                 raise RuntimeError(f"获取所有股票信息失败: {rs.error_msg}")
 
             data_list = []
-            total = rs.get_row_count()
+            total = len(rs.data)
             processed = 0
             
             # 处理数据并更新进度
-            while (rs.error_code == '0') & rs.next():
+            while rs.next():
                 data_list.append(rs.get_row_data())
                 processed += 1
                 progress_service.update_progress(
@@ -146,8 +146,10 @@ class BaostockDataSource(DataSource):
             return pd.DataFrame(data_list, columns=rs.fields)
             
         except Exception as e:
-            progress_service.update_progress(task_id, 1.0, str(e))
+            progress_service.update_progress(task_id, 1.0)
+            print(f"股票数据获取失败: {str(e)}")
             raise
         finally:
             bs.logout()
+            print()
             progress_service.end_task(task_id)

@@ -6,7 +6,11 @@ C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys
 ## 1.3. 文件结构
 awesome-Qsys/src/
 ├── frontend/                     # 前端模块
-│   ├── main.py                   # 前端主程序
+│   ├── backtesting.py            # 回测界面
+│   ├── history.py                # 历史行情界面
+│   ├── setting.py                # 设置界面
+│   ├── indicators.py             # 指标界面
+│   ├── trading.py                # 交易管理界面
 ├── backend/                      # 后端模块
 │   ├── api/                      # API接口
 ├── core/                         # 核心模块
@@ -21,6 +25,12 @@ awesome-Qsys/src/
 │   ├── strategy/                 # 策略模块
 │   │   ├── strategy.py
 │   ├── backtest.py               # 回测引擎
+├── services/                 # 服务模块
+│   ├── chart_service.py                 # 图表管理服务
+│   ├── interaction_service.py                 # 图表关联
+│   ├── progress_service.py                 # 进度条
+│   ├── stock_search.py                 # 股票搜索
+│   ├── theme_manager.py                 # 主题管理
 ├── notification/                 # 通知模块
 ├── support/                      # 支持模块
 ├── venvQuant/                    # 虚拟环境文件夹
@@ -282,10 +292,43 @@ TradeHistory 交易历史表
   - 数据加载进度提示
 ## 3.2. 2.2 数据可视化模块
 功能：将数据和交易结果以可视化形式展示。
-子模块：
-K 线图：展示价格走势。
-指标图：展示技术指标（如 MA、MACD 等）。
-统计图表：展示交易统计结果。
+
+### 最新功能：
+- 主题管理系统（暗黑/明亮模式切换）
+- 动态控件配置（均线周期/成交量颜色自定义）
+- 多图表联动缩放
+- 数据完整性验证模块
+- 响应式布局支持
+
+### 技术架构：
+```mermaid
+graph TD
+    A[ChartBase] --> B[渲染引擎]
+    A --> C[主题管理]
+    A --> D[数据校验]
+    B --> E[CandlestickChart]
+    B --> F[VolumeChart]
+    C --> G[颜色配置]
+    C --> H[模板系统]
+    D --> I[数据类型验证]
+    D --> J[时间序列校验]
+```
+
+### 可视化组件：
+1. K线图系统
+   - 支持MA/SMA/EMA等均线类型
+   - 布林带/通道线绘制
+   - 分时图/蜡烛图切换
+
+2. 成交量图表
+   - 涨跌颜色自定义
+   - 量价联动分析
+   - 滚动平均成交量
+
+3. 指标分析图
+   - MACD/RSI/KDJ 等指标
+   - 多周期对比
+   - 自定义指标公式
 ## 3.3. 2.3 实时通信模块
 功能：支持前端与后端的实时数据通信。
 子模块：

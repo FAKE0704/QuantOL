@@ -19,14 +19,13 @@ class BaostockDataSource(DataSource):
             os.makedirs(cache_dir)
 
     async def load_data(self, symbol: str, start_date: str, end_date: str, frequency: Optional[str] = None) -> pd.DataFrame:
-        """从API获取"""
+        """从baostock获取"""
         from services.progress_service import progress_service
         
         freq = frequency if frequency is not None else self.default_frequency
         task_id = f"{symbol}_{freq}_load"
         progress_service.start_task(task_id, 1)
         
-        # 从API获取数据
         lg = bs.login()
         if lg.error_code != '0':
             progress_service.end_task(task_id)

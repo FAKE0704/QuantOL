@@ -1,4 +1,4 @@
-import psycopg2
+import asyncpg
 import logging
 from typing import Optional
 import pandas as pd
@@ -26,6 +26,9 @@ class DatabaseManager:
             'password': password
         }
         self._initialized = False
+        self.pool = None  # 异步连接池
+        self.max_pool_size = 20  # 最大连接数
+        self.query_timeout = 30  # 查询超时时间（秒）
         
     def _init_logger(self):
         """Initialize logger configuration"""
@@ -39,71 +42,78 @@ class DatabaseManager:
         )
         self.logger = logging.getLogger(__name__)
 
-    def _get_connection(self):
-        """获取数据库连接，自动初始化连接"""
-        try:
-            if not self.connection or self.connection.closed:
-                if not self._initialized:
-                    self.logger.debug("Initializing database connection")
-                    self._init_db()
-                    self._initialized = True
-                
-                self.logger.debug(f"Creating new connection to {self.connection_config['host']}")
-                self.connection = psycopg2.connect(
-                    **self.connection_config,
-                    connect_timeout=5,
-                    keepalives=1,
-                    keepalives_idle=30,
-                    keepalives_interval=10,
-                    keepalives_count=3
-                )
-                self.connection.autocommit = True
 
-            self.logger.debug("Using existing connection")
-            return self.connection
-        except Exception as e:
-            self.logger.error(f"Failed to get database connection: {str(e)}")
-            raise
+    async def initialize(self):
+        """异步初始化整个模块"""
+        await self._create_pool()
+        await self._init_db_tables()
 
-    def _init_db(self):
-        """Initialize database and tables"""
-        try:
-            # Check if database exists
-            self.logger.info("Checking if database 'quantdb' exists")
-            admin_conn = psycopg2.connect(**self.admin_config)
-            admin_conn.autocommit = True
-            with admin_conn.cursor() as cursor:
-                cursor.execute("SELECT 1 FROM pg_database WHERE datname='quantdb'")
-                exists = cursor.fetchone()
-                
-                if not exists:
-                    self.logger.info("Database 'quantdb' does not exist, creating it")
-                    cursor.execute("CREATE DATABASE quantdb")
-                    self.logger.info("Database 'quantdb' created successfully")
-            
-            # Connect to target database
-            self.connection = psycopg2.connect(**self.connection_config)
-            
-            # Create tables
-            self.logger.info("Initializing database tables")
-            self._init_tables(self.connection)
-            self.logger.info("Database tables initialized successfully")
-            
-        except Exception as e:
-            self.logger.error(f"Database initialization failed: {str(e)}")
-            raise
+    async def _create_pool(self):
+        """创建连接池"""
+        if not self.pool:
+            valid_config = {
+                "database": self.connection_config["dbname"],  # 关键修改点
+                "user": self.connection_config["user"],
+                "password": self.connection_config["password"],
+                "host": self.connection_config["host"],
+                "port": self.connection_config.get("port",5432)
+            }
+            self.pool = await asyncpg.create_pool(
+                **valid_config,
+                min_size=5,
+                max_size=self.max_pool_size,
+                command_timeout=self.query_timeout
+            )
+
+    async def _init_db_tables(self):
+        """异步初始化表结构"""
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                # debug
+                # await conn.execute(
+                #     """
+                #     DROP TABLE StockData;
+                #     """
+                # )
+                await conn.execute("""
+                    CREATE TABLE IF NOT EXISTS StockData (
+                        id SERIAL PRIMARY KEY,
+                        code VARCHAR(20) NOT NULL,
+                        date DATE NOT NULL,
+                        time TIME NOT NULL,
+                        open NUMERIC NOT NULL,
+                        high NUMERIC NOT NULL,
+                        low NUMERIC NOT NULL,
+                        close NUMERIC NOT NULL,
+                        volume NUMERIC NOT NULL,
+                        amount NUMERIC,
+                        adjustflag VARCHAR(10),
+                        frequency VARCHAR(10) NOT NULL,
+                        UNIQUE (code, date, time, frequency)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS StockInfo (
+                        code VARCHAR(20) PRIMARY KEY,
+                        code_name VARCHAR(50) NOT NULL,
+                        ipoDate DATE NOT NULL,
+                        outDate DATE,
+                        type VARCHAR(20),
+                        status VARCHAR(10) 
+                    );
+                """)
+                self.logger.info("数据库表结构初始化完成")
 
     def _init_tables(self, connection):
         """Initialize database tables"""
         with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                DROP TABLE StockInfo;
+            # cursor.execute(
+            #     """
+            #     DROP TABLE StockInfo;
                 
-                DROP TABLE StockData;
+            #     DROP TABLE StockData;
 
-                """
-            )
+            #     """
+            # )
 
             cursor.execute(
                 """
@@ -134,38 +144,41 @@ class DatabaseManager:
             )
         connection.commit()
 
-    def save_stock_info(self, code: str, code_name: str, ipo_date: str, 
-                      stock_type: str, status: str, out_date: Optional[str] = None) -> bool:
-        """保存股票基本信息"""
+    async def _get_connection(self):
+        """异步获取数据库连接"""
         try:
-            query = """
-                INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (code) DO UPDATE SET
-                    code_name = EXCLUDED.code_name,
-                    ipoDate = EXCLUDED.ipoDate,
-                    outDate = EXCLUDED.outDate,
-                    type = EXCLUDED.type,
-                    status = EXCLUDED.status
-            """
-            with self._get_connection().cursor() as cursor:
-                cursor.execute(query, (
-                    code, 
-                    code_name,
-                    ipo_date,
-                    out_date,
-                    stock_type,
-                    status
-                ))
-            self.connection.commit()
-            self.logger.info(f"成功保存股票基本信息: {code}")
-            return True
+            await self.initialize()  # 确保连接池已初始化
+            return self.pool.acquire()  # 获取单个连接
         except Exception as e:
-            self.logger.error(f"保存股票信息失败: {str(e)}")
-            self.connection.rollback()
+            self.logger.error(f"Failed to get database connection: {str(e)}")
             raise
 
-    def check_data_completeness(self, symbol: str, start_date: str, end_date: str) -> list:
+    async def save_stock_info(self, code: str, code_name: str, ipo_date: str, 
+                      stock_type: str, status: str, out_date: Optional[str] = None) -> bool:
+        """异步保存股票基本信息到StockInfo表"""
+        try:
+            async with await self._get_connection() as conn:
+                await conn.execute("""
+                    INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    ON CONFLICT (code) DO UPDATE SET
+                        code_name = $2,
+                        ipoDate = $3,
+                        outDate = $4,
+                        type = $5,
+                        status = $6
+                """, code, code_name, ipo_date, out_date, stock_type, status)
+                self.logger.info(f"成功保存股票基本信息: {code}")
+                return True
+        except Exception as e:
+            self.logger.error(f"保存股票信息失败: {str(e)}")
+            raise
+
+    async def check_data_completeness(self, symbol: str, start_date: str, end_date: str) -> list:
+        """异步检查数据完整性"""
+        if not self.pool:
+            await self._create_pool()
+
         """检查指定日期范围内的数据完整性，返回缺失日期区间，自动排除节假日"""
         try:
             self.logger.info(f"Checking data completeness for {symbol} from {start_date} to {end_date}")
@@ -175,17 +188,16 @@ class DatabaseManager:
             end_dt = pd.to_datetime(end_date).date()
             
             # 使用上下文管理器获取连接
-            with self._get_connection() as conn:
-                with conn.cursor() as cursor:
-                    # 获取数据库中已有日期
-                    query = """
-                        SELECT DISTINCT date 
-                        FROM StockData
-                        WHERE code = %s AND date BETWEEN %s AND %s
-                        ORDER BY date
-                    """
-                    cursor.execute(query, (symbol, start_date, end_date))
-                    existing_dates = set(pd.to_datetime(row[0]).date() for row in cursor.fetchall())
+            async with await self._get_connection() as conn:
+                # 获取数据库中已有日期
+                query = """
+                    SELECT DISTINCT date 
+                    FROM StockData
+                    WHERE code = $1 AND date BETWEEN $2 AND $3
+                    ORDER BY date
+                """
+                rows = await conn.fetch(query, symbol, start_date, end_date)
+                existing_dates = {pd.to_datetime(row["date"]).date() for row in rows}
                     
                 # 生成理论交易日集合（排除节假日）
                 all_dates = pd.date_range(start_dt, end_dt, freq='B')  # 工作日
@@ -223,44 +235,46 @@ class DatabaseManager:
             raise
 
     async def load_stock_data(self, symbol: str, start_date: str, end_date: str, frequency: str) -> pd.DataFrame:
-        """Load stock data from database, fetch missing data from Baostock if needed"""
+        """Load stock data from database, fetch missing data from Baostock and save in database if needed"""
         try:
-            if not self.connection or self.connection.closed:
-                self.connection = psycopg2.connect(**self.connection_config)
-                
             self.logger.info(f"Loading stock data for {symbol} from {start_date} to {end_date}")
             
             # Check data completeness
-            missing_ranges = self.check_data_completeness(symbol, start_date, end_date)
+            missing_ranges = await self.check_data_completeness(symbol, start_date, end_date)
             
             # Fetch missing data ranges from Baostock
             if missing_ranges:
                 self.logger.info(f"Fetching missing data ranges for {symbol}")  #bug:获取数据但没有存入数据库
                 from .baostock_source import BaostockDataSource
                 data_source = BaostockDataSource(frequency)
+                data = pd.DataFrame()
                 for range_start, range_end in missing_ranges:
-                    self.logger.info(f"Fetching data from {range_start} to {range_end}")
-                    await data_source.load_data(symbol, range_start, range_end, frequency)
-            
+                    self.logger.info(f"Fetching data from {range_start} to {range_end}") 
+                    new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
+                    await self.save_stock_data(symbol, new_data, frequency)
+                    data = pd.concat([data, new_data])
+
+            # save stock data into table Stockdata
+
             # Load complete data from database
             query = """
                 SELECT date, time, code, open, high, low, close, volume, amount, adjustflag
                 FROM StockData
-                WHERE code = %s
-                AND date BETWEEN %s AND %s
-                AND frequency = %s
+                WHERE code = $1
+                AND date BETWEEN $2 AND $3
+                AND frequency = $4
                 ORDER BY date
             """
             
-            with self.connection.cursor() as cursor:
-                cursor.execute(query, (symbol, start_date, end_date, frequency))
-                rows = cursor.fetchall()
+            async with await self._get_connection() as conn:
+                rows = await conn.fetch(query, symbol, start_date, end_date, frequency)
+                
                 
                 if not rows:
                     self.logger.warning(f"No data found for {symbol} in specified date range")
                     return pd.DataFrame()
-                
-                df = pd.DataFrame(rows, columns=['date', 'time', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount', 'adjustflag'])
+                data = [dict(row) for row in rows]
+                df = pd.DataFrame(data, columns=['date', 'time', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount', 'adjustflag'])
                 df['date'] = pd.to_datetime(df['date'])
                 
                 self.logger.info(f"Successfully loaded {len(df)} rows for {symbol}")
@@ -282,8 +296,8 @@ class DatabaseManager:
         """
         return Stock(code, self)
 
-    def get_all_stocks(self) -> pd.DataFrame:
-        """获取所有股票信息
+    async def get_all_stocks(self) -> pd.DataFrame:
+        """异步获取所有股票信息
         1. 若数据库表StockInfo是最新，则返回StockInfo数据库表的所有数据
         2. 若数据库表StockInfo不是最新，则调用baostock_source.py的get_all_stocks方法更新数据
         Returns:
@@ -291,45 +305,38 @@ class DatabaseManager:
         """
         try:
             # 检查数据是否最新
-            if self._is_stock_info_up_to_date():
-                query = "SELECT * FROM StockInfo"
-                with self._get_connection().cursor() as cursor:
-                    cursor.execute(query)
-                    columns = [desc[0] for desc in cursor.description]
-                    data = cursor.fetchall()
-                    return pd.DataFrame(data, columns=columns)
+            if await self._is_stock_info_up_to_date():
+                async with await self._get_connection() as conn:
+                    rows = await conn.fetch("SELECT * FROM StockInfo")
+                    return pd.DataFrame(rows, columns=['code', 'code_name', 'ipoDate', 'outDate', 'type', 'status'])
             else:
                 # 调用baostock_source更新数据
                 from .baostock_source import BaostockDataSource
                 data_source = BaostockDataSource()
-                df = data_source._get_all_stocks()
+                df = await data_source._get_all_stocks()
                 # 将数据保存到数据库
                 st.write(df) # debug
-                self._update_stock_info(df)
+                await self._update_stock_info(df)
                 return df
         except Exception as e:
             self.logger.error(f"获取所有股票信息失败: {str(e)}")
             raise
 
-    def _is_stock_info_up_to_date(self) -> bool:
-        """检查StockInfo表是否最新"""
+    async def _is_stock_info_up_to_date(self) -> bool:
+        """异步检查StockInfo表是否最新"""
         try:
-            # 耗时巨久。。。
-            query = """
-                SELECT MAX(ipoDate) as latest_ipo 
-                FROM StockInfo
-            """
-            with self._get_connection().cursor() as cursor:
-                cursor.execute(query) 
-                latest_ipo = cursor.fetchone()[0]
+            async with await self._get_connection() as conn:
+                latest_ipo = await conn.fetchval("""
+                    SELECT MAX(ipoDate) FROM StockInfo
+                """)
                 # 如果最新IPO日期在最近30天内，则认为数据是最新的
                 return (pd.Timestamp.now() - pd.Timestamp(latest_ipo)) < pd.Timedelta(days=30)
         except Exception as e:
             self.logger.error(f"检查StockInfo表状态失败: {str(e)}")
             return False
 
-    def _validate_stock_info(self, row: pd.Series) -> tuple:
-        """验证并转换股票信息格式"""
+    async def _validate_stock_info(self, row: pd.Series) -> tuple:
+        """异步验证并转换股票信息格式"""
         try:
             # 验证必填字段
             required_fields = ['code', 'code_name', 'ipoDate', 'type', 'status']
@@ -366,14 +373,14 @@ class DatabaseManager:
             self.logger.error(f"数据验证失败: {str(e)} - 行数据: {row.to_dict()}")
             raise
 
-    def _update_stock_info(self, df: pd.DataFrame) -> tuple:
-        """更新StockInfo表数据
+    async def _update_stock_info(self, df: pd.DataFrame) -> tuple:
+        """异步更新StockInfo表数据
         返回: (成功插入行数, 失败行数)
         """
         valid_data = []
         invalid_rows = []
         
-        # 先验证所有数据，这里遍历验证没有效率
+        # 先验证所有数据
         for idx, row in df.iterrows():
             try:
                 validated_data = self._validate_stock_info(row)
@@ -387,64 +394,115 @@ class DatabaseManager:
             return 0, len(df)
             
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cursor:
+            async with await self._get_connection() as conn:
+                async with conn.transaction():
                     # 清空现有数据
                     self.logger.debug("Truncating StockInfo table")
-                    cursor.execute("TRUNCATE TABLE StockInfo")
+                    await conn.execute("TRUNCATE TABLE StockInfo")
                     
                     # 执行批量插入
                     self.logger.debug(f"Inserting {len(valid_data)} rows into StockInfo")
-                    cursor.executemany("""
+                    await conn.executemany("""
                         INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        VALUES ($1, $2, $3, $4, $5, $6)
                     """, valid_data)
-                    
-                    conn.commit()
                     
             self.logger.info(f"成功更新StockInfo表数据，成功插入{len(valid_data)}行，失败{len(invalid_rows)}行")
             return len(valid_data), len(invalid_rows)
             
         except Exception as e:
-            conn.rollback()
             self.logger.error(f"批量插入失败: {str(e)}")
             raise
 
-    def get_stock_info(self, code: str) -> dict:
-        """获取股票完整信息"""
+    async def get_stock_info(self, code: str) -> dict:
+        """异步获取股票完整信息"""
         try:
-            query = """
-                SELECT code_name, ipoDate, outDate, type, status 
-                FROM StockInfo 
-                WHERE code = %s
-            """
-            with self._get_connection().cursor() as cursor:
-                cursor.execute(query, (code,))
-                result = cursor.fetchone()
+            async with await self._get_connection() as conn:
+                row = await conn.fetchrow("""
+                    SELECT code_name, ipoDate, outDate, type, status 
+                    FROM StockInfo 
+                    WHERE code = $1
+                """, code)
                 
-                if not result:
+                if not row:
                     return {}
                     
                 return {
-                    "code_name": result[0],
-                    "ipo_date": result[1].strftime("%Y-%m-%d"),
-                    "out_date": result[2].strftime("%Y-%m-%d") if result[2] else None,
-                    "type": result[3],
-                    "status": result[4]
+                    "code_name": row['code_name'],
+                    "ipo_date": row['ipodate'].strftime("%Y-%m-%d"),
+                    "out_date": row['outdate'].strftime("%Y-%m-%d") if row['outdate'] else None,
+                    "type": row['type'],
+                    "status": row['status']
                 }
         except Exception as e:
             self.logger.error(f"获取股票信息失败: {str(e)}")
             raise
 
 
-    def get_stock_name(self, code: str) -> str:
-        """根据股票代码获取名称"""
+    async def get_stock_name(self, code: str) -> str:
+        """异步根据股票代码获取名称"""
         try:
-            query = "SELECT code_name FROM StockInfo WHERE code = %s"
-            with self._get_connection().cursor() as cursor:
-                cursor.execute(query, (code,))
-                result = cursor.fetchone()
-                return result[0] if result else ""
+            async with await self._get_connection() as conn:
+                row = await conn.fetchrow("""
+                    SELECT code_name FROM StockInfo WHERE code = $1
+                """, code)
+                return row['code_name'] if row else ""
         except Exception as e:
             self.logger.error(f"获取股票名称失败: {str(e)}")
+            raise
+
+    async def save_stock_data(self, symbol: str, data: pd.DataFrame, frequency: str) -> bool:
+        """异步保存股票数据到StockData表
+        
+        Args:
+            symbol: 股票代码
+            data: 包含股票数据的DataFrame
+            frequency: 数据频率 (如 '5' 表示5分钟线，'d' 表示日线)
+            
+        Returns:
+            bool: 是否成功保存
+        """
+        try:
+            # 将DataFrame转换为适合插入的格式
+
+            records = data.to_dict('records')
+            insert_data = [
+                (
+                    symbol,
+                    record['date'],
+                    record['time'],
+                    record['open'],
+                    record['high'],
+                    record['low'],
+                    record['close'],
+                    record['volume'],
+                    record.get('amount'),
+                    record.get('adjustflag'),
+                    frequency
+                )
+                for record in records
+            ]
+
+            async with await self._get_connection() as conn:
+                await conn.executemany("""
+                    INSERT INTO StockData (
+                        code, date, time, open, high, low, close, 
+                        volume, amount, adjustflag, frequency
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                    ON CONFLICT (code, date, time, frequency) DO UPDATE SET
+                        open = EXCLUDED.open,
+                        high = EXCLUDED.high,
+                        low = EXCLUDED.low,
+                        close = EXCLUDED.close,
+                        volume = EXCLUDED.volume,
+                        amount = EXCLUDED.amount,
+                        adjustflag = EXCLUDED.adjustflag
+                """, insert_data)
+                
+            self.logger.info(f"成功保存{symbol}的{frequency}频率数据，共{len(insert_data)}条记录")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"保存股票数据失败: {str(e)}")
             raise

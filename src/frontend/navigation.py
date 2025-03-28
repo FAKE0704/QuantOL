@@ -7,9 +7,9 @@ def show_navigation():
     # 样式注入
     st.markdown("""
     <style>
-        [data-testid="stSidebar"] { padding: 20px !important; }
+        [data-testid="stSidebar"] { padding: 5px !important; }
         .stRadio > div { padding: 10px 0; }
-        .stButton > button { width: 100%; margin-top: 20px; }
+        .stButton > button { width: 100%; margin-top: 10px; }
     </style>
     """, unsafe_allow_html=True)
 

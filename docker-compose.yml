@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   postgres:
@@ -33,8 +32,28 @@ services:
     depends_on:
       - postgres
 
+  quant-web:
+    image: streamlit_app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    environment:
+      - DATABASE_URL=postgresql://quant:quant123@postgres:5432/quantdb
+      - STREAMLIT_SERVER_PORT=8501
+    ports:
+      - "8082:8501"
+    volumes:
+      - ./src:/app/src
+      - streamlit_cache:/app/.streamlit
+    depends_on:
+      - postgres
+    networks:
+      - quant_network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  streamlit_cache:
 
 networks:
   quant_network:

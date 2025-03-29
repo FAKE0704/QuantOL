@@ -1,8 +1,6 @@
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
-from tqdm import tqdm
-import time
 import pandas as pd
 from pandas import Series
 from core.strategy.strategy import Strategy 
@@ -67,12 +65,7 @@ class BackTesting:
         last_buy_index = 0
 
         # 对于时刻i，如果有signal，signal是否用了i时数据？——不该用
-        for i in tqdm(
-            range(1, len(_self.Strategy.Data.data)),
-            desc="进度条",
-            unit="%",
-            leave=False,
-        ):
+        for i in range(1, len(_self.Strategy.Data.data)):
 
             # 计算买入量buytrade -----先写一个简单的买入卖出
             buytrade = fixed_position * 100  # 买入股数
@@ -239,12 +232,7 @@ class BackTesting:
         last_buy_index = 0
 
         # 对于时刻i，如果有signal，signal是否用了i时数据？——不该用
-        for i in tqdm(
-            range(1, len(_self.Strategy.Data.data)),
-            desc="进度条",
-            unit="%",
-            leave=False,
-        ):
+        for i in range(1, len(_self.Strategy.Data.data)):
 
             # 计算买入量buytrade -----先写一个简单的买入卖出
             buytrade = fixed_position * 100  # 买入股数
@@ -347,12 +335,7 @@ class BackTesting:
         # 对于时刻i，如果有signal，signal是否用了i时数据？——不该用
         _self.Strategy.Data.data.loc[:, "date"] = pd.to_datetime(_self.Strategy.Data.data["date"])
 
-        for i in tqdm(
-            range(1, len(_self.Strategy.Data.data)),
-            desc="进度条",
-            unit="%",
-            leave=False,
-        ):
+        for i in range(1, len(_self.Strategy.Data.data)):
 
             # 计算买入量buytrade -----先写一个简单的买入卖出
             buytrade = fixed_position * 100  # 买入股数

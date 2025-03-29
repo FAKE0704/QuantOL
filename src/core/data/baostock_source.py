@@ -2,6 +2,7 @@ import pandas as pd
 import baostock as bs
 from .data_source import DataSource, DataSourceError
 from typing import Optional
+
 from core.data.database import DatabaseManager
 import os
 

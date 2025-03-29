@@ -7,7 +7,7 @@ from .stock import Stock
 import streamlit as st# debug
 
 class DatabaseManager:
-    def __init__(self, host='113.45.40.20', port=8080, dbname='quantdb', 
+    def __init__(self, host='113.45.40.20', port='8080', dbname='quantdb', 
                  user='quant', password='quant123', admin_db='quantdb'):
         self.connection = None
         self._init_logger()
@@ -56,7 +56,7 @@ class DatabaseManager:
                 "user": self.connection_config["user"],
                 "password": self.connection_config["password"],
                 "host": self.connection_config["host"],
-                "port": self.connection_config.get("port",5432)
+                "port": self.connection_config.get("port",'5432')
             }
             self.pool = await asyncpg.create_pool(
                 **valid_config,

@@ -1,13 +1,45 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from core.strategy.backtesting import BackTesting
+from datetime import datetime
+from core.strategy.backtesting import  BacktestEngine
+from core.strategy.backtesting import  BacktestConfig
+from core.strategy.events import ScheduleEvent, SignalEvent
+from core.strategy.event_handlers import handle_schedule, handle_signal
+from services.stock_search import StockSearchService
 
-def show_backtesting_page():
+
+async def show_backtesting_page():
     st.title("策略回测")
     
-    # 股票选择
-    stock_code = st.text_input("输入股票代码", value="600519")
+
+    # 初始化服务
+    search_service = StockSearchService()
+    await search_service.async_init()
+
+    # 股票搜索（带筛选的下拉框）
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        # 初始化缓存
+        if 'stock_cache' not in st.session_state or st.session_state.stock_cache is None:
+            with st.spinner("正在加载股票列表..."):
+                try:
+                    st.session_state.stock_cache = await search_service.get_all_stocks()
+                    st.session_state.last_stock_update = time.time()
+                except Exception as e:
+                    st.error(f"加载股票列表失败: {str(e)}")
+                    st.session_state.stock_cache = []
+        
+        selected = st.selectbox(
+            "搜索并选择股票",
+            options=st.session_state.stock_cache,
+            format_func=lambda x: f"{x[0]} {x[1]}",
+            help="输入股票代码或名称进行筛选"
+        )
+    with col2:
+        if st.button("🔄 刷新列表", help="点击手动更新股票列表"):
+            st.session_state.stock_cache = None
+            st.rerun()
     
     # 时间范围选择
     col1, col2 = st.columns(2)
@@ -19,21 +51,21 @@ def show_backtesting_page():
     # 策略选择
     strategy = st.selectbox(
         "选择回测策略",
-        options=["移动平均线交叉", "MACD交叉", "RSI超买超卖"]
+        options=["日定投","移动平均线交叉", "MACD交叉", "RSI超买超卖"]
     )
     
     # 策略参数设置
-    if strategy == "移动平均线交叉":
-        short_period = st.slider("短期均线周期", min_value=5, max_value=30, value=10)
-        long_period = st.slider("长期均线周期", min_value=20, max_value=100, value=50)
-    elif strategy == "MACD交叉":
-        fast_period = st.slider("快速EMA周期", min_value=5, max_value=26, value=12)
-        slow_period = st.slider("慢速EMA周期", min_value=10, max_value=50, value=26)
-        signal_period = st.slider("信号线周期", min_value=5, max_value=20, value=9)
-    elif strategy == "RSI超买超卖":
-        period = st.slider("RSI周期", min_value=5, max_value=30, value=14)
-        overbought = st.slider("超买阈值", min_value=60, max_value=90, value=70)
-        oversold = st.slider("超卖阈值", min_value=10, max_value=40, value=30)
+    # if strategy == "移动平均线交叉":
+    #     short_period = st.slider("短期均线周期", min_value=5, max_value=30, value=10)
+    #     long_period = st.slider("长期均线周期", min_value=20, max_value=100, value=50)
+    # elif strategy == "MACD交叉":
+    #     fast_period = st.slider("快速EMA周期", min_value=5, max_value=26, value=12)
+    #     slow_period = st.slider("慢速EMA周期", min_value=10, max_value=50, value=26)
+    #     signal_period = st.slider("信号线周期", min_value=5, max_value=20, value=9)
+    # elif strategy == "RSI超买超卖":
+    #     period = st.slider("RSI周期", min_value=5, max_value=30, value=14)
+    #     overbought = st.slider("超买阈值", min_value=60, max_value=90, value=70)
+    #     oversold = st.slider("超卖阈值", min_value=10, max_value=40, value=30)
     
     # 回测参数
     initial_capital = st.number_input("初始资金(元)", min_value=10000, value=100000)
@@ -41,6 +73,8 @@ def show_backtesting_page():
     
     if st.button("开始回测"):
         # 准备回测参数
+        st.write(selected)
+
         params = {
             "strategy": strategy,
             "start_date": start_date,
@@ -49,41 +83,73 @@ def show_backtesting_page():
             "commission_rate": commission_rate
         }
         
-        if strategy == "移动平均线交叉":
-            params.update({
-                "short_period": short_period,
-                "long_period": long_period
-            })
-        elif strategy == "MACD交叉":
-            params.update({
-                "fast_period": fast_period,
-                "slow_period": slow_period,
-                "signal_period": signal_period
-            })
-        elif strategy == "RSI超买超卖":
-            params.update({
-                "period": period,
-                "overbought": overbought,
-                "oversold": oversold
-            })
+        # if strategy == "移动平均线交叉":
+        #     params.update({
+        #         "short_period": short_period,
+        #         "long_period": long_period
+        #     })
+        # elif strategy == "MACD交叉":
+        #     params.update({
+        #         "fast_period": fast_period,
+        #         "slow_period": slow_period,
+        #         "signal_period": signal_period
+        #     })
+        # elif strategy == "RSI超买超卖":
+        #     params.update({
+        #         "period": period,
+        #         "overbought": overbought,
+        #         "oversold": oversold
+        #     })
         
-        # 运行回测
-        result = run_backtest(stock_code, **params)
+        # 初始化回测配置
+        backtest_config = BacktestConfig(
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            target_symbol=selected[0],
+            initial_capital=initial_capital,
+            commission=commission_rate
+        )
         
-        if result is not None:
-            st.success("回测完成！")
+        # 初始化事件引擎
+        engine = BacktestEngine(config=backtest_config)
+        
+        # 注册事件处理器
+        engine.register_handler(ScheduleEvent, handle_schedule)
+        engine.register_handler(SignalEvent, handle_signal)
+        
+        # 生成初始化事件
+        signal = SignalEvent(
+            strategy_id=1,
+            confidence=1,
+            timestamp=datetime.now(),
+            signal_type="INIT",
+            parameters=params
+        )
+        engine.push_event(signal)
+        
+        # 启动事件循环
+        with st.spinner("回测进行中..."):
+            engine.run(start_date, end_date)
             
-            # 显示回测结果
-            st.subheader("回测结果")
-            st.dataframe(result["summary"])
+            # 获取回测结果
+            results = engine.get_results()
+            equity_curve = engine.get_equity_curve()
             
-            # 绘制净值曲线
-            st.subheader("净值曲线")
-            fig = px.line(result["equity_curve"], x='date', y='equity', title="净值曲线")
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # 显示交易记录
-            st.subheader("交易记录")
-            st.dataframe(result["trades"])
-        else:
-            st.error("回测失败，请检查输入参数")
+            if results:
+                st.success("回测完成！")
+                
+                # 显示回测结果
+                st.subheader("回测结果")
+                st.dataframe(results["summary"])
+                
+                # 绘制净值曲线
+                st.subheader("净值曲线")
+                
+                fig = px.line(equity_curve, x='dates', y='values', title="净值曲线")
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # 显示交易记录
+                st.subheader("交易记录")
+                st.dataframe(results["trades"])
+            else:
+                st.error("回测失败，请检查输入参数")

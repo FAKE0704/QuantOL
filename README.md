@@ -290,6 +290,28 @@ TradeHistory 交易历史表
   - 支持手动刷新股票列表
   - 异步加载历史数据
   - 数据加载进度提示
+
+## 2.5 回测模块 core/backtest/
+示例用法：
+```python
+# 创建配置实例
+config = BacktestConfig(
+    start_date="2020-01-01",
+    end_date="2023-01-01",
+    target_symbol="000300.SH",
+    monthly_investment=1000,
+    stop_loss=0.05,
+    take_profit=0.1
+)
+
+# 序列化为JSON
+config_json = config.to_json()
+
+# 从JSON反序列化
+new_config = BacktestConfig.from_json(config_json)
+```
+
+
 ## 3.2. 2.2 数据可视化模块
 功能：将数据和交易结果以可视化形式展示。
 

@@ -20,7 +20,7 @@ async def main():
     elif page == "技术指标":
         show_indicators_page()
     elif page == "回测":
-        show_backtesting_page()
+        await show_backtesting_page()
     elif page == "交易管理":
         show_trading_page()
     elif page == "系统设置":

@@ -28,6 +28,7 @@ class BaseEvent:
 class ScheduleEvent(BaseEvent):
     """定时任务事件"""
     def __init__(self, timestamp: datetime, schedule_type: str, historical_data: pd.DataFrame):
+        """传入(时间，定时类型，历史数据)"""
         super().__init__(timestamp, 'SCHEDULE')
         self.schedule_type = schedule_type
         self.historical_data = historical_data

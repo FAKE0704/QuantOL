@@ -36,7 +36,9 @@ class BaostockDataSource(DataSource):
             fields = "date,time,code,open,high,low,close,volume,amount,adjustflag"
         else:
             fields = "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST"
-            
+        
+        print(start_date)
+        print(end_date)
         rs = bs.query_history_k_data_plus(
             symbol,
             fields,

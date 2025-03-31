@@ -5,6 +5,7 @@ import pandas as pd
 import chinese_calendar as calendar
 from .stock import Stock
 import streamlit as st# debug
+from datetime import datetime
 
 class DatabaseManager:
     def __init__(self, host='113.45.40.20', port='8080', dbname='quantdb', 
@@ -184,8 +185,10 @@ class DatabaseManager:
             self.logger.info(f"Checking data completeness for {symbol} from {start_date} to {end_date}")
             
             # 转换输入日期
-            start_dt = pd.to_datetime(start_date).date()
-            end_dt = pd.to_datetime(end_date).date()
+            start_dt = datetime.strptime(start_date, "%Y%m%d") # datetime.date()
+            end_dt = datetime.strptime(end_date, "%Y%m%d")
+            # start_dt = pd.to_datetime(start_date).date() # datetime.date()
+            # end_dt = pd.to_datetime(end_date).date()
             
             # 使用上下文管理器获取连接
             async with await self._get_connection() as conn:
@@ -196,7 +199,7 @@ class DatabaseManager:
                     WHERE code = $1 AND date BETWEEN $2 AND $3
                     ORDER BY date
                 """
-                rows = await conn.fetch(query, symbol, start_date, end_date)
+                rows = await conn.fetch(query, symbol, start_dt, end_dt)
                 existing_dates = {pd.to_datetime(row["date"]).date() for row in rows}
                     
                 # 生成理论交易日集合（排除节假日）
@@ -218,14 +221,14 @@ class DatabaseManager:
                     
                     for current_date in sorted_dates[1:]:
                         if (current_date - prev_date).days > 1:  # 出现断点
-                            missing_ranges.append((range_start.strftime('%Y-%m-%d'), 
-                                                 prev_date.strftime('%Y-%m-%d')))
+                            missing_ranges.append((range_start.strftime('%Y%m%d'), 
+                                                 prev_date.strftime('%Y%m%d')))
                             range_start = current_date
                         prev_date = current_date
                     
                     # 添加最后一个区间
-                    missing_ranges.append((range_start.strftime('%Y-%m-%d'), 
-                                         prev_date.strftime('%Y-%m-%d')))
+                    missing_ranges.append((range_start.strftime('%Y%m%d'), 
+                                         prev_date.strftime('%Y%m%d')))
                 
                 self.logger.info(f"Found {len(missing_ranges)} missing data ranges for {symbol}")
                 return missing_ranges
@@ -242,6 +245,9 @@ class DatabaseManager:
             # Check data completeness
             missing_ranges = await self.check_data_completeness(symbol, start_date, end_date)
             
+            start_dt = datetime.strptime(start_date, "%Y%m%d") # datetime.date()
+            end_dt = datetime.strptime(end_date, "%Y%m%d")
+
             # Fetch missing data ranges from Baostock
             if missing_ranges:
                 self.logger.info(f"Fetching missing data ranges for {symbol}")  #bug:获取数据但没有存入数据库
@@ -249,7 +255,8 @@ class DatabaseManager:
                 data_source = BaostockDataSource(frequency)
                 data = pd.DataFrame()
                 for range_start, range_end in missing_ranges:
-                    self.logger.info(f"Fetching data from {range_start} to {range_end}") 
+                    self.logger.info(f"Fetching data from {range_start} to {range_end}")
+                    # st.write(symbol, range_start, range_end, frequency) # debug 
                     new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
                     await self.save_stock_data(symbol, new_data, frequency)
                     data = pd.concat([data, new_data])
@@ -267,7 +274,7 @@ class DatabaseManager:
             """
             
             async with await self._get_connection() as conn:
-                rows = await conn.fetch(query, symbol, start_date, end_date, frequency)
+                rows = await conn.fetch(query, symbol, start_dt, end_dt, frequency)
                 
                 
                 if not rows:

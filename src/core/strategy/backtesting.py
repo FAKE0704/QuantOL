@@ -107,7 +107,7 @@ class BacktestEngine:
         self.last_equity_date = None
 
     def register_handler(self, event_type: Type, handler):
-        """注册事件处理器"""
+        """根据时间类型，注册事件处理器。"""
         self.handlers[event_type] = handler
 
     def push_event(self, event):

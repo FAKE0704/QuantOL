@@ -59,7 +59,11 @@ async def show_history_page():
             
             try:
                 # 获取历史数据
-                data = await db.load_stock_data(stock_code, start_date, end_date, frequency)
+                
+                start_date = start_date.strftime("%Y%m%d") 
+                end_date = end_date.strftime("%Y%m%d")
+                # st.write(stock_code, start_date, end_date, frequency) # debug
+                data = await db.load_stock_data(stock_code, start_date, end_date, frequency) 
                 status.update(label="数据获取成功!", state="complete")
             except Exception as e:
                 status.update(label=f"获取失败: {str(e)}", state="error")

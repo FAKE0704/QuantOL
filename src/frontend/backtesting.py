@@ -4,9 +4,11 @@ import plotly.express as px
 from datetime import datetime
 from core.strategy.backtesting import  BacktestEngine
 from core.strategy.backtesting import  BacktestConfig
+from core.data.database import DatabaseManager
 from core.strategy.events import ScheduleEvent, SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from services.stock_search import StockSearchService
+import time
 
 
 async def show_backtesting_page():
@@ -16,6 +18,7 @@ async def show_backtesting_page():
     # 初始化服务
     search_service = StockSearchService()
     await search_service.async_init()
+    db = DatabaseManager()
 
     # 股票搜索（带筛选的下拉框）
     col1, col2 = st.columns([3, 1])
@@ -72,40 +75,19 @@ async def show_backtesting_page():
     commission_rate = st.number_input("交易佣金(%)", min_value=0.0, max_value=1.0, value=0.03)
     
     if st.button("开始回测"):
-        # 准备回测参数
-        st.write(selected)
+        symbol = selected[0]
+        frequency = "5"
+        start_date=start_date.strftime("%Y-%m-%d")
+        end_date=end_date.strftime("%Y-%m-%d")
 
-        params = {
-            "strategy": strategy,
-            "start_date": start_date,
-            "end_date": end_date,
-            "initial_capital": initial_capital,
-            "commission_rate": commission_rate
-        }
-        
-        # if strategy == "移动平均线交叉":
-        #     params.update({
-        #         "short_period": short_period,
-        #         "long_period": long_period
-        #     })
-        # elif strategy == "MACD交叉":
-        #     params.update({
-        #         "fast_period": fast_period,
-        #         "slow_period": slow_period,
-        #         "signal_period": signal_period
-        #     })
-        # elif strategy == "RSI超买超卖":
-        #     params.update({
-        #         "period": period,
-        #         "overbought": overbought,
-        #         "oversold": oversold
-        #     })
-        
+        # st.write(selected) # debug
+        data = await db.load_stock_data(symbol, start_date, end_date, frequency) 
+
         # 初始化回测配置
         backtest_config = BacktestConfig(
-            start_date=start_date.strftime("%Y-%m-%d"),
-            end_date=end_date.strftime("%Y-%m-%d"),
-            target_symbol=selected[0],
+            start_date=start_date,
+            end_date=end_date,
+            target_symbol=symbol,
             initial_capital=initial_capital,
             commission=commission_rate
         )
@@ -118,13 +100,20 @@ async def show_backtesting_page():
         engine.register_handler(SignalEvent, handle_signal)
         
         # 生成初始化事件
+        schedule = ScheduleEvent(
+            timestamp=datetime.now(),
+            schedule_type="INIT",
+            historical_data=data 
+        )
+
         signal = SignalEvent(
             strategy_id=1,
-            confidence=1,
             timestamp=datetime.now(),
             signal_type="INIT",
-            parameters=params
+            parameters=backtest_config, #
+            confidence=1
         )
+
         engine.push_event(signal)
         
         # 启动事件循环

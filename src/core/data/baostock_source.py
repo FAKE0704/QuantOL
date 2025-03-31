@@ -5,6 +5,7 @@ from typing import Optional
 
 from core.data.database import DatabaseManager
 import os
+from datetime import datetime
 
 class BaostockDataSource(DataSource):
     """Baostock数据源实现"""
@@ -21,6 +22,9 @@ class BaostockDataSource(DataSource):
 
     async def load_data(self, symbol: str, start_date: str, end_date: str, frequency: Optional[str] = None) -> pd.DataFrame:
         """从baostock获取"""
+        start_date = datetime.strptime(start_date, "%Y%m%d").strftime("%Y-%m-%d")
+        end_date = datetime.strptime(end_date, "%Y%m%d").strftime("%Y-%m-%d")
+
         from services.progress_service import progress_service
         
         freq = frequency if frequency is not None else self.default_frequency
@@ -37,8 +41,8 @@ class BaostockDataSource(DataSource):
         else:
             fields = "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST"
         
-        print(start_date)
-        print(end_date)
+        # print(start_date) # debug
+        # print(end_date) # debug
         rs = bs.query_history_k_data_plus(
             symbol,
             fields,
@@ -46,7 +50,7 @@ class BaostockDataSource(DataSource):
             end_date=end_date,
             frequency=freq,
             adjustflag="3"
-        )
+        ) # 日期格式需要为 2025-02-02
         
         if rs.error_code != '0':
             bs.logout()

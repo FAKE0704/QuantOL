@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Optional, Dict, Any, List, Type
 import json
-from .events import ScheduleEvent, SignalEvent
+from core.strategy.events import ScheduleEvent, SignalEvent
 import pandas as pd
+import streamlit as st
 
 @dataclass
 class BacktestConfig:
@@ -29,6 +29,7 @@ class BacktestConfig:
     start_date: str
     end_date: str
     target_symbol: str
+    frequency:str
     monthly_investment: Optional[float] = None
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
@@ -46,7 +47,7 @@ class BacktestConfig:
             raise ValueError("手续费率不能为负")
         if self.slippage < 0:
             raise ValueError("滑点率不能为负")
-        if datetime.strptime(self.start_date, "%Y-%m-%d") > datetime.strptime(self.end_date, "%Y-%m-%d"):
+        if datetime.strptime(self.start_date, "%Y%m%d") > datetime.strptime(self.end_date, "%Y%m%d"):
             raise ValueError("开始日期不能晚于结束日期")
         if self.monthly_investment is not None and self.monthly_investment <= 0:
             raise ValueError("定投金额必须大于0")
@@ -96,19 +97,26 @@ class BacktestEngine:
         self.config = config
         self.event_queue = []
         self.handlers = {}
-        self.strategy = None
-        self.market_data = None
+        self.strategies = []  # 改为支持多个策略
+        self.data = None
         self.trades = []
         self.results = {}
         self.current_capital = config.initial_capital
         self.positions = {}
         self.errors = []
-        self.equity_history = {"dates": [], "values": []}  # 初始化净值记录
+        self.equity_history = {"date": [], "value": []}  # 初始化净值记录
         self.last_equity_date = None
+        self.current_month = None  # 跟踪当前月份
 
     def register_handler(self, event_type: Type, handler):
-        """根据时间类型，注册事件处理器。"""
+        """注册事件处理器"""
         self.handlers[event_type] = handler
+
+    def register_strategy(self, strategy):
+        """注册策略实例"""
+        if not hasattr(strategy, 'handle_event'):
+            raise ValueError("策略必须实现handle_event方法")
+        self.strategies.append(strategy)
 
     def push_event(self, event):
         """添加事件到队列"""
@@ -116,18 +124,38 @@ class BacktestEngine:
 
     def run(self, start_date: datetime, end_date: datetime):
         """执行事件循环"""
-        current_date = start_date
+        current_date = start_date # timestamp
+        end_date = end_date # timestamp
+        # 明确指定日期时间格式
+        self.data['time'] = pd.to_datetime(self.data['time'].astype(str), format='%Y%m%d %H%M%S')
+        if self.data is None:
+            raise ValueError("请先调用load_data()加载数据")
         
         # 记录初始净值
-        if not self.equity_history["dates"]:
-            self.equity_history["dates"].append(current_date.strftime("%Y-%m-%d"))
-            self.equity_history["values"].append(self.config.initial_capital)
+        if not self.equity_history["date"]:
+            self.equity_history["date"].append(current_date) # timestamp
+            self.equity_history["value"].append(self.config.initial_capital)
         
-        while current_date <= end_date:
+        while current_date <= end_date: # 遍历日期，触发策略
+            # 每月首个交易日触发定投
+            if current_date.month != self.current_month:
+                first_trading_day = self.get_first_trading_day_of_month(current_date)
+                if first_trading_day is not None:
+                    monthly_event = ScheduleEvent(
+                        timestamp=first_trading_day,
+                        schedule_type="MONTHLY"
+                    )
+                    self.push_event(monthly_event)
+                    self.current_month = current_date.month
+                    
+                    # 处理当月定投事件
+                    for strategy in self.strategies:
+                        strategy.handle_event(self, monthly_event)
+            
             # 记录当日开盘净值
-            if current_date != self.last_equity_date:
-                self.equity_history["dates"].append(current_date.strftime("%Y-%m-%d"))
-                self.equity_history["values"].append(self.current_capital)
+            if current_date != self.last_equity_date: # 没到最后一天
+                self.equity_history["date"].append(current_date.strftime("%Y-%m-%d"))
+                self.equity_history["value"].append(self.current_capital)
                 self.last_equity_date = current_date
             
             # 处理当日事件
@@ -142,13 +170,52 @@ class BacktestEngine:
                     except Exception as e:
                         self.log_error(f"处理事件失败: {str(e)}")
             
-            # 移动到下个交易日
-            current_date += timedelta(days=1)
+            # 只处理交易日
+            if current_date in self.data.index:
+                # 获取当前价格
+                current_price = self.data.loc[current_date, 'close']
+                self.current_price = current_price
+                
+                # 处理当日事件
+                while self.event_queue:
+                    event = self.event_queue.pop(0)
+                    handler = self.handlers.get(type(event))
+                    if handler:
+                        try:
+                            handler(event)
+                        except Exception as e:
+                            self.log_error(f"处理事件失败: {str(e)}")
+                
+                # 记录当日净值
+                if current_date != self.last_equity_date:
+                    self.equity_history["date"].append(current_date.strftime("%Y-%m-%d"))
+                    self.equity_history["value"].append(self.current_capital)
+                    self.last_equity_date = current_date
+            
+            # 获取下一个有效交易日
+            next_dates = self.data[self.data.time > current_date]['time']
+            current_date = next_dates.iloc[0] if len(next_dates) > 0 else current_date + timedelta(days=1)
         
         # 确保最后一天净值被记录
-        if self.equity_history["dates"][-1] != end_date.strftime("%Y-%m-%d"):
-            self.equity_history["dates"].append(end_date.strftime("%Y-%m-%d"))
-            self.equity_history["values"].append(self.current_capital)
+        if self.equity_history["date"][-1] != end_date.strftime("%Y-%m-%d"):
+            self.equity_history["date"].append(end_date.strftime("%Y-%m-%d"))
+            self.equity_history["value"].append(self.current_capital)
+
+    def get_first_trading_day_of_month(self, date):
+        """获取某个月份的第一个交易日"""
+        month_start = date.replace(day=1)
+        # 确保数据索引是DatetimeIndex
+        if not isinstance(self.data.index, pd.DatetimeIndex):
+            self.data.index = pd.to_datetime(self.data['time'])
+        
+        # 获取该月所有交易日
+        try:
+            trading_days = self.data.loc[month_start:month_start + pd.DateOffset(months=1)].index
+            return trading_days[0] if len(trading_days) > 0 else None
+        except KeyError:
+            # 如果指定日期不在数据范围内，返回该月第一个有效交易日
+            trading_days = self.data.loc[self.data.index >= month_start].index
+            return trading_days[0] if len(trading_days) > 0 else None
 
     def get_results(self) -> Dict:
         """获取回测结果"""
@@ -169,9 +236,17 @@ class BacktestEngine:
         # 实现数据获取逻辑
         pass
 
-    def update_market_data(self, data):
-        """更新市场数据"""
-        self.market_data = data
+    async def load_data(self, symbol: str):
+        """从数据源加载数据"""
+        from core.data.baostock_source import BaostockDataSource
+        ds = BaostockDataSource()
+        self.data = await ds.load_data(
+            symbol=symbol,
+            start_date=self.config.start_date,
+            end_date=self.config.end_date,
+            frequency=self.config.frequency
+        )
+        return self.data
 
     def create_order(self, symbol: str, quantity: int, side: str, price: float):
         """创建交易订单"""
@@ -216,6 +291,6 @@ class BacktestEngine:
         """获取净值曲线数据"""
 
         return pd.DataFrame({
-            "dates": self.equity_history["dates"],
-            "values": self.equity_history["values"]
+            "date": self.equity_history["date"],
+            "value": self.equity_history["value"]
         })

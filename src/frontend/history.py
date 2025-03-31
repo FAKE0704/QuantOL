@@ -12,10 +12,9 @@ from ipywidgets import VBox
 async def show_history_page():
     st.title("历史行情")
     
-    # 初始化服务
-    search_service = StockSearchService()
-    await search_service.async_init()
-    db = DatabaseManager()
+    # 使用全局服务实例
+    db = st.session_state.db
+    search_service = st.session_state.search_service
     
     # 股票搜索（带筛选的下拉框）
     col1, col2 = st.columns([3, 1])

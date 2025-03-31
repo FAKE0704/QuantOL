@@ -52,7 +52,17 @@ def initialize_navigation():
     """
     初始化导航栏
     """
-    st.set_page_config(page_title="量化交易系统", layout="wide")
+    st.set_page_config(
+        page_icon="🧊",
+        page_title="量化交易系统",
+        layout="wide",
+        initial_sidebar_state="expanded",
+        menu_items={
+            'Get Help': 'https://www.extremelycoolapp.com/help',
+            'Report a bug': "https://www.extremelycoolapp.com/bug",
+            'About': "# This is a header. This is an *extremely* cool app!"
+        }
+    )
     page = show_navigation()
     show_user_status()
     return page

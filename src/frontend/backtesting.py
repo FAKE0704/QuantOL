@@ -4,10 +4,12 @@ import plotly.express as px
 from datetime import datetime
 from core.strategy.backtesting import  BacktestEngine
 from core.strategy.backtesting import  BacktestConfig
+from services.chart_service import  ChartService
 from core.data.database import DatabaseManager
 from core.strategy.events import ScheduleEvent, SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from services.stock_search import StockSearchService
+from core.strategy.strategy import FixedInvestmentStrategy
 import time
 
 
@@ -54,7 +56,7 @@ async def show_backtesting_page():
     # 策略选择
     strategy = st.selectbox(
         "选择回测策略",
-        options=["日定投","移动平均线交叉", "MACD交叉", "RSI超买超卖"]
+        options=["月定投","移动平均线交叉", "MACD交叉", "RSI超买超卖"]
     )
     
     # 策略参数设置
@@ -77,16 +79,17 @@ async def show_backtesting_page():
     if st.button("开始回测"):
         symbol = selected[0]
         frequency = "5"
-        start_date=start_date.strftime("%Y-%m-%d")
-        end_date=end_date.strftime("%Y-%m-%d")
+        start_date=start_date.strftime("%Y%m%d")
+        end_date=end_date.strftime("%Y%m%d")
 
-        # st.write(selected) # debug
-        data = await db.load_stock_data(symbol, start_date, end_date, frequency) 
-
+        st.write(symbol, start_date, end_date, frequency) # debug
+        
+        
         # 初始化回测配置
         backtest_config = BacktestConfig(
             start_date=start_date,
             end_date=end_date,
+            frequency=frequency,
             target_symbol=symbol,
             initial_capital=initial_capital,
             commission=commission_rate
@@ -94,35 +97,31 @@ async def show_backtesting_page():
         
         # 初始化事件引擎
         engine = BacktestEngine(config=backtest_config)
-        
+        data = await engine.load_data(symbol)
+        st.write(data) # debug
         # 注册事件处理器
         engine.register_handler(ScheduleEvent, handle_schedule)
         engine.register_handler(SignalEvent, handle_signal)
         
-        # 生成初始化事件
-        schedule = ScheduleEvent(
-            timestamp=datetime.now(),
-            schedule_type="INIT",
-            historical_data=data 
-        )
-
-        signal = SignalEvent(
-            strategy_id=1,
-            timestamp=datetime.now(),
-            signal_type="INIT",
-            parameters=backtest_config, #
-            confidence=1
-        )
-
-        engine.push_event(signal)
+        # 初始化策略
+        if strategy == "月定投":
+            fixed_strategy = FixedInvestmentStrategy(
+                Data=data,
+                name="月定投策略",
+                buySignal=True,
+                sellSignal=False
+            )
+             # fixed_  应该要生成event到队列
+            engine.register_strategy(fixed_strategy)
         
         # 启动事件循环
         with st.spinner("回测进行中..."):
-            engine.run(start_date, end_date)
+
+            engine.run(pd.to_datetime(start_date), pd.to_datetime(end_date))
             
             # 获取回测结果
             results = engine.get_results()
-            equity_curve = engine.get_equity_curve()
+            equity_data = engine.get_equity_curve()
             
             if results:
                 st.success("回测完成！")
@@ -133,10 +132,13 @@ async def show_backtesting_page():
                 
                 # 绘制净值曲线
                 st.subheader("净值曲线")
-                
-                fig = px.line(equity_curve, x='dates', y='values', title="净值曲线")
+                chart_service = ChartService(equity_data.rename(columns={
+                    'dates': 'date',
+                    'values': 'value'
+                }))
+                fig = chart_service.draw_equity()
                 st.plotly_chart(fig, use_container_width=True)
-                
+                        
                 # 显示交易记录
                 st.subheader("交易记录")
                 st.dataframe(results["trades"])

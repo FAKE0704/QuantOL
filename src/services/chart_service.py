@@ -133,6 +133,28 @@ class ChartService:
         ))
         return fig
 
+    def draw_equity(self) -> go.Figure:
+        """绘制净值曲线图（包含回撤）"""
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=self.data['date'],
+            y=self.data['value'],
+            name='净值曲线',
+            line=dict(color='#1f77b4', width=2)
+        ))
+        
+        # if drawdown_data is not None:
+        #     fig.add_trace(go.Scatter(
+        #         x=drawdown_data['date'],
+        #         y=drawdown_data['drawdown'],
+        #         fill='tozeroy',
+        #         fillcolor='rgba(255, 0, 0, 0.2)',
+        #         line=dict(width=0),
+        #         name='回撤区间'
+        #     ))
+        
+        return fig
+
     def drawMACD(self, fast=12, slow=26, signal=9):
         """
         绘制MACD指标

@@ -256,7 +256,7 @@ class DatabaseManager:
                 data = pd.DataFrame()
                 for range_start, range_end in missing_ranges:
                     self.logger.info(f"Fetching data from {range_start} to {range_end}")
-                    # st.write(symbol, range_start, range_end, frequency) # debug 
+                    st.write(symbol, range_start, range_end, frequency) # debug 
                     new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
                     await self.save_stock_data(symbol, new_data, frequency)
                     data = pd.concat([data, new_data])

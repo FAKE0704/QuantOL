@@ -27,17 +27,18 @@ class BaseEvent:
 @dataclass
 class ScheduleEvent(BaseEvent):
     """定时任务事件"""
-    def __init__(self, timestamp: datetime, schedule_type: str, historical_data: pd.DataFrame):
-        """传入(时间，定时类型，历史数据)"""
+    def __init__(self, timestamp: datetime, schedule_type: str): # , parameters: dict
+        """传入(时间，定时类型)"""
         super().__init__(timestamp, 'SCHEDULE')
         self.schedule_type = schedule_type
-        self.historical_data = historical_data
+        # self.parameters = parameters
+        
 
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
         data.update({
-            'schedule_type': self.schedule_type,
-            'historical_data': self.historical_data.to_dict(orient='records')
+            'schedule_type': self.schedule_type
+            
         })
         return data
 
@@ -45,9 +46,9 @@ class ScheduleEvent(BaseEvent):
     def from_dict(cls, data: Dict[str, Any]) -> 'ScheduleEvent':
         return cls(
             timestamp=datetime.fromisoformat(data['timestamp']),
-            schedule_type=data['schedule_type'],
-            historical_data=pd.DataFrame(data['historical_data'])
-        )
+            schedule_type=data['schedule_type']
+            )
+        
 
 @dataclass
 class SignalEvent(BaseEvent):

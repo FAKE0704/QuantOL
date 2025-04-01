@@ -1,1132 +1,492 @@
-[2025-03-28 13:38:31,515] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
-[2025-03-28 13:38:34,849] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
-[2025-03-28 13:38:37,217] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
-[2025-03-28 13:38:37,795] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
-[2025-03-28 13:42:57,595] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
-[2025-03-28 13:42:59,639] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
-[2025-03-28 13:43:00,193] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
-[2025-03-28 13:44:33,615] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:44:42,712] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:44:47,672] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:44:48,354] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:48:55,905] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:48:58,282] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:48:58,737] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:48:58,776] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:48:58,805] [ERROR] [database] 检查StockInfo表状态失败: 'PoolConnectionProxy' object does not support the asynchronous context manager protocol
-[2025-03-28 13:49:01,146] [ERROR] [database] 获取所有股票信息失败: object DataFrame can't be used in 'await' expression
-[2025-03-28 13:52:29,364] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:52:31,271] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:52:31,667] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:52:31,711] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:52:31,731] [ERROR] [database] 检查StockInfo表状态失败: 'PoolConnectionProxy' object does not support the asynchronous context manager protocol
-[2025-03-28 13:52:33,869] [ERROR] [database] 获取所有股票信息失败: object DataFrame can't be used in 'await' expression
-[2025-03-28 13:53:42,235] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:53:45,222] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:53:47,107] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:53:47,488] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:53:47,532] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:53:47,616] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:53:52,419] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:53:56,834] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:53:58,698] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:54:00,417] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:54:01,103] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:54:01,201] [ERROR] [database] Failed to load stock data: name 'psycopg2' is not defined
-[2025-03-28 13:58:59,950] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:59:03,034] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:59:03,120] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 13:59:03,121] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 13:59:03,126] [ERROR] [database] Failed to load stock data: 'coroutine' object is not iterable
-[2025-03-28 13:59:40,959] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:59:42,534] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 13:59:42,624] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 13:59:42,625] [ERROR] [database] Failed to load stock data: 'DatabaseManager' object has no attribute 'create_pool'
-[2025-03-28 14:00:33,186] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:00:35,268] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:00:35,357] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:00:35,657] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:00:35,672] [ERROR] [database] 检查数据完整性失败: 'coroutine' object does not support the context manager protocol
-[2025-03-28 14:00:35,672] [ERROR] [database] Failed to load stock data: 'coroutine' object does not support the context manager protocol
-[2025-03-28 14:01:27,502] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:01:28,796] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:01:28,886] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:01:29,167] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:01:29,188] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:01:29,226] [ERROR] [database] 检查数据完整性失败: 'Pool' object has no attribute 'cursor'
-[2025-03-28 14:01:29,226] [ERROR] [database] Failed to load stock data: 'Pool' object has no attribute 'cursor'
-[2025-03-28 14:04:44,619] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:04:47,030] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:04:47,138] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:04:47,439] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:04:47,464] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:04:47,488] [ERROR] [database] 检查数据完整性失败: Connection.cursor() missing 1 required positional argument: 'query'
-[2025-03-28 14:04:47,489] [ERROR] [database] Failed to load stock data: Connection.cursor() missing 1 required positional argument: 'query'
-[2025-03-28 14:09:19,856] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:09:21,199] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:09:23,273] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:09:29,538] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:09:31,567] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:09:33,098] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:09:33,670] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:09:33,763] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:09:34,187] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:09:34,207] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:09:34,240] [ERROR] [database] 检查数据完整性失败: 'Connection' object has no attribute 'fetchall'
-[2025-03-28 14:09:34,240] [ERROR] [database] Failed to load stock data: 'Connection' object has no attribute 'fetchall'
-[2025-03-28 14:12:55,026] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:12:56,873] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:12:56,970] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:12:57,303] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:12:57,321] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:12:57,372] [ERROR] [database] 检查数据完整性失败: Connection.fetch() missing 1 required positional argument: 'query'
-[2025-03-28 14:12:57,373] [ERROR] [database] Failed to load stock data: Connection.fetch() missing 1 required positional argument: 'query'
-[2025-03-28 14:16:24,833] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:16:26,621] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:16:26,740] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:16:27,064] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:16:27,083] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:16:27,154] [ERROR] [database] 检查数据完整性失败: syntax error at or near "%"
-[2025-03-28 14:16:27,155] [ERROR] [database] Failed to load stock data: syntax error at or near "%"
-[2025-03-28 14:17:11,591] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:17:13,604] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:17:13,694] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:17:14,052] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:17:14,068] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:17:14,110] [INFO] [database] Found 2 missing data ranges for sh.600622
-[2025-03-28 14:17:14,119] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 14:17:14,125] [INFO] [database] Fetching data from 2025-03-12 to 2025-03-14
-[2025-03-28 14:17:15,409] [ERROR] [database] Failed to load stock data: 'DatabaseManager' object has no attribute 'save_stock_data'
-[2025-03-28 14:26:15,115] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:26:18,082] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:26:18,190] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:26:18,906] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:26:18,935] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:26:18,989] [INFO] [database] Found 2 missing data ranges for sh.600622
-[2025-03-28 14:26:19,002] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 14:26:19,012] [INFO] [database] Fetching data from 2025-03-12 to 2025-03-14
-[2025-03-28 14:26:19,349] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:26:19,401] [ERROR] [database] 保存股票数据失败: invalid input for query argument $2 in element #0 of executemany() sequence: '2025-03-12' ('str' object has no attribute 'toordinal')
-[2025-03-28 14:26:19,401] [ERROR] [database] Failed to load stock data: invalid input for query argument $2 in element #0 of executemany() sequence: '2025-03-12' ('str' object has no attribute 'toordinal')
-[2025-03-28 14:28:33,875] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:28:36,233] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:28:36,333] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:28:36,824] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:28:36,855] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:28:36,909] [INFO] [database] Found 2 missing data ranges for sh.600622
-[2025-03-28 14:28:36,920] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 14:28:36,926] [INFO] [database] Fetching data from 2025-03-12 to 2025-03-14
-[2025-03-28 14:28:37,217] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:28:37,340] [ERROR] [database] 保存股票数据失败: there is no unique or exclusion constraint matching the ON CONFLICT specification
-[2025-03-28 14:28:37,341] [ERROR] [database] Failed to load stock data: there is no unique or exclusion constraint matching the ON CONFLICT specification
-[2025-03-28 14:32:12,629] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:32:14,847] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:32:14,963] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:32:15,588] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:32:15,607] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:32:15,650] [INFO] [database] Found 2 missing data ranges for sh.600622
-[2025-03-28 14:32:15,659] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 14:32:15,665] [INFO] [database] Fetching data from 2025-03-12 to 2025-03-14
-[2025-03-28 14:32:15,953] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:32:16,016] [ERROR] [database] 保存股票数据失败: there is no unique or exclusion constraint matching the ON CONFLICT specification
-[2025-03-28 14:32:16,016] [ERROR] [database] Failed to load stock data: there is no unique or exclusion constraint matching the ON CONFLICT specification
-[2025-03-28 14:35:41,468] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:35:45,112] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:35:45,246] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:35:45,994] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:35:46,017] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:35:46,071] [INFO] [database] Found 2 missing data ranges for sh.600622
-[2025-03-28 14:35:46,082] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 14:35:46,091] [INFO] [database] Fetching data from 2025-03-12 to 2025-03-14
-[2025-03-28 14:35:46,376] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:35:46,441] [ERROR] [database] 保存股票数据失败: there is no unique or exclusion constraint matching the ON CONFLICT specification
-[2025-03-28 14:35:46,442] [ERROR] [database] Failed to load stock data: there is no unique or exclusion constraint matching the ON CONFLICT specification
-[2025-03-28 14:39:15,515] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:39:20,901] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:39:26,316] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:39:29,818] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:39:31,734] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:39:32,444] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:39:32,544] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:39:33,050] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:39:33,095] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:39:33,136] [INFO] [database] Found 2 missing data ranges for sh.600622
-[2025-03-28 14:39:33,149] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 14:39:33,156] [INFO] [database] Fetching data from 2025-03-12 to 2025-03-14
-[2025-03-28 14:39:36,571] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:39:36,649] [INFO] [database] 成功保存sh.600622的5频率数据，共144条记录
-[2025-03-28 14:39:36,650] [ERROR] [database] Failed to load stock data: cannot access local variable 'data' where it is not associated with a value
-[2025-03-28 14:41:06,304] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:41:08,698] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:41:08,796] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:41:09,336] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:41:09,358] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:41:09,398] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-28 14:41:09,409] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 14:41:09,416] [INFO] [database] Fetching data from 2025-03-17 to 2025-03-19
-[2025-03-28 14:41:09,750] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:41:09,817] [INFO] [database] 成功保存sh.600622的5频率数据，共144条记录
-[2025-03-28 14:41:09,819] [ERROR] [database] Failed to load stock data: 'coroutine' object has no attribute 'cursor'
-[2025-03-28 14:41:53,900] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:41:56,279] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:41:56,376] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:41:56,798] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:41:56,824] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:41:56,870] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 14:41:56,902] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:41:56,943] [ERROR] [database] Failed to load stock data: DataFrame constructor not properly called!
-[2025-03-28 14:44:47,874] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:44:56,059] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:44:56,171] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:44:57,094] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:44:57,113] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:44:57,165] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 14:44:57,196] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:44:57,247] [ERROR] [database] Failed to load stock data: syntax error at or near "%"
-[2025-03-28 14:45:19,389] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:45:22,982] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:45:23,077] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:45:23,461] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:45:23,481] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:45:23,529] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 14:45:23,568] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:45:23,607] [ERROR] [database] Failed to load stock data: the server expects 4 arguments for this query, 1 was passed
-HINT:  Check the query against the passed list of arguments.
-[2025-03-28 14:46:08,074] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:11,268] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:11,363] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:46:11,783] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 14:46:11,803] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:11,841] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 14:46:11,881] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:11,957] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-28 14:46:29,088] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:36,596] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:41,384] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:45,237] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:49,957] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:52,602] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:55,940] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:57,814] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:57,916] [INFO] [database] Loading stock data for sz.000977 from 2024-09-01 to 2025-03-27
-[2025-03-28 14:46:58,505] [INFO] [database] Checking data completeness for sz.000977 from 2024-09-01 to 2025-03-27
-[2025-03-28 14:46:58,527] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:58,599] [INFO] [database] Found 31 missing data ranges for sz.000977
-[2025-03-28 14:46:58,611] [INFO] [database] Fetching missing data ranges for sz.000977
-[2025-03-28 14:46:58,620] [INFO] [database] Fetching data from 2024-09-02 to 2024-09-06
-[2025-03-28 14:46:58,965] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:46:59,059] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:46:59,060] [INFO] [database] Fetching data from 2024-09-09 to 2024-09-13
-[2025-03-28 14:47:10,405] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:10,481] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:10,484] [INFO] [database] Fetching data from 2024-09-18 to 2024-09-20
-[2025-03-28 14:47:13,722] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:13,804] [INFO] [database] 成功保存sz.000977的5频率数据，共144条记录
-[2025-03-28 14:47:13,806] [INFO] [database] Fetching data from 2024-09-23 to 2024-09-27
-[2025-03-28 14:47:14,218] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:14,315] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:14,319] [INFO] [database] Fetching data from 2024-09-30 to 2024-09-30
-[2025-03-28 14:47:14,657] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:14,729] [INFO] [database] 成功保存sz.000977的5频率数据，共48条记录
-[2025-03-28 14:47:14,731] [INFO] [database] Fetching data from 2024-10-08 to 2024-10-11
-[2025-03-28 14:47:16,757] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:16,836] [INFO] [database] 成功保存sz.000977的5频率数据，共192条记录
-[2025-03-28 14:47:16,838] [INFO] [database] Fetching data from 2024-10-14 to 2024-10-18
-[2025-03-28 14:47:17,250] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:17,315] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:17,318] [INFO] [database] Fetching data from 2024-10-21 to 2024-10-25
-[2025-03-28 14:47:17,557] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:17,618] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:17,620] [INFO] [database] Fetching data from 2024-10-28 to 2024-11-01
-[2025-03-28 14:47:21,177] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:21,262] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:21,265] [INFO] [database] Fetching data from 2024-11-04 to 2024-11-08
-[2025-03-28 14:47:23,643] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:23,713] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:23,715] [INFO] [database] Fetching data from 2024-11-11 to 2024-11-15
-[2025-03-28 14:47:24,025] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:24,089] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:24,091] [INFO] [database] Fetching data from 2024-11-18 to 2024-11-22
-[2025-03-28 14:47:25,151] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:25,218] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:25,220] [INFO] [database] Fetching data from 2024-11-25 to 2024-11-29
-[2025-03-28 14:47:25,867] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:25,939] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:25,942] [INFO] [database] Fetching data from 2024-12-02 to 2024-12-06
-[2025-03-28 14:47:31,217] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:31,279] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:31,280] [INFO] [database] Fetching data from 2024-12-09 to 2024-12-13
-[2025-03-28 14:47:41,895] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:41,975] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:41,978] [INFO] [database] Fetching data from 2024-12-16 to 2024-12-20
-[2025-03-28 14:47:42,283] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:42,377] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:42,380] [INFO] [database] Fetching data from 2024-12-23 to 2024-12-27
-[2025-03-28 14:47:42,691] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:42,775] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:42,778] [INFO] [database] Fetching data from 2024-12-30 to 2024-12-31
-[2025-03-28 14:47:44,097] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:44,177] [INFO] [database] 成功保存sz.000977的5频率数据，共96条记录
-[2025-03-28 14:47:44,180] [INFO] [database] Fetching data from 2025-01-02 to 2025-01-03
-[2025-03-28 14:47:45,076] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:45,142] [INFO] [database] 成功保存sz.000977的5频率数据，共96条记录
-[2025-03-28 14:47:45,146] [INFO] [database] Fetching data from 2025-01-06 to 2025-01-10
-[2025-03-28 14:47:45,477] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:45,565] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:45,568] [INFO] [database] Fetching data from 2025-01-13 to 2025-01-17
-[2025-03-28 14:47:45,912] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:45,987] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:45,990] [INFO] [database] Fetching data from 2025-01-20 to 2025-01-24
-[2025-03-28 14:47:46,282] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:46,351] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:46,354] [INFO] [database] Fetching data from 2025-01-27 to 2025-01-27
-[2025-03-28 14:47:46,617] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:46,664] [INFO] [database] 成功保存sz.000977的5频率数据，共48条记录
-[2025-03-28 14:47:46,668] [INFO] [database] Fetching data from 2025-02-05 to 2025-02-07
-[2025-03-28 14:47:46,918] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:46,975] [INFO] [database] 成功保存sz.000977的5频率数据，共144条记录
-[2025-03-28 14:47:46,978] [INFO] [database] Fetching data from 2025-02-10 to 2025-02-14
-[2025-03-28 14:47:53,886] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:53,953] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:53,957] [INFO] [database] Fetching data from 2025-02-17 to 2025-02-21
-[2025-03-28 14:47:54,199] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:54,263] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:54,266] [INFO] [database] Fetching data from 2025-02-24 to 2025-02-28
-[2025-03-28 14:47:54,651] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:54,716] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:54,719] [INFO] [database] Fetching data from 2025-03-03 to 2025-03-07
-[2025-03-28 14:47:55,965] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:56,059] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:56,061] [INFO] [database] Fetching data from 2025-03-10 to 2025-03-14
-[2025-03-28 14:47:56,945] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:47:57,018] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:47:57,025] [INFO] [database] Fetching data from 2025-03-17 to 2025-03-21
-[2025-03-28 14:48:08,000] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:48:08,081] [INFO] [database] 成功保存sz.000977的5频率数据，共240条记录
-[2025-03-28 14:48:08,084] [INFO] [database] Fetching data from 2025-03-24 to 2025-03-27
-[2025-03-28 14:48:11,222] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:48:11,304] [INFO] [database] 成功保存sz.000977的5频率数据，共192条记录
-[2025-03-28 14:48:11,330] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 14:48:11,574] [INFO] [database] Successfully loaded 5940 rows for sz.000977
-[2025-03-28 15:13:46,792] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:13:49,200] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:13:49,295] [INFO] [database] Loading stock data for sz.000977 from 2024-09-01 to 2025-03-27
-[2025-03-28 15:13:49,581] [INFO] [database] Checking data completeness for sz.000977 from 2024-09-01 to 2025-03-27
-[2025-03-28 15:13:49,602] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:13:49,662] [INFO] [database] Found 0 missing data ranges for sz.000977
-[2025-03-28 15:13:49,696] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:13:49,874] [INFO] [database] Successfully loaded 5940 rows for sz.000977
-[2025-03-28 15:14:52,224] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:14:54,174] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:14:54,268] [INFO] [database] Loading stock data for sz.000977 from 2024-09-01 to 2025-03-27
-[2025-03-28 15:14:54,539] [INFO] [database] Checking data completeness for sz.000977 from 2024-09-01 to 2025-03-27
-[2025-03-28 15:14:54,559] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:14:54,618] [INFO] [database] Found 0 missing data ranges for sz.000977
-[2025-03-28 15:14:54,648] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:14:54,822] [INFO] [database] Successfully loaded 5940 rows for sz.000977
-[2025-03-28 15:16:48,032] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:14,171] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:18,914] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:21,216] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:23,573] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:24,313] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:24,407] [INFO] [database] Loading stock data for of.159001 from 2025-03-12 to 2025-03-20
-[2025-03-28 15:38:24,679] [INFO] [database] Checking data completeness for of.159001 from 2025-03-12 to 2025-03-20
-[2025-03-28 15:38:24,712] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:24,753] [INFO] [database] Found 2 missing data ranges for of.159001
-[2025-03-28 15:38:24,763] [INFO] [database] Fetching missing data ranges for of.159001
-[2025-03-28 15:38:24,770] [INFO] [database] Fetching data from 2025-03-12 to 2025-03-14
-[2025-03-28 15:38:24,981] [ERROR] [database] Failed to load stock data: 获取历史数据失败: 股票代码未标识sh或sz
-[2025-03-28 15:38:43,352] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:44,766] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:44,853] [INFO] [database] Loading stock data for sz.301586 from 2025-03-12 to 2025-03-20
-[2025-03-28 15:38:45,127] [INFO] [database] Checking data completeness for sz.301586 from 2025-03-12 to 2025-03-20
-[2025-03-28 15:38:45,147] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:45,187] [INFO] [database] Found 2 missing data ranges for sz.301586
-[2025-03-28 15:38:45,196] [INFO] [database] Fetching missing data ranges for sz.301586
-[2025-03-28 15:38:45,197] [INFO] [database] Fetching data from 2025-03-12 to 2025-03-14
-[2025-03-28 15:38:46,748] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:46,814] [INFO] [database] 成功保存sz.301586的5频率数据，共144条记录
-[2025-03-28 15:38:46,815] [INFO] [database] Fetching data from 2025-03-17 to 2025-03-20
-[2025-03-28 15:38:47,042] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:47,088] [INFO] [database] 成功保存sz.301586的5频率数据，共192条记录
-[2025-03-28 15:38:47,107] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:38:47,185] [INFO] [database] Successfully loaded 308 rows for sz.301586
-[2025-03-28 15:39:35,778] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:39:37,687] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:39:37,777] [INFO] [database] Loading stock data for sz.301586 from 2025-03-12 to 2025-03-20
-[2025-03-28 15:39:38,062] [INFO] [database] Checking data completeness for sz.301586 from 2025-03-12 to 2025-03-20
-[2025-03-28 15:39:38,083] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:39:38,135] [INFO] [database] Found 0 missing data ranges for sz.301586
-[2025-03-28 15:39:38,165] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:39:38,233] [INFO] [database] Successfully loaded 308 rows for sz.301586
-[2025-03-28 15:40:02,364] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:40:03,875] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:40:03,961] [INFO] [database] Loading stock data for sz.301586 from 2025-03-12 to 2025-03-20
-[2025-03-28 15:40:04,231] [INFO] [database] Checking data completeness for sz.301586 from 2025-03-12 to 2025-03-20
-[2025-03-28 15:40:04,250] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:40:04,288] [INFO] [database] Found 0 missing data ranges for sz.301586
-[2025-03-28 15:40:04,322] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 15:40:04,409] [INFO] [database] Successfully loaded 308 rows for sz.301586
-[2025-03-28 16:40:57,975] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:40:58,013] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:40:58,083] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:41:16,781] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:41:17,687] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:41:19,681] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:41:20,201] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:41:20,288] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-21
-[2025-03-28 16:41:20,593] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-21
-[2025-03-28 16:41:20,614] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:41:20,665] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-28 16:41:20,676] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-28 16:41:20,684] [INFO] [database] Fetching data from 2025-03-20 to 2025-03-21
-[2025-03-28 16:41:22,273] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:41:22,349] [INFO] [database] 成功保存sh.600622的5频率数据，共96条记录
-[2025-03-28 16:41:22,370] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 16:41:22,437] [INFO] [database] Successfully loaded 352 rows for sh.600622
-[2025-03-28 17:21:39,195] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:21:41,394] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:21:43,584] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:21:46,014] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:21:47,752] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:21:58,795] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:22:00,375] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:22:00,484] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:22:01,199] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:22:01,227] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:22:01,275] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 17:22:01,310] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:22:01,381] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-28 17:40:53,274] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:40:55,570] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:40:55,656] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:40:55,914] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:40:55,934] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:40:55,975] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 17:40:56,001] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:40:56,059] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-28 17:42:35,749] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:42:37,206] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:42:37,294] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:42:37,549] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:42:37,566] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:42:37,606] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 17:42:37,632] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:42:37,687] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-28 17:43:33,527] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:43:35,213] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:43:35,302] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:43:35,759] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:43:35,781] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:43:35,834] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 17:43:35,873] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:43:35,942] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-28 17:52:25,876] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:52:28,394] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:52:28,485] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:52:28,846] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 17:52:28,868] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:52:28,915] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 17:52:28,953] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 17:52:29,027] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-28 18:50:44,493] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:50:44,549] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:50:44,628] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:50:53,481] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:50:56,443] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:50:57,921] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:50:59,078] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:50:59,212] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 18:50:59,893] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 18:50:59,920] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:50:59,974] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 18:51:00,015] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:51:00,114] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-28 18:54:35,306] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:54:39,854] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:54:39,947] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 18:54:40,394] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 18:54:40,419] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:54:40,455] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 18:54:40,494] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:54:40,567] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-28 18:55:03,116] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:55:05,227] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:55:05,321] [INFO] [database] Loading stock data for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 18:55:05,762] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-12 to 2025-03-19
-[2025-03-28 18:55:05,783] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:55:05,824] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-28 18:55:05,853] [INFO] [database] 数据库表结构初始化完成
-[2025-03-28 18:55:05,914] [INFO] [database] Successfully loaded 264 rows for sh.600622
-[2025-03-30 06:06:33,918] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:33,967] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:34,038] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:38,675] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:39,352] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:39,450] [INFO] [database] Loading stock data for sh.600622 from 2025-03-30 to 2025-03-30
-[2025-03-30 06:06:39,691] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-30 to 2025-03-30
-[2025-03-30 06:06:39,714] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:39,759] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-30 06:06:39,789] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:39,865] [WARNING] [database] No data found for sh.600622 in specified date range
-[2025-03-30 06:06:44,270] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:44,774] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:44,859] [INFO] [database] Loading stock data for sh.600622 from 2025-03-21 to 2025-03-30
-[2025-03-30 06:06:45,090] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-21 to 2025-03-30
-[2025-03-30 06:06:45,113] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:06:45,159] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-30 06:06:45,170] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-30 06:06:45,186] [ERROR] [database] Failed to load stock data: No module named 'baostock'
-[2025-03-30 06:14:58,233] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:14:58,281] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:14:58,351] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:15:02,842] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:15:04,489] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:15:05,424] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:15:05,513] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-30
-[2025-03-30 06:15:05,757] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-30
-[2025-03-30 06:15:05,780] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:15:05,830] [INFO] [database] Found 3 missing data ranges for sh.600622
-[2025-03-30 06:15:05,841] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-30 06:15:05,881] [ERROR] [database] Failed to load stock data: No module named 'aiohttp'
-[2025-03-30 06:16:58,993] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:16:59,075] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-30
-[2025-03-30 06:16:59,314] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-30
-[2025-03-30 06:16:59,336] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:16:59,381] [INFO] [database] Found 3 missing data ranges for sh.600622
-[2025-03-30 06:16:59,391] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-30 06:17:03,971] [INFO] [database] Fetching data from 2025-03-03 to 2025-03-07
-[2025-03-30 06:17:04,232] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:17:04,325] [INFO] [database] 成功保存sh.600622的5频率数据，共240条记录
-[2025-03-30 06:17:04,326] [INFO] [database] Fetching data from 2025-03-10 to 2025-03-11
-[2025-03-30 06:17:04,536] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:17:04,582] [INFO] [database] 成功保存sh.600622的5频率数据，共96条记录
-[2025-03-30 06:17:04,583] [INFO] [database] Fetching data from 2025-03-24 to 2025-03-28
-[2025-03-30 06:17:04,801] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:17:04,857] [INFO] [database] 成功保存sh.600622的5频率数据，共240条记录
-[2025-03-30 06:17:04,874] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:17:04,938] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-30 06:17:16,681] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:17:17,027] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:17:17,077] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:17:17,152] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:21:04,733] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:21:34,986] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:21:36,099] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:21:36,670] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:21:40,445] [INFO] [database] 数据库表结构初始化完成
-[2025-03-30 06:21:42,865] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:47:48,528] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:47:48,616] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:47:48,705] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:47:50,980] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:47:54,930] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:47:55,767] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:48:00,172] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:48:03,274] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:48:08,342] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:48:16,688] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:48:27,588] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:48:27,772] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:51:33,507] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:51:35,061] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:51:38,634] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:51:40,535] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:51:42,759] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:57:31,842] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:59:45,620] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:59:51,298] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 02:59:52,434] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 03:47:29,750] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 03:47:32,094] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 04:04:38,758] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 04:04:41,281] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 04:05:35,274] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 04:06:04,869] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 04:06:05,863] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 04:19:55,331] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 04:19:56,315] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:03:30,816] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:03:32,261] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:06:33,513] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:06:34,790] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:07:41,210] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:07:42,526] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:12:17,342] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:12:18,184] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:13:23,231] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:13:24,255] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:14:40,202] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:14:41,179] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:15:23,627] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 05:15:24,525] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:46:39,673] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:46:39,730] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:46:39,803] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:46:45,881] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:46:48,043] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:46:48,895] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:46:49,004] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-31
-[2025-03-31 11:46:49,345] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-31
-[2025-03-31 11:46:49,375] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:46:49,430] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 11:46:49,439] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 11:46:50,316] [INFO] [database] Fetching data from 2025-03-31 to 2025-03-31
-[2025-03-31 11:46:50,508] [ERROR] [database] Failed to load stock data: 未获取到数据, symbol: sh.600622,start_date:2025-03-31, end_date:2025-03-31, frequency: 5
-[2025-03-31 11:47:01,926] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:03,929] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:04,571] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:04,651] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-31
-[2025-03-31 11:47:04,952] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-31
-[2025-03-31 11:47:04,970] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:05,011] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 11:47:05,030] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 11:47:05,031] [INFO] [database] Fetching data from 2025-03-31 to 2025-03-31
-[2025-03-31 11:47:05,180] [ERROR] [database] Failed to load stock data: 未获取到数据, symbol: sh.600622,start_date:2025-03-31, end_date:2025-03-31, frequency: 5
-[2025-03-31 11:47:11,348] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:17,830] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:18,018] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:27,449] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:28,704] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:28,786] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-31
-[2025-03-31 11:47:29,096] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-31
-[2025-03-31 11:47:29,116] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:47:29,163] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 11:47:29,178] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 11:47:29,180] [INFO] [database] Fetching data from 2025-03-31 to 2025-03-31
-[2025-03-31 11:47:29,360] [ERROR] [database] Failed to load stock data: 未获取到数据, symbol: sh.600622,start_date:2025-03-31, end_date:2025-03-31, frequency: 5
-[2025-03-31 11:49:03,457] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:49:05,661] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:49:05,753] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-31
-[2025-03-31 11:49:06,088] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-31
-[2025-03-31 11:49:06,109] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:49:06,152] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 11:49:06,167] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 11:49:06,177] [INFO] [database] Fetching data from 2025-03-31 to 2025-03-31
-[2025-03-31 11:49:06,322] [ERROR] [database] Failed to load stock data: 未获取到数据, symbol: sh.600622,start_date:2025-03-31, end_date:2025-03-31, frequency: 5
-[2025-03-31 11:51:21,746] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:51:23,379] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:52:48,687] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:52:50,237] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:53:07,419] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:53:08,839] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:53:25,839] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:53:28,437] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:54:20,786] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:54:22,574] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:54:22,659] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 11:54:22,910] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 11:54:22,955] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:54:22,990] [ERROR] [database] 检查数据完整性失败: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 11:54:22,991] [ERROR] [database] Failed to load stock data: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 11:56:41,387] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:56:44,142] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:56:44,246] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 11:56:44,734] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 11:56:44,783] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:56:44,838] [ERROR] [database] 检查数据完整性失败: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 11:56:44,839] [ERROR] [database] Failed to load stock data: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 11:59:28,040] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:59:30,721] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 11:59:30,822] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 11:59:31,359] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 11:59:31,361] [ERROR] [database] 检查数据完整性失败: strptime() argument 1 must be str, not Timestamp
-[2025-03-31 11:59:31,361] [ERROR] [database] Failed to load stock data: strptime() argument 1 must be str, not Timestamp
-[2025-03-31 12:00:07,873] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:00:12,036] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:00:12,159] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:00:12,963] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:00:12,983] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:00:13,041] [ERROR] [database] 检查数据完整性失败: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 12:00:13,042] [ERROR] [database] Failed to load stock data: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 12:01:06,857] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:01:08,841] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:01:08,928] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:01:09,244] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:01:09,262] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:01:09,300] [ERROR] [database] 检查数据完整性失败: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 12:01:09,301] [ERROR] [database] Failed to load stock data: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 12:02:34,435] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:02:39,550] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:02:39,652] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:02:40,076] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:02:40,099] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:02:40,154] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 12:02:40,176] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 12:02:40,181] [INFO] [database] Fetching data from 2025-03-31 to 2025-03-31
-[2025-03-31 12:02:40,902] [ERROR] [database] Failed to load stock data: 未获取到数据, symbol: sh.600622,start_date:2025-03-31, end_date:2025-03-31, frequency: 5
-[2025-03-31 12:05:10,156] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:05:12,235] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:05:12,330] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:05:12,780] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:05:12,815] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:05:12,860] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 12:05:12,877] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 12:05:12,883] [INFO] [database] Fetching data from 20250331 to 20250331
-[2025-03-31 12:05:13,048] [ERROR] [database] Failed to load stock data: 'NoneType' object has no attribute 'error_code'
-[2025-03-31 12:06:03,988] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:06:05,748] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:06:05,841] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:06:06,182] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:06:06,205] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:06:06,247] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 12:06:06,256] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 12:06:06,261] [INFO] [database] Fetching data from 20250331 to 20250331
-[2025-03-31 12:06:06,329] [ERROR] [database] Failed to load stock data: 'NoneType' object has no attribute 'error_code'
-[2025-03-31 12:06:52,199] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:06:54,466] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:06:54,565] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:06:55,032] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:06:55,049] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:06:55,089] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 12:06:55,098] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 12:06:55,103] [INFO] [database] Fetching data from 20250331 to 20250331
-[2025-03-31 12:06:55,171] [ERROR] [database] Failed to load stock data: 'NoneType' object has no attribute 'error_code'
-[2025-03-31 12:08:18,082] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:08:20,274] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:08:20,370] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:08:20,802] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:08:20,824] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:08:20,872] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 12:08:20,883] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 12:08:20,894] [INFO] [database] Fetching data from 20250331 to 20250331
-[2025-03-31 12:08:20,964] [ERROR] [database] Failed to load stock data: 'NoneType' object has no attribute 'error_code'
-[2025-03-31 12:08:55,508] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:08:56,905] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:08:56,993] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:08:57,349] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250331
-[2025-03-31 12:08:57,377] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:08:57,451] [INFO] [database] Found 1 missing data ranges for sh.600622
-[2025-03-31 12:08:57,461] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 12:08:57,472] [INFO] [database] Fetching data from 20250331 to 20250331
-[2025-03-31 12:08:57,536] [ERROR] [database] Failed to load stock data: 'NoneType' object has no attribute 'error_code'
-[2025-03-31 12:09:24,476] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:09:24,995] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:09:25,083] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250330
-[2025-03-31 12:09:25,367] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250330
-[2025-03-31 12:09:25,390] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:09:25,439] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 12:09:25,470] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:09:25,509] [ERROR] [database] Failed to load stock data: invalid input for query argument $2: '20250301' ('str' object has no attribute 'toordinal')
-[2025-03-31 12:11:49,962] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:11:51,466] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:11:51,567] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250330
-[2025-03-31 12:11:51,831] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250330
-[2025-03-31 12:11:51,852] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:11:51,909] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 12:11:51,953] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:11:52,062] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 12:12:05,309] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:12:09,900] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:25:21,681] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:25:24,027] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:25:24,065] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-30
-[2025-03-31 12:25:24,397] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-30
-[2025-03-31 12:25:24,398] [ERROR] [database] 检查数据完整性失败: strptime() argument 1 must be str, not datetime.date
-[2025-03-31 12:25:24,399] [ERROR] [database] Failed to load stock data: strptime() argument 1 must be str, not datetime.date
-[2025-03-31 12:27:03,837] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:27:05,070] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:27:05,108] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-30
-[2025-03-31 12:27:05,352] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-30
-[2025-03-31 12:27:05,353] [ERROR] [database] 检查数据完整性失败: time data '2025-03-01' does not match format '%Y%m%d'
-[2025-03-31 12:27:05,353] [ERROR] [database] Failed to load stock data: time data '2025-03-01' does not match format '%Y%m%d'
-[2025-03-31 12:33:10,651] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:33:10,692] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:33:10,763] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:33:32,474] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:33:36,419] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:33:38,772] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:33:40,011] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:33:41,875] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:33:42,565] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 12:34:35,258] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:14:55,201] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:14:55,255] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:14:55,345] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:14:57,617] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:15:02,234] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:15:04,221] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:15:05,953] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:15:09,073] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:15:09,273] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:15:09,301] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-29
-[2025-03-31 13:15:09,576] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-29
-[2025-03-31 13:15:09,577] [ERROR] [database] 检查数据完整性失败: time data '2025-03-01' does not match format '%Y%m%d'
-[2025-03-31 13:15:09,578] [ERROR] [database] Failed to load stock data: time data '2025-03-01' does not match format '%Y%m%d'
-[2025-03-31 13:16:05,418] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:16:06,673] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:16:06,714] [INFO] [database] Loading stock data for sh.600622 from 2025-03-01 to 2025-03-29
-[2025-03-31 13:16:06,968] [INFO] [database] Checking data completeness for sh.600622 from 2025-03-01 to 2025-03-29
-[2025-03-31 13:16:06,969] [ERROR] [database] 检查数据完整性失败: time data '2025-03-01' does not match format '%Y%m%d'
-[2025-03-31 13:16:06,970] [ERROR] [database] Failed to load stock data: time data '2025-03-01' does not match format '%Y%m%d'
-[2025-03-31 13:17:27,558] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:17:28,990] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:17:29,026] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:17:29,387] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:17:29,407] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:17:29,451] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 13:17:29,481] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:17:29,562] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 13:19:22,938] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:19:25,200] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:19:25,231] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:19:25,504] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:19:25,522] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:19:25,563] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 13:19:25,588] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:19:25,659] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 13:20:01,811] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:20:03,344] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:20:03,382] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:20:03,668] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:20:03,690] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:20:03,733] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 13:20:03,760] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:20:03,840] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 13:20:22,798] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:20:27,125] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:20:27,218] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:20:28,501] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:20:28,943] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:20:29,716] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 13:20:30,340] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:20:30,841] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 13:22:13,484] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:22:14,750] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:22:14,779] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:22:15,039] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:22:15,057] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:22:15,095] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 13:22:15,124] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:22:15,195] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 13:24:19,308] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:24:21,382] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:24:21,422] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:24:21,692] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 13:24:21,711] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:24:21,751] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 13:24:21,779] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 13:24:21,863] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 14:20:53,689] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:20:56,111] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:20:59,945] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:21:01,232] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:21:03,319] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:21:04,836] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:21:04,871] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:21:05,245] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:21:05,267] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:21:05,321] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 14:21:05,354] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:21:05,454] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 14:22:13,963] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:22:15,794] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:22:15,844] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:22:16,337] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:22:16,357] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:22:16,401] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 14:22:16,434] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:22:16,515] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 14:22:46,959] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:22:48,294] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:22:48,343] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:22:48,710] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:22:48,727] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:22:48,768] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 14:22:48,793] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:22:48,879] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 14:24:30,508] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:24:32,184] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:24:32,226] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:24:32,625] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:24:32,652] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:24:32,711] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 14:24:32,768] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:24:32,865] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 14:25:10,507] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:25:13,294] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:25:13,342] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:25:13,714] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:25:13,742] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:25:13,800] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 14:25:13,842] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:25:13,954] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 14:43:55,185] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:43:56,400] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:43:56,430] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:43:56,712] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:43:56,735] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:43:56,785] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 14:43:56,817] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:43:56,903] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 14:47:00,394] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:47:02,403] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:47:02,450] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:47:02,889] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:47:02,911] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:47:02,964] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 14:47:03,008] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:47:03,091] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 14:55:16,201] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:55:17,574] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:55:17,607] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:55:17,886] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 14:55:17,907] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:55:17,953] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 14:55:17,981] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 14:55:18,055] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 15:04:35,253] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:04:36,428] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:04:36,459] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:04:36,725] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:04:36,745] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:04:36,791] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 15:04:36,822] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:04:36,904] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 15:07:17,032] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:07:18,416] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:07:18,445] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:07:18,731] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:07:18,748] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:07:18,794] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 15:07:18,820] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:07:18,886] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 15:08:11,581] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:08:12,878] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:08:12,924] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:08:13,231] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:08:13,256] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:08:13,300] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 15:08:13,328] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:08:13,410] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 15:10:06,780] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:10:08,078] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:10:08,114] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:10:08,396] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:10:08,417] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:10:08,465] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 15:10:08,500] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:10:08,582] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 15:33:16,737] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:33:19,202] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:33:19,234] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:33:19,510] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:33:19,528] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:33:19,571] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 15:33:19,598] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:33:19,672] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 15:33:50,070] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:33:51,611] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:33:51,640] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:33:51,968] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:33:51,987] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:33:52,028] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 15:33:52,057] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:33:52,167] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 15:54:40,596] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:54:42,490] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:54:42,526] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:54:42,926] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:54:42,946] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:54:42,992] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 15:54:43,024] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:54:43,118] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 15:57:37,122] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:57:38,583] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:57:38,625] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:57:38,994] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 15:57:39,011] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:57:39,058] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 15:57:39,089] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 15:57:39,160] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 16:04:35,048] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:04:38,948] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:04:38,985] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 16:04:39,382] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 16:04:39,402] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:04:39,452] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 16:04:39,484] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:04:39,568] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 16:04:53,535] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:04:54,817] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:04:54,847] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 16:04:55,172] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 16:04:55,200] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:04:55,253] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 16:04:55,277] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:04:55,344] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 16:12:05,472] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:12:06,983] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:12:07,018] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 16:12:07,377] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 16:12:07,395] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:12:07,437] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 16:12:07,463] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:12:07,538] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 16:23:19,748] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:23:21,782] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:23:21,813] [INFO] [database] Loading stock data for sh.600622 from 20250301 to 20250329
-[2025-03-31 16:23:22,100] [INFO] [database] Checking data completeness for sh.600622 from 20250301 to 20250329
-[2025-03-31 16:23:22,123] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:23:22,176] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 16:23:22,212] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:23:22,300] [INFO] [database] Successfully loaded 880 rows for sh.600622
-[2025-03-31 16:33:30,477] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:33:33,445] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:33:36,722] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:33:40,093] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:33:42,434] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:33:45,193] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:33:45,233] [INFO] [database] Loading stock data for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:33:45,582] [INFO] [database] Checking data completeness for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:33:45,601] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:33:45,643] [INFO] [database] Found 4 missing data ranges for sh.600622
-[2025-03-31 16:33:45,652] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 16:33:46,511] [INFO] [database] Fetching data from 20250205 to 20250207
-[2025-03-31 16:33:46,626] [ERROR] [database] Failed to load stock data: 'NoneType' object has no attribute 'error_code'
-[2025-03-31 16:36:34,955] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:36:37,393] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:36:37,431] [INFO] [database] Loading stock data for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:36:37,834] [INFO] [database] Checking data completeness for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:36:37,853] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:36:37,907] [INFO] [database] Found 4 missing data ranges for sh.600622
-[2025-03-31 16:36:37,916] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 16:36:37,922] [INFO] [database] Fetching data from 20250205 to 20250207
-[2025-03-31 16:36:37,999] [ERROR] [database] Failed to load stock data: 'NoneType' object has no attribute 'error_code'
-[2025-03-31 16:42:29,715] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:42:32,015] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:42:32,048] [INFO] [database] Loading stock data for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:42:32,393] [INFO] [database] Checking data completeness for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:42:32,414] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:42:32,458] [INFO] [database] Found 4 missing data ranges for sh.600622
-[2025-03-31 16:42:32,467] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 16:42:32,478] [INFO] [database] Fetching data from 20250205 to 20250207
-[2025-03-31 16:42:32,479] [ERROR] [database] Failed to load stock data: module 'datetime' has no attribute 'strptime'
-[2025-03-31 16:42:51,040] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:42:53,677] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:42:53,720] [INFO] [database] Loading stock data for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:42:54,969] [INFO] [database] Checking data completeness for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:42:54,991] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:42:55,035] [INFO] [database] Found 4 missing data ranges for sh.600622
-[2025-03-31 16:42:55,046] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 16:42:55,058] [INFO] [database] Fetching data from 20250205 to 20250207
-[2025-03-31 16:42:55,142] [ERROR] [database] Failed to load stock data: 'NoneType' object has no attribute 'error_code'
-[2025-03-31 16:43:29,033] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:43:31,190] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:43:31,231] [INFO] [database] Loading stock data for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:43:31,616] [INFO] [database] Checking data completeness for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:43:31,634] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:43:31,681] [INFO] [database] Found 4 missing data ranges for sh.600622
-[2025-03-31 16:43:31,690] [INFO] [database] Fetching missing data ranges for sh.600622
-[2025-03-31 16:43:31,703] [INFO] [database] Fetching data from 20250205 to 20250207
-[2025-03-31 16:43:32,592] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:43:32,694] [INFO] [database] 成功保存sh.600622的5频率数据，共144条记录
-[2025-03-31 16:43:32,696] [INFO] [database] Fetching data from 20250210 to 20250214
-[2025-03-31 16:43:33,015] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:43:33,069] [INFO] [database] 成功保存sh.600622的5频率数据，共240条记录
-[2025-03-31 16:43:33,071] [INFO] [database] Fetching data from 20250217 to 20250221
-[2025-03-31 16:43:33,737] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:43:33,794] [INFO] [database] 成功保存sh.600622的5频率数据，共240条记录
-[2025-03-31 16:43:33,795] [INFO] [database] Fetching data from 20250224 to 20250228
-[2025-03-31 16:43:34,018] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:43:34,072] [INFO] [database] 成功保存sh.600622的5频率数据，共240条记录
-[2025-03-31 16:43:34,090] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:43:34,219] [INFO] [database] Successfully loaded 1672 rows for sh.600622
-[2025-03-31 16:44:37,455] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:44:39,554] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:44:39,591] [INFO] [database] Loading stock data for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:44:39,913] [INFO] [database] Checking data completeness for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:44:39,930] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:44:39,971] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 16:44:39,996] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:44:40,101] [INFO] [database] Successfully loaded 1672 rows for sh.600622
-[2025-03-31 16:45:25,688] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:45:26,832] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:45:27,136] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:45:27,176] [INFO] [database] Loading stock data for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:45:27,555] [INFO] [database] Checking data completeness for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:45:27,577] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:45:27,631] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 16:45:27,661] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:45:27,758] [INFO] [database] Successfully loaded 1672 rows for sh.600622
-[2025-03-31 16:45:44,980] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:45:46,466] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:45:46,506] [INFO] [database] Loading stock data for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:45:46,941] [INFO] [database] Checking data completeness for sh.600622 from 20250201 to 20250329
-[2025-03-31 16:45:46,959] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 16:45:47,008] [INFO] [database] Found 0 missing data ranges for sh.600622
-[2025-03-31 16:45:47,045] [INFO] [database] 数据库表结构初始化完成
+[2025-03-31 18:04:13,490] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:16,914] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:19,109] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:20,474] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:05:42,504] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:05:44,187] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:06:34,608] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:06:36,467] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:13:17,301] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:13:18,895] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:15:50,708] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:15:52,225] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:16:20,713] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:16:23,237] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:24:22,007] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:24:24,878] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:25:25,491] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:25:27,274] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:02,997] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:07,554] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:39,128] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:42,082] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:46,681] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:29:51,122] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,637] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,685] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,755] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:27,227] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:30,612] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:33,336] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:54:46,196] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:54:59,300] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 19:01:15,061] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,414] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,464] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,546] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:54,692] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:58,396] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:59:00,651] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:59:03,017] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:32,196] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:38,623] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:41,632] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:44,302] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:45,831] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:46,684] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:11:57,560] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:11:58,727] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:15:49,091] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:15:50,777] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:16:57,635] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:16:58,706] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:21:39,585] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:21:40,917] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:22:39,824] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:22:41,042] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:25:07,136] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:25:08,330] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:03,611] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:04,694] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:48,008] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:49,020] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:42:52,373] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:42:53,721] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:45:19,613] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:45:21,085] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:47:57,576] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:50:08,769] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:51:05,895] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:52:49,229] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:53:17,070] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:54:46,740] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:54:49,176] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:55:56,423] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:57:17,359] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:58:07,514] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:58:09,811] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:05:49,017] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:06:59,187] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:07:41,454] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:12:04,461] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:12:08,975] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:16:04,453] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:16:06,108] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:25:51,333] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:26:37,836] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:27:10,985] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:28:56,860] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:28:59,205] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:30:32,273] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:32:20,781] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:32:24,008] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:41:12,849] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:41:33,396] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:45:52,497] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:45:54,280] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:46:52,129] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:47:17,822] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:49:26,967] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:50:05,999] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:00:59,892] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:00:59,935] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:01:00,007] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:01:04,270] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 16:45:47,045] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
 [2025-03-31 16:45:47,146] [INFO] [database] Successfully loaded 1672 rows for sh.600622
-[2025-03-31 17:00:02,672] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:00:04,255] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:01:23,231] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:01:25,727] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:02:06,954] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:02:08,448] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:04:02,349] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:04:05,012] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:04:24,001] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:04:25,899] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:06:19,957] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:06:22,496] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:07:30,065] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:07:32,258] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:08:18,106] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:08:19,864] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:09:57,869] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:10:04,496] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:18:03,416] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:18:06,648] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:19:06,575] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:19:08,628] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:19:48,480] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:19:50,413] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:20:40,010] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:20:42,432] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:21:28,904] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:21:31,043] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:21:48,065] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:21:50,163] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:22:31,525] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:22:34,148] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:24:08,967] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:24:11,054] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:26:05,652] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 17:26:08,687] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:04:08,970] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:04:09,005] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:04:09,071] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:04:13,490] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:04:16,914] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:04:19,109] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:04:20,474] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:05:42,504] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:05:44,187] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:06:34,608] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:06:36,467] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:13:17,301] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:13:18,895] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:15:50,708] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:15:52,225] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:16:20,713] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:16:23,237] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:24:22,007] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:24:24,878] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:25:25,491] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:25:27,274] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:27:02,997] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:27:07,554] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:27:39,128] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:27:42,082] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:27:46,681] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:29:51,122] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:31:22,637] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:31:22,685] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:31:22,755] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:31:27,227] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:31:30,612] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:31:33,336] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:54:46,196] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 18:54:59,300] [INFO] [database] 数据库表结构初始化完成
-[2025-03-31 19:01:15,061] [INFO] [database] 数据库表结构初始化完成
+[2025-03-31 17:00:02,672] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:00:04,255] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:01:23,231] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:01:25,727] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:02:06,954] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:02:08,448] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:04:02,349] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:04:05,012] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:04:24,001] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:04:25,899] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:06:19,957] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:06:22,496] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:07:30,065] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:07:32,258] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:08:18,106] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:08:19,864] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:09:57,869] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:10:04,496] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:18:03,416] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:18:06,648] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:19:06,575] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:19:08,628] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:19:48,480] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:19:50,413] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:20:40,010] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:20:42,432] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:21:28,904] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:21:31,043] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:21:48,065] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:21:50,163] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:22:31,525] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:22:34,148] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:24:08,967] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:24:11,054] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:26:05,652] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:26:08,687] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:08,970] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:09,005] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:09,071] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:13,490] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:16,914] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:19,109] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:20,474] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:05:42,504] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:05:44,187] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:06:34,608] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:06:36,467] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:13:17,301] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:13:18,895] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:15:50,708] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:15:52,225] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:16:20,713] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:16:23,237] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:24:22,007] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:24:24,878] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:25:25,491] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:25:27,274] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:02,997] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:07,554] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:39,128] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:42,082] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:46,681] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:29:51,122] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,637] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,685] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,755] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:27,227] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:30,612] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:33,336] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:54:46,196] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:54:59,300] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 19:01:15,061] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,414] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,464] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,546] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:54,692] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:58,396] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:59:00,651] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:59:03,017] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:32,196] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:38,623] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:41,632] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:44,302] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:45,831] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:46,684] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:11:57,560] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:11:58,727] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:15:49,091] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:15:50,777] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:16:57,635] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:16:58,706] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:21:39,585] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:21:40,917] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:22:39,824] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:22:41,042] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:25:07,136] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:25:08,330] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:03,611] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:04,694] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:48,008] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:49,020] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:42:52,373] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:42:53,721] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:45:19,613] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:45:21,085] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:47:57,576] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:50:08,769] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:51:05,895] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:52:49,229] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:53:17,070] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:54:46,740] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:54:49,176] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:55:56,423] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:57:17,359] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:58:07,514] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:58:09,811] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:05:49,017] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:06:59,187] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:07:41,454] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:12:04,461] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:12:08,975] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:16:04,453] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:16:06,108] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:25:51,333] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:26:37,836] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:27:10,985] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:28:56,860] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:28:59,205] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:30:32,273] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:32:20,781] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:32:24,008] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:41:12,849] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:41:33,396] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:45:52,497] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:45:54,280] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:46:52,129] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:47:17,822] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:49:26,967] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:50:05,999] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:00:59,892] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:00:59,935] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:01:00,007] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:01:04,270] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 16:45:47,045] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 16:45:47,146] [INFO] [database] Successfully loaded 1672 rows for sh.600622
+[2025-03-31 17:00:02,672] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:00:04,255] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:01:23,231] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:01:25,727] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:02:06,954] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:02:08,448] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:04:02,349] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:04:05,012] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:04:24,001] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:04:25,899] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:06:19,957] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:06:22,496] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:07:30,065] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:07:32,258] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:08:18,106] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:08:19,864] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:09:57,869] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:10:04,496] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:18:03,416] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:18:06,648] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:19:06,575] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:19:08,628] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:19:48,480] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:19:50,413] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:20:40,010] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:20:42,432] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:21:28,904] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:21:31,043] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:21:48,065] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:21:50,163] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:22:31,525] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:22:34,148] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:24:08,967] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:24:11,054] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:26:05,652] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 17:26:08,687] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:08,970] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:09,005] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:09,071] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:13,490] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:16,914] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:19,109] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:04:20,474] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:05:42,504] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:05:44,187] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:06:34,608] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:06:36,467] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:13:17,301] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:13:18,895] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:15:50,708] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:15:52,225] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:16:20,713] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:16:23,237] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:24:22,007] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:24:24,878] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:25:25,491] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:25:27,274] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:02,997] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:07,554] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:39,128] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:42,082] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:27:46,681] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:29:51,122] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,637] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,685] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:22,755] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:27,227] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:30,612] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:31:33,336] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:54:46,196] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 18:54:59,300] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 19:01:15,061] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,414] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,464] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:47,546] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:54,692] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:58:58,396] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:59:00,651] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 20:59:03,017] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:32,196] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:38,623] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:41,632] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:44,302] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:45,831] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:09:46,684] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:11:57,560] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:11:58,727] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:15:49,091] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:15:50,777] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:16:57,635] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:16:58,706] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:21:39,585] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:21:40,917] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:22:39,824] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:22:41,042] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:25:07,136] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:25:08,330] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:03,611] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:04,694] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:48,008] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:40:49,020] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:42:52,373] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:42:53,721] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:45:19,613] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:45:21,085] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:47:57,576] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:50:08,769] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:51:05,895] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:52:49,229] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:53:17,070] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:54:46,740] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:54:49,176] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:55:56,423] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:57:17,359] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:58:07,514] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 21:58:09,811] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:05:49,017] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:06:59,187] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:07:41,454] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:12:04,461] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:12:08,975] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:16:04,453] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:16:06,108] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:25:51,333] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:26:37,836] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:27:10,985] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:28:56,860] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:28:59,205] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:30:32,273] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:32:20,781] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:32:24,008] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:41:12,849] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:41:33,396] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:45:52,497] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:45:54,280] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:46:52,129] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:47:17,822] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:49:26,967] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-03-31 22:50:05,999] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:00:59,892] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:00:59,935] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:01:00,007] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:01:04,270] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:01:06,181] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:37:19,404] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:37:24,983] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 00:37:25,939] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 01:33:43,392] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 01:33:44,789] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 02:18:55,721] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 02:19:49,105] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 02:23:16,156] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 02:43:04,165] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 02:43:05,524] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:16:34,817] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:16:34,865] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:16:34,942] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:16:40,406] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:16:43,715] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:16:46,125] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:16:48,203] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:20:42,947] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 20:20:44,152] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 22:10:49,021] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 22:10:50,578] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 22:44:45,701] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-01 22:44:52,673] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-02 01:59:04,855] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-02 01:59:06,282] [INFO] [database] 锟斤拷锟捷匡拷锟斤拷峁癸拷锟绞硷拷锟斤拷锟斤拷
+[2025-04-02 02:09:18,519] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:09:22,192] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:23:57,801] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:24:00,112] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:28:57,877] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:28:59,355] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:34:10,843] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:34:12,896] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:34:23,492] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:34:24,153] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:34:24,653] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:34:25,119] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:39:19,591] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:39:20,568] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:39:30,385] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:39:31,050] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:39:31,565] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:39:32,041] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:42:25,613] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:42:26,822] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:42:27,385] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:42:27,996] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:42:28,446] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:42:28,903] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:44:08,826] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:44:10,140] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:44:17,411] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:44:18,101] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:44:18,657] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:44:19,183] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:46:15,289] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:46:16,417] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:46:19,617] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:46:20,275] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:46:20,792] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:46:21,400] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:50:12,863] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:50:14,061] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:50:17,719] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:50:18,579] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:50:19,178] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:50:19,768] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:51:00,727] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:51:01,800] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:51:02,332] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:51:02,907] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:51:03,362] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:51:03,798] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:52:58,092] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:52:59,350] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:55:06,693] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:55:08,011] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:57:10,053] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:57:11,180] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:57:11,703] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:57:12,441] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:57:12,911] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:57:13,359] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:57:37,001] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:57:41,626] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 02:57:48,639] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:57:49,306] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:57:49,780] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 02:57:50,240] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 03:37:58,816] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 03:37:59,728] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 03:38:00,347] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 03:38:01,005] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 03:38:01,434] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 03:38:01,840] [ERROR] [backtesting] ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+[2025-04-02 03:50:34,117] [INFO] [database] 数据库表结构初始化完成
+[2025-04-02 03:50:35,272] [INFO] [database] 数据库表结构初始化完成

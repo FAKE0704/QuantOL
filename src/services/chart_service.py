@@ -137,8 +137,8 @@ class ChartService:
         """绘制净值曲线图（包含回撤）"""
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=self.data['date'],
-            y=self.data['value'],
+            x=self.data['timestamp'],
+            y=self.data['total_value'],
             name='净值曲线',
             line=dict(color='#1f77b4', width=2)
         ))
@@ -166,8 +166,8 @@ class ChartService:
         fig = go.Figure()
 
         # 计算MACD
-        exp1 = data["close"].ewm(span=fast, adjust=False).mean()
-        exp2 = data["close"].ewm(span=slow, adjust=False).mean()
+        exp1 = self.data["close"].ewm(span=fast, adjust=False).mean()
+        exp2 = self.data["close"].ewm(span=slow, adjust=False).mean()
         macd = exp1 - exp2
         signal_line = macd.ewm(span=signal, adjust=False).mean()
         histogram = macd - signal_line

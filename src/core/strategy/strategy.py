@@ -40,11 +40,47 @@ from typing import Type, Callable, Dict
 
 
 class BaseStrategy():
-    def __init__(self,Data,name,buySignal,sellSignal):
+    def __init__(self, Data, name, buySignal, sellSignal):
         self.Data = Data
         self.name : str = name
-        self.buySignal  = buySignal
-        self.sellSignal  = sellSignal
+        self.buySignal = buySignal
+        self.sellSignal = sellSignal
+        self.strategy_id = 1
+        self.position_cost = 0.0  # 平均持仓成本
+        self.position_size = 0.0  # 当前持仓数量
+        self.position_records = []  # 分笔持仓记录
+
+    def update_position(self, quantity: float, price: float):
+        """更新持仓成本和数量"""
+        if quantity > 0:  # 买入
+            new_cost = self.position_cost * self.position_size + quantity * price
+            self.position_size += quantity
+            self.position_cost = new_cost / self.position_size
+            self.position_records.append({
+                'quantity': quantity,
+                'price': price,
+                'timestamp': datetime.now()
+            })
+        else:  # 卖出
+            sold_qty = abs(quantity)
+            remaining_qty = self.position_size - sold_qty
+            if remaining_qty < 0:
+                raise ValueError("卖出数量超过持仓量")
+                
+            # 先进先出原则计算成本
+            total_cost = 0
+            while sold_qty > 0 and self.position_records:
+                oldest = self.position_records[0]
+                if oldest['quantity'] <= sold_qty:
+                    total_cost += oldest['quantity'] * oldest['price']
+                    sold_qty -= oldest['quantity']
+                    self.position_records.pop(0)
+                else:
+                    total_cost += sold_qty * oldest['price']
+                    oldest['quantity'] -= sold_qty
+                    sold_qty = 0
+            self.position_cost = total_cost / abs(quantity) if quantity !=0 else 0
+            self.position_size = remaining_qty
 
     def get_strategy(self):
         return f"strategy name: {self.name}"
@@ -63,6 +99,7 @@ class FixedInvestmentStrategy(BaseStrategy):
     def __init__(self, Data, name, buySignal, sellSignal):
         super().__init__(Data, name, buySignal, sellSignal)
         self.invest_ratio = 0.01  # 定投比例
+        
 
     def on_monthly_schedule(self, engine:BacktestEngine, event:ScheduleEvent):
         """每月定投逻辑"""
@@ -80,6 +117,9 @@ class FixedInvestmentStrategy(BaseStrategy):
             side="BUY",
             price=current_price
         )
+    def set_name(self,name :str):
+        self.name = name
+        return name
 
     def get_required_events(self):
         return [ScheduleEvent]

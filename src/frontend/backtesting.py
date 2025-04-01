@@ -111,7 +111,6 @@ async def show_backtesting_page():
                 buySignal=True,
                 sellSignal=False
             )
-             # fixed_  应该要生成event到队列
             engine.register_strategy(fixed_strategy)
         
         # 启动事件循环
@@ -121,7 +120,8 @@ async def show_backtesting_page():
             
             # 获取回测结果
             results = engine.get_results()
-            equity_data = engine.get_equity_curve()
+            # equity_data = engine.get_equity_data()
+            equity_data = engine.equity_records
             
             if results:
                 st.success("回测完成！")
@@ -133,14 +133,20 @@ async def show_backtesting_page():
                 # 绘制净值曲线
                 st.subheader("净值曲线")
                 chart_service = ChartService(equity_data.rename(columns={
-                    'dates': 'date',
-                    'values': 'value'
+                    'date': 'timestamp',
+                    'value': 'total_value'
                 }))
                 fig = chart_service.draw_equity()
                 st.plotly_chart(fig, use_container_width=True)
                         
                 # 显示交易记录
                 st.subheader("交易记录")
-                st.dataframe(results["trades"])
+                st.dataframe(results["trades"]) 
+                
+                # 显示仓位明细
+                st.subheader("仓位明细")
+                st.dataframe(engine.equity_records)
+
+
             else:
                 st.error("回测失败，请检查输入参数")

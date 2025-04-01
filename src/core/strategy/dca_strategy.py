@@ -8,11 +8,11 @@ from .strategy import BaseStrategy
 class DCABaseStrategy(BaseStrategy):
     """定投策略基类"""
     
-    def __init__(self, config):
+    def __init__(self, config, strategy_id: str = "dca_strategy"):
         super().__init__(config)
+        self.strategy_id = strategy_id
         self.investment_dates = deque()
         self.scheduled_investment = config.monthly_investment
-        self.current_holdings = 0.0
         self.generate_schedule()
         
     def generate_schedule(self):
@@ -58,29 +58,49 @@ class DCABaseStrategy(BaseStrategy):
         """检查止损止盈条件"""
         if self.config.stop_loss is not None:
             current_value = self.current_holdings * price
-            initial_value = self.config.initial_capital
-            if current_value / initial_value <= (1 - self.config.stop_loss):
-                self.generate_signals(-self.current_holdings)  # 清仓
+            if current_value <= self.position_cost * (1 - self.config.stop_loss):
+                sell_qty = min(self.current_holdings, 
+                             self.current_holdings * self.config.stop_loss_pct)
+                self.generate_signals(-sell_qty)  # 部分平仓
                 return True
                 
         if self.config.take_profit is not None:
             current_value = self.current_holdings * price
-            initial_value = self.config.initial_capital
-            if current_value / initial_value >= (1 + self.config.take_profit):
-                self.generate_signals(-self.current_holdings)  # 清仓
+            if current_value >= self.position_cost * (1 + self.config.take_profit):
+                sell_qty = min(self.current_holdings,
+                             self.current_holdings * self.config.take_profit_pct)
+                self.generate_signals(-sell_qty)  # 部分平仓
                 return True
         return False
                 
     def generate_signals(self, order_amount: float):
         """生成交易信号"""
+        # 对于卖出订单，检查持仓是否足够
+        if order_amount < 0 and abs(order_amount) > self.current_holdings:
+            order_amount = -self.current_holdings  # 调整卖出数量为当前持仓
+            
         # 更新持仓
         self.current_holdings += order_amount
+        # 确保持仓不为负
+        self.current_holdings = max(0, self.current_holdings)
+        
         # 生成买入/卖出信号
         signal = {
             'timestamp': datetime.now(),
             'symbol': self.config.target_symbol,
-            'quantity': order_amount,
+            'quantity': abs(order_amount),  # 确保数量为正
             'price': None,  # 将在执行时确定
-            'type': 'buy' if order_amount > 0 else 'sell'
+            'type': 'buy' if order_amount > 0 else 'sell',
+            'strategy_id': self.strategy_id
         }
-        self.signals.append(signal)
+        
+        # 只有数量大于0时才生成信号
+        if signal['quantity'] > 0:
+            self.signals.append(signal)
+            # 触发信号事件
+            from ..events import SignalEvent
+            signal_event = SignalEvent(
+                timestamp=signal['timestamp'],
+                signal=signal
+            )
+            self.push_event(signal_event)

@@ -34,7 +34,9 @@ awesome-Qsys/src/
 ├── notification/                 # 通知模块
 ├── support/                      # 支持模块
 ├── venvQuant/                    # 虚拟环境文件夹
-├── database.log                  # 数据库日志
+├── logs/
+│   ├── backtest.log 
+    ├── database.log                  # 数据库日志
 ├── main.py                       # 项目主函数文件
 ├── myimports.py                  # 自定义导入
 

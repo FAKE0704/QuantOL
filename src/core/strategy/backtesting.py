@@ -3,6 +3,10 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List, Type
 import json
+import logging
+from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
+import os
 from core.strategy.events import ScheduleEvent, SignalEvent
 import pandas as pd
 import streamlit as st
@@ -102,11 +106,60 @@ class BacktestEngine:
         self.trades = []
         self.results = {}
         self.current_capital = config.initial_capital
-        self.positions = {}
+        self.positions = {}  # 按策略ID存储持仓 {strategy_id: position}
         self.errors = []
-        self.equity_history = {"date": [], "value": []}  # 初始化净值记录
-        self.last_equity_date = None
+        # 更详细的净值记录结构
+        self.equity_records = pd.DataFrame(columns=[
+            'timestamp',
+            'price',
+            'position',
+            'cash',
+            'total_value'
+        ])
         self.current_month = None  # 跟踪当前月份
+        self.current_date = None  # 初始化当前回测日期
+        self.position_meta = {
+            'quantity': 0,
+            'avg_price': 0.0,
+            'direction': 0  # 1: 多头, -1: 空头
+        }
+        self.strategy_holdings = {}  # 策略持仓状态 {strategy_id: holdings}
+        self.position_records = {}  # 记录持仓时间 {strategy_id: {'entry_time': datetime, 'quantity': int}}
+
+        # 初始化日志配置
+        self._init_logging()
+
+    def _init_logging(self):
+        """初始化日志配置"""
+        log_dir = Path(__file__).parent.parent / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        log_handler = TimedRotatingFileHandler(
+            str(log_dir / "backtest.log"),
+            when='midnight',
+            interval=1,
+            backupCount=3,
+            encoding='utf-8',
+            utc=True
+        )
+        log_formatter = logging.Formatter('%(asctime)s.%(msecs)03dZ | %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
+        log_handler.setFormatter(log_formatter)
+        log_handler.suffix = "%Y-%m-%d.log"
+
+        self.logger = logging.getLogger(f'backtester_{id(self)}')
+        self.logger.addHandler(log_handler)
+        self.logger.setLevel(logging.INFO)
+
+    def log_error(self, message: str):
+        """记录错误信息"""
+        error_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'message': message,
+            'current_capital': self.current_capital,
+            'position': self.position_meta.copy()
+        }
+        self.errors.append(error_entry)
+        self.logger.error(f"ERROR | {message}")
 
     def register_handler(self, event_type: Type, handler):
         """注册事件处理器"""
@@ -116,7 +169,15 @@ class BacktestEngine:
         """注册策略实例"""
         if not hasattr(strategy, 'handle_event'):
             raise ValueError("策略必须实现handle_event方法")
+        if not hasattr(strategy, 'strategy_id'):
+            raise ValueError("策略必须设置strategy_id属性")
+            
         self.strategies.append(strategy)
+        self.strategy_holdings[strategy.strategy_id] = 0  # 初始化持仓
+        
+        # 为定投策略添加事件处理器
+        if hasattr(strategy, 'is_fixed_investment') and strategy.is_fixed_investment:
+            self.register_handler(ScheduleEvent, strategy.handle_event)
 
     def push_event(self, event):
         """添加事件到队列"""
@@ -124,17 +185,55 @@ class BacktestEngine:
 
     def run(self, start_date: datetime, end_date: datetime):
         """执行事件循环"""
-        current_date = start_date # timestamp
-        end_date = end_date # timestamp
+        
+        # 调试日志：输出数据时间范围
+        print(f"[DEBUG] 回测数据时间范围: {self.data['date'].min()} 至 {self.data['date'].max()}")
+        print(f"[DEBUG] 数据记录总数: {len(self.data)}")
+        
         # 明确指定日期时间格式
-        self.data['time'] = pd.to_datetime(self.data['time'].astype(str), format='%Y%m%d %H%M%S')
+        self.data['combined_time'] = pd.to_datetime(
+            self.data['date'].astype(str) + ' ' + self.data['time'].astype(str),
+            format='%Y-%m-%d %H:%M:%S'
+        )
+        
+        # 初始化净值记录
+        self._update_equity({
+            'datetime': start_date,
+            'close': self.data.iloc[0]['close']
+        })
+        
+        # 调试日志：显示数据日期范围
+        print(f"[DEBUG] 可用数据日期范围: {self.data['date'].min()} 至 {self.data['date'].max()}")
+        print(f"[DEBUG] 请求回测日期范围: {start_date} 至 {end_date}")
+        
+        # 验证并调整日期范围
+        max_data_date = pd.to_datetime(self.data['date'].max()).date()
+        if end_date.date() > max_data_date:
+            print(f"[WARNING] 结束日期 {end_date.date()} 超出数据范围 {max_data_date}, 将使用最近可用日期 {max_data_date}")
+            end_date = datetime.combine(max_data_date, datetime.min.time())
+            
+        self.current_date = self.data['combined_time'].iloc[0] # timestamp
+        current_date = self.current_date
+        
+        # 查找小于等于end_date的最近日期
+        available_dates = pd.to_datetime(self.data['date'].unique())
+        valid_dates = available_dates[available_dates <= pd.to_datetime(end_date)]
+        if len(valid_dates) == 0:
+            raise ValueError(f"没有可用的历史数据早于 {end_date.date()}")
+            
+        closest_date = valid_dates.max()
+        if closest_date.date() != end_date.date():
+            print(f"[WARNING] 使用调整后的结束日期: {closest_date.date()} (原请求: {end_date.date()})")
+            
+        # Get the last time of day for the closest date
+        last_time = self.data[self.data['date']==closest_date.date()]['time'].iloc[-1]
+        # Combine date and time properly
+        end_date = datetime.combine(closest_date.date(), last_time)
+
         if self.data is None:
             raise ValueError("请先调用load_data()加载数据")
         
-        # 记录初始净值
-        if not self.equity_history["date"]:
-            self.equity_history["date"].append(current_date) # timestamp
-            self.equity_history["value"].append(self.config.initial_capital)
+        # 初始净值已在_init_equity中记录
         
         while current_date <= end_date: # 遍历日期，触发策略
             # 每月首个交易日触发定投
@@ -150,13 +249,11 @@ class BacktestEngine:
                     
                     # 处理当月定投事件
                     for strategy in self.strategies:
-                        strategy.handle_event(self, monthly_event)
+                        if hasattr(strategy, 'on_event'):
+                            strategy.on_event(monthly_event)
+                        else:
+                            strategy.handle_event(event = monthly_event, engine = self)
             
-            # 记录当日开盘净值
-            if current_date != self.last_equity_date: # 没到最后一天
-                self.equity_history["date"].append(current_date.strftime("%Y-%m-%d"))
-                self.equity_history["value"].append(self.current_capital)
-                self.last_equity_date = current_date
             
             # 处理当日事件
             # print("##"*20)
@@ -186,27 +283,30 @@ class BacktestEngine:
                         except Exception as e:
                             self.log_error(f"处理事件失败: {str(e)}")
                 
-                # 记录当日净值
-                if current_date != self.last_equity_date:
-                    self.equity_history["date"].append(current_date.strftime("%Y-%m-%d"))
-                    self.equity_history["value"].append(self.current_capital)
-                    self.last_equity_date = current_date
+            # 更新净值记录
+            current_data = self.data[self.data['combined_time'] == current_date].iloc[0]
+            self._update_equity({
+                'datetime': current_date,
+                'close': current_data['close']
+            })
             
-            # 获取下一个有效交易日
-            next_dates = self.data[self.data.time > current_date]['time']
-            current_date = next_dates.iloc[0] if len(next_dates) > 0 else current_date + timedelta(days=1)
+            # 获取下一个有效交易日 (使用combined_time进行比较)
+            next_dates = self.data[self.data['combined_time'] > current_date]['combined_time']
+            self.current_date = next_dates.iloc[0] if len(next_dates) > 0 else current_date + timedelta(days=1)
+            current_date = self.current_date
         
         # 确保最后一天净值被记录
-        if self.equity_history["date"][-1] != end_date.strftime("%Y-%m-%d"):
-            self.equity_history["date"].append(end_date.strftime("%Y-%m-%d"))
-            self.equity_history["value"].append(self.current_capital)
+        self._update_equity({
+            'datetime': end_date,
+            'close': self.data[self.data['combined_time'] == end_date].iloc[0]['close']
+        })
 
     def get_first_trading_day_of_month(self, date):
         """获取某个月份的第一个交易日"""
         month_start = date.replace(day=1)
-        # 确保数据索引是DatetimeIndex
+        # 使用已创建的combined_time列作为索引
         if not isinstance(self.data.index, pd.DatetimeIndex):
-            self.data.index = pd.to_datetime(self.data['time'])
+            self.data.index = self.data['combined_time']
         
         # 获取该月所有交易日
         try:
@@ -216,6 +316,46 @@ class BacktestEngine:
             # 如果指定日期不在数据范围内，返回该月第一个有效交易日
             trading_days = self.data.loc[self.data.index >= month_start].index
             return trading_days[0] if len(trading_days) > 0 else None
+
+    def _calculate_win_rate(self) -> float:
+        """计算交易胜率"""
+        if not self.trades:
+            return 0.0
+            
+        # 计算盈利交易数量
+        winning_trades = 0
+        for trade in self.trades:
+            if trade['side'] == 'buy':
+                # 查找对应的卖出交易
+                sell_trades = [t for t in self.trades 
+                             if t['side'] == 'sell' 
+                             and t['strategy_id'] == trade['strategy_id']
+                             and t['timestamp'] > trade['timestamp']]
+                if sell_trades:
+                    profit = sell_trades[0]['price'] - trade['price']
+                    if profit > 0:
+                        winning_trades += 1
+            elif trade['side'] == 'sell' and trade['strategy_id']:
+                # 查找对应的买入交易
+                buy_trades = [t for t in self.trades 
+                            if t['side'] == 'buy' 
+                            and t['strategy_id'] == trade['strategy_id']
+                            and t['timestamp'] < trade['timestamp']]
+                if buy_trades:
+                    profit = trade['price'] - buy_trades[0]['price']
+                    if profit > 0:
+                        winning_trades += 1
+        
+        return winning_trades / len(self.trades) if self.trades else 0.0
+
+    def _calculate_max_drawdown(self) -> float:
+        """计算最大回撤"""
+        if self.equity_records.empty:
+            return 0.0
+            
+        peak = self.equity_records['total_value'].max()
+        trough = self.equity_records['total_value'].min()
+        return (peak - trough) / peak if peak != 0 else 0.0
 
     def get_results(self) -> Dict:
         """获取回测结果"""
@@ -228,8 +368,52 @@ class BacktestEngine:
                 "max_drawdown": self._calculate_max_drawdown()
             },
             "trades": self.trades,
-            "errors": self.errors
+            "errors": self.errors,
+            "equity_records": self.equity_records.to_dict('records')
         }
+
+    def _update_equity(self, market_data):
+        """更新净值记录"""
+        # 确保数值类型正确
+        close_price = float(market_data['close'])
+        current_capital = float(self.current_capital)
+        
+        # 计算持仓价值
+        position_value = self.position_meta['quantity'] * close_price
+        unrealized_pnl = (close_price - self.position_meta['avg_price']) * self.position_meta['quantity']
+        
+        total_value = current_capital + position_value
+        
+        # 确保时间戳格式一致
+        timestamp = pd.to_datetime(market_data['datetime'])
+        
+        record = {
+            'timestamp': timestamp,
+            'price': close_price,
+            'position': self.position_meta['quantity'],
+            'cash': current_capital,
+            'total_value': total_value,
+            'position_value': position_value,
+            'unrealized_pnl': unrealized_pnl,
+            'avg_price': self.position_meta['avg_price'],
+            'position_direction': 'long' if self.position_meta['direction'] > 0 else 
+                                 'short' if self.position_meta['direction'] < 0 else 'flat'
+        }
+        
+        # 使用loc避免concat警告
+        if self.equity_records.empty:
+            self.equity_records = pd.DataFrame([record])
+        else:
+            # 检查是否已存在该时间戳的记录
+            existing = self.equity_records[
+                self.equity_records['timestamp'] == timestamp
+            ]
+            if len(existing) == 0:
+                self.equity_records.loc[len(self.equity_records)] = record
+            else:
+                # 更新现有记录
+                idx = existing.index[0]
+                self.equity_records.loc[idx] = record
 
     def get_historical_data(self, timestamp: datetime, lookback_days: int):
         """获取历史数据"""
@@ -246,51 +430,163 @@ class BacktestEngine:
             end_date=self.config.end_date,
             frequency=self.config.frequency
         )
+        # 调试日志：验证加载的数据
+        print(f"[DEBUG] 数据加载完成，记录数: {len(self.data)}")
+        print(f"[DEBUG] 数据列: {self.data.columns.tolist()}")
+        print(f"[DEBUG] 示例数据:\n{self.data.head(2)}")
+        
         return self.data
 
-    def create_order(self, symbol: str, quantity: int, side: str, price: float):
+    def create_order(self, symbol: str, quantity: int, side: str, price: float, strategy_id: str = None):
         """创建交易订单"""
+        # 如果是定投买入且配置了monthly_investment，则动态计算数量
+        if side == 'buy' and self.config.monthly_investment and strategy_id:
+            quantity = int(self.config.monthly_investment / price)
+            if quantity <= 0:
+                raise ValueError(f"计算数量无效: {quantity} (price={price}, investment={self.config.monthly_investment})")
+            
+        # 记录操作前状态
+        prev_capital = self.current_capital
+        prev_position = self.position_meta.copy()
+            
+        # 计算交易金额和手续费
+        trade_amount = quantity * price
+        commission = trade_amount * self.config.commission
+        
+        # 更新资金和持仓
+        if side == 'buy':
+            self.current_capital -= (trade_amount + commission)
+            if self.position_meta['quantity'] * quantity < 0:  # 反向交易
+                self._close_position(quantity, price)
+            else:
+                new_qty = self.position_meta['quantity'] + quantity
+                new_avg = ((self.position_meta['avg_price'] * self.position_meta['quantity']) + 
+                          (price * quantity)) / new_qty
+                self.position_meta.update({
+                    'quantity': new_qty,
+                    'avg_price': new_avg,
+                    'direction': 1 if new_qty > 0 else -1
+                })
+            
+            if strategy_id:
+                self.strategy_holdings[strategy_id] += quantity
+                # 记录买入时间
+                self.position_records[strategy_id] = {
+                    'entry_time': self.current_date,
+                    'quantity': quantity,
+                    'entry_price': price
+                }
+                
+            # 记录交易日志
+            self.logger.info(
+                f"BUY | {symbol} | Qty: {quantity} | Price: {price:.2f} | "
+                f"Cost: {trade_amount:.2f} | Commission: {commission:.2f} | "
+                f"Capital: {self.current_capital:.2f} | "
+                f"Position: {self.position_meta['quantity']}@{self.position_meta['avg_price']:.2f} | "
+                f"Strategy: {strategy_id or 'GLOBAL'}"
+            )
+            
+        elif side == 'sell':
+            # 自动修正卖出数量不超过持仓
+            if strategy_id:
+                available_qty = abs(self.strategy_holdings.get(strategy_id, 0))
+                if quantity > available_qty:
+                    self.log_error(f"修正卖出数量: {quantity}->{available_qty} (策略{strategy_id})")
+                    quantity = available_qty
+                
+                # 检查持仓时间是否超过最大持仓天数限制
+                if self.config.max_holding_days is not None and strategy_id in self.position_records:
+                    holding_days = (self.current_date - self.position_records[strategy_id]['entry_time']).days
+                    if holding_days < self.config.max_holding_days:
+                        raise ValueError(f"持仓天数不足{self.config.max_holding_days}天，当前持仓{holding_days}天")
+                
+                self.strategy_holdings[strategy_id] -= quantity
+                # 清除持仓记录
+                if strategy_id in self.position_records:
+                    del self.position_records[strategy_id]
+            else:
+                available_qty = abs(self.position_meta['quantity'])
+                if quantity > available_qty:
+                    self.log_error(f"修正卖出数量: {quantity}->{available_qty} (全局持仓)")
+                    quantity = available_qty
+            
+            self.current_capital += (trade_amount - commission)
+            if self.position_meta['quantity'] * quantity > 0:  # 同向减仓
+                self.position_meta['quantity'] -= quantity
+                if self.position_meta['quantity'] == 0:
+                    self.position_meta.update({
+                        'avg_price': 0.0,
+                        'direction': 0
+                    })
+            else:  # 反向交易
+                self._close_position(-quantity, price)
+            
+            # 记录交易日志
+            self.logger.info(
+                f"SELL | {symbol} | Qty: {quantity} | Price: {price:.2f} | "
+                f"Proceeds: {trade_amount:.2f} | Commission: {commission:.2f} | "
+                f"Capital: {self.current_capital:.2f} | "
+                f"Position: {self.position_meta['quantity']}@{self.position_meta['avg_price']:.2f} | "
+                f"Strategy: {strategy_id or 'GLOBAL'}"
+            )
+            
+        # 强制同步持仓状态
+        self._sync_position()
+            
+        # 记录交易
         trade = {
-            "timestamp": datetime.now(),
+            "timestamp": self.current_date if hasattr(self, 'current_date') else datetime.now(),
             "symbol": symbol,
             "quantity": quantity,
             "side": side,
-            "price": price
+            "price": price,
+            "amount": trade_amount,
+            "commission": commission,
+            "remaining_capital": self.current_capital,
+            "position_after": self.position_meta['quantity'],
+            "strategy_id": strategy_id,
+            "entry_price": price if side == 'buy' else None
         }
         self.trades.append(trade)
+        
+        # 确保策略ID正确传递到交易记录
+        if strategy_id:
+            for strategy in self.strategies:
+                if strategy.strategy_id == strategy_id:
+                    strategy.on_trade_executed(trade)
+        
+        # 触发持仓更新回调
+        if strategy_id:
+            for strategy in self.strategies:
+                if strategy.strategy_id == strategy_id:
+                    strategy.on_position_update(self.strategy_holdings[strategy_id])
 
-    def log_error(self, message: str):
-        """记录错误日志"""
-        self.errors.append({
-            "timestamp": datetime.now(),
-            "message": message
+    def _sync_position(self):
+        """同步持仓状态，确保position_meta和strategy_holdings一致"""
+        total_strategy_holdings = sum(abs(qty) for qty in self.strategy_holdings.values())
+        if abs(self.position_meta['quantity']) != total_strategy_holdings:
+            self.log_error(
+                f"持仓不一致: position_meta={self.position_meta['quantity']} "
+                f"vs strategy_holdings={total_strategy_holdings}"
+            )
+            # 强制同步到position_meta
+            self.position_meta.update({
+                'quantity': sum(self.strategy_holdings.values()),
+                'avg_price': self.position_meta['avg_price'],
+                'direction': 1 if sum(self.strategy_holdings.values()) > 0 else -1
+            })
+
+    def _close_position(self, qty, price):
+        """处理平仓逻辑"""
+        closed_value = qty * (price - self.position_meta['avg_price'])
+        self.current_capital += closed_value
+        self.position_meta.update({
+            'quantity': self.position_meta['quantity'] + qty,
+            'avg_price': 0.0,
+            'direction': 0
         })
-
-    def _calculate_win_rate(self) -> float:
-        """计算胜率"""
-        if not self.trades:
-            return 0.0
-        winning_trades = [t for t in self.trades if t['side'] == 'buy' and t['price'] > t['entry_price']]
-        return len(winning_trades) / len(self.trades)
-
-    def _calculate_max_drawdown(self) -> float:
-        """计算最大回撤"""
-        if not self.trades:
-            return 0.0
-        peak = self.trades[0]['price']
-        max_drawdown = 0.0
-        for trade in self.trades:
-            if trade['price'] > peak:
-                peak = trade['price']
-            drawdown = (peak - trade['price']) / peak
-            if drawdown > max_drawdown:
-                max_drawdown = drawdown
-        return max_drawdown
-
-    def get_equity_curve(self) -> pd.DataFrame:
-        """获取净值曲线数据"""
-
-        return pd.DataFrame({
-            "date": self.equity_history["date"],
-            "value": self.equity_history["value"]
-        })
+        self.logger.info(
+            f"CLOSE | Qty: {qty} | Price: {price:.2f} | "
+            f"P/L: {closed_value:.2f} | "
+            f"Capital: {self.current_capital:.2f}"
+        )

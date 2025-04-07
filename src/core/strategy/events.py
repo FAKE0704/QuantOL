@@ -79,3 +79,27 @@ class SignalEvent(BaseEvent):
         parameters=data['parameters'],
         confidence=data['confidence']
       )
+
+@dataclass
+class TimeLimitEvent(BaseEvent):
+    """持仓超时事件"""
+    def __init__(self, timestamp: datetime, strategy_id: str, position_id: str):
+        super().__init__(timestamp, 'TIME_LIMIT')
+        self.strategy_id = strategy_id
+        self.position_id = position_id
+
+    def to_dict(self) -> Dict[str, Any]:
+        data = super().to_dict()
+        data.update({
+            'strategy_id': self.strategy_id,
+            'position_id': self.position_id
+        })
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'TimeLimitEvent':
+        return cls(
+            timestamp=datetime.fromisoformat(data['timestamp']),
+            strategy_id=data['strategy_id'],
+            position_id=data['position_id']
+        )

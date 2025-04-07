@@ -4,7 +4,7 @@ import plotly.express as px
 from datetime import datetime
 from core.strategy.backtesting import  BacktestEngine
 from core.strategy.backtesting import  BacktestConfig
-from services.chart_service import  ChartService
+from services.chart_service import  ChartService, DataBundle
 from core.data.database import DatabaseManager
 from core.strategy.events import ScheduleEvent, SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
@@ -16,7 +16,6 @@ import time
 async def show_backtesting_page():
     st.title("策略回测")
     
-
     # 初始化服务
     search_service = StockSearchService()
     await search_service.async_init()
@@ -77,12 +76,12 @@ async def show_backtesting_page():
     commission_rate = st.number_input("交易佣金(%)", min_value=0.0, max_value=1.0, value=0.03)
     
     if st.button("开始回测"):
-        symbol = selected[0]
-        frequency = "5"
-        start_date=start_date.strftime("%Y%m%d")
-        end_date=end_date.strftime("%Y%m%d")
+        symbol = selected[0] # 股票代号
+        frequency = "5"      # 数据频率
+        start_date=start_date.strftime("%Y%m%d") # 开始日期
+        end_date=end_date.strftime("%Y%m%d") # 结束日期
 
-        st.write(symbol, start_date, end_date, frequency) # debug
+        # st.write(symbol, start_date, end_date, frequency) # debug
         
         
         # 初始化回测配置
@@ -115,12 +114,10 @@ async def show_backtesting_page():
         
         # 启动事件循环
         with st.spinner("回测进行中..."):
-
             engine.run(pd.to_datetime(start_date), pd.to_datetime(end_date))
-            
+        
             # 获取回测结果
             results = engine.get_results()
-            # equity_data = engine.get_equity_data()
             equity_data = engine.equity_records
             
             if results:
@@ -130,22 +127,28 @@ async def show_backtesting_page():
                 st.subheader("回测结果")
                 st.dataframe(results["summary"])
                 
-                # 绘制净值曲线
+                # 绘制净值曲线vs收盘价曲线
+
                 st.subheader("净值曲线")
-                chart_service = ChartService(equity_data.rename(columns={
-                    'date': 'timestamp',
-                    'value': 'total_value'
-                }))
-                fig = chart_service.draw_equity()
-                st.plotly_chart(fig, use_container_width=True)
-                        
+                
+                # 创建净值曲线和K线图的组合图表
+
+                databundle = DataBundle(data,equity_data)
+                chart_service = ChartService(databundle)
+
+                combined_fig = chart_service.create_combined_chart(
+                    chart_types=['equity', 'kline'],
+                    row_heights=[0.5, 0.5]
+                )
+                st.plotly_chart(combined_fig, use_container_width=True)
+                
                 # 显示交易记录
                 st.subheader("交易记录")
                 st.dataframe(results["trades"]) 
                 
                 # 显示仓位明细
                 st.subheader("仓位明细")
-                st.dataframe(engine.equity_records)
+                st.dataframe(equity_data)
 
 
             else:

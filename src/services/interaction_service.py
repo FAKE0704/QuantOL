@@ -39,6 +39,18 @@ class InteractionService:
           ]
         )
 
-
-
+    def sync_zooming(self, figures):
+        """同步多个图表的缩放
+        Args:
+            figures: 需要同步的图表列表
+        """
+        if not figures:
+            return
+            
+        # 获取第一个图表的x轴范围
+        first_fig = figures[0]
+        x_range = first_fig.layout.xaxis.range
         
+        # 同步所有图表的x轴范围
+        for fig in figures[1:]:
+            fig.update_xaxes(range=x_range)

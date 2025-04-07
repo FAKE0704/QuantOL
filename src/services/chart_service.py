@@ -15,7 +15,8 @@ class ChartConfig:
         self.current_theme = st.sidebar.selectbox(
             "主题模式",
             options=list(theme_manager.themes.keys()),
-            index=0
+            index=0,
+            key=f"theme_select_{id(self)}"
         )
         self.themes = {
             'dark': {'bg_color': '#1E1E1E', 'grid_color': '#404040'},
@@ -109,36 +110,122 @@ class VolumeChart(ChartBase):
         )
         return self.figure
 
+class CombinedChartConfig(ChartConfig):
+    def __init__(self):
+        super().__init__()
+        self.layout_type = st.sidebar.selectbox(
+            "布局方式",
+            options=["垂直堆叠", "网格排列"],
+            index=0
+        )
+        self.row_heights = [0.6, 0.4]  # 默认K线+成交量高度比例
+        self.vertical_spacing = 0.05
+
+class DataBundle:
+    """数据容器，用于存储多种类型的数据"""
+    def __init__(self,raw_data,transaction_data):
+        self.kline_data = raw_data  # K线数据
+        self.trade_records = transaction_data  # 交易记录
+        # self.transaction_data = None  # 仓位数据
+        # self.trade_records = None  # 净值数据
+
 class ChartService:
-    """图表服务，一个chartservice服务代表了一系列图与交互关系"""
-    def __init__(self, data):
-        self.data = data
+    """图表服务，支持多种数据源的图表绘制"""
+    def __init__(self, data_bundle: DataBundle):
+        self.data_bundle = data_bundle
+        self.interaction_service = InteractionService()
+        self.figure = go.Figure()
         
     def create_kline(self) -> go.Figure:
         """创建K线图"""
+        if self.data_bundle.kline_data is None:
+            raise ValueError("缺少K线数据")
+            
         # 配置作图参数
         config = ChartConfig()
         kline = CandlestickChart(config)
-        fig = kline.render(self.data)
-        # st.plotly_chart(fw, use_container_width=True)
+        fig = kline.render(self.data_bundle.kline_data)
+        self.figure = fig
         return fig
 
     def create_volume_chart(self) -> go.Figure:
         """创建成交量图"""
-        fig = go.Figure()
-        fig.add_trace(go.Bar(
-            x=self.data.index,
-            y=self.data['volume'],
-            name='成交量'
-        ))
+        if self.data_bundle.kline_data is None:
+            raise ValueError("缺少K线数据")
+            
+        config = ChartConfig()
+        volume = VolumeChart(config)
+        fig = volume.render(self.data_bundle.kline_data)
+        return fig
+
+    def create_combined_chart(self, chart_types: list, row_heights: list = None) -> go.Figure:
+        """创建组合图表
+        Args:
+            chart_types: 图表类型列表，支持['kline', 'volume', 'equity', 'macd', 'rsi']
+            row_heights: 各行高度比例，默认为均分
+        """
+        from plotly.subplots import make_subplots
+        
+        # 验证输入
+        if not chart_types:
+            raise ValueError("至少需要指定一个图表类型")
+            
+        if row_heights and len(row_heights) != len(chart_types):
+            raise ValueError("row_heights长度必须与chart_types一致")
+            
+        # 创建子图布局
+        rows = len(chart_types)
+        fig = make_subplots(rows=rows, cols=1,
+                          shared_xaxes=True,
+                          vertical_spacing=0.05,
+                          row_heights=row_heights or [1/rows]*rows)
+        
+        # 图表创建方法映射
+        chart_methods = {
+            'kline': self.create_kline,
+            'volume': self.create_volume_chart,
+            'equity': self.draw_equity,
+            'macd': lambda: self.drawMACD(self.data_bundle.kline_data),
+            'rsi': lambda: self.drawRSI(self.data_bundle.kline_data)
+        }
+        
+        # 添加各图表
+        for idx, chart_type in enumerate(chart_types):
+            if chart_type not in chart_methods:
+                raise ValueError(f"不支持的图表类型: {chart_type}")
+                
+            chart = chart_methods[chart_type]()
+            for trace in chart.data:
+                fig.add_trace(trace, row=idx+1, col=1)
+            
+        # 应用统一主题
+        config = ChartConfig()
+        theme = config.themes[config.current_theme]
+        layout_updates = {
+            'plot_bgcolor': theme['bg_color'],
+            'paper_bgcolor': theme['bg_color']
+        }
+        
+        # 为每个子图设置主题
+        for i in range(1, rows+1):
+            layout_updates[f'xaxis{i}'] = dict(gridcolor=theme['grid_color'])
+            layout_updates[f'yaxis{i}'] = dict(gridcolor=theme['grid_color'])
+            
+        fig.update_layout(**layout_updates)
+        
+        # 设置交互
+        self.interaction_service.sync_zooming([fig])
+        
         return fig
 
     def draw_equity(self) -> go.Figure:
         """绘制净值曲线图（包含回撤）"""
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=self.data['timestamp'],
-            y=self.data['total_value'],
+        if self.data_bundle.trade_records is None:
+            raise ValueError("缺少净值数据")
+            
+        self.figure.add_trace(go.Scatter(
+            x=self.data_bundle.trade_records['timestamp'],
+            y=self.data_bundle.trade_records['total_value'],
             name='净值曲线',
             line=dict(color='#1f77b4', width=2)
         ))
@@ -153,7 +240,7 @@ class ChartService:
         #         name='回撤区间'
         #     ))
         
-        return fig
+        return self.figure
 
     def drawMACD(self, fast=12, slow=26, signal=9):
         """
@@ -163,7 +250,7 @@ class ChartService:
         :param slow: 慢速EMA周期
         :param signal: 信号线周期
         """
-        fig = go.Figure()
+        
 
         # 计算MACD
         exp1 = self.data["close"].ewm(span=fast, adjust=False).mean()

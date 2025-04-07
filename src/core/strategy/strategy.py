@@ -112,6 +112,7 @@ class FixedInvestmentStrategy(BaseStrategy):
         
         # 直接创建订单
         engine.create_order(
+            event.timestamp,
             symbol=engine.config.target_symbol,
             quantity=quantity,
             side="BUY",

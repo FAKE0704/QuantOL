@@ -14,10 +14,12 @@ def handle_signal(event: SignalEvent):
         # 生成交易信号
         for signal in signals:
             event.engine.create_order(
-                signal['symbol'],
-                signal['quantity'],
-                signal['side'],
-                signal['price']
+                event.timestamp,
+                symbol=signal['symbol'],
+                quantity=signal['quantity'],
+                side=signal['side'],
+                price=signal['price'],
+                strategy_id=event.engine.current_strategy.strategy_id
             )
         return True
     except Exception as e:
@@ -32,6 +34,7 @@ def handle_schedule(event: ScheduleEvent):
         price = event.engine.market_data.iloc[-1]["close"]
         quantity = amount / price
         event.engine.create_order(
+            event.timestamp,
             symbol=event.engine.config.target_symbol,
             quantity=quantity,
             side="BUY",
@@ -45,7 +48,6 @@ def handle_schedule(event: ScheduleEvent):
             event.timestamp, 
             lookback_days=event.parameters.get('lookback_days', 30)
         )
-        event.engine.update_market_data(data)
         return True
     except Exception as e:
         event.engine.log_error(f"加载历史数据失败: {str(e)}")

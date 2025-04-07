@@ -15,7 +15,6 @@ import streamlit as st
 class BacktestConfig:
     """
     回测配置类，包含回测所需的所有参数配置
-    
     Attributes:
         initial_capital (float): 初始资金，默认100万
         commission (float): 单笔交易手续费率，默认0.0005
@@ -41,7 +40,7 @@ class BacktestConfig:
     extra_params: Dict[str, Any] = None
     initial_capital: float = 1e6
     commission: float = 0.0005
-    slippage: float = 0.001
+    slippage: float = 0.00
 
     def __post_init__(self):
         """参数验证"""
@@ -100,6 +99,7 @@ class BacktestEngine:
     def __init__(self, config: BacktestConfig):
         self.config = config
         self.event_queue = []
+        self.current_price = None  # 添加当前价格属性
         self.handlers = {}
         self.strategies = []  # 改为支持多个策略
         self.data = None
@@ -142,13 +142,21 @@ class BacktestEngine:
             encoding='utf-8',
             utc=True
         )
-        log_formatter = logging.Formatter('%(asctime)s.%(msecs)03dZ | %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
+        log_formatter = logging.Formatter(
+            '%(asctime)s.%(msecs)03dZ | %(levelname)s | %(message)s',
+            datefmt='%Y-%m-%dT%H:%M:%S'
+        )
         log_handler.setFormatter(log_formatter)
         log_handler.suffix = "%Y-%m-%d.log"
+        log_handler.setLevel(logging.INFO)  # 设置处理器级别为INFO
 
         self.logger = logging.getLogger(f'backtester_{id(self)}')
         self.logger.addHandler(log_handler)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.INFO)  # 设置记录器级别为INFO
+        self.logger.propagate = False  # 防止日志重复记录
+        
+        # 确保日志立即写入
+        log_handler.flush = lambda: log_handler.stream.flush()
 
     def log_error(self, message: str):
         """记录错误信息"""
@@ -242,7 +250,12 @@ class BacktestEngine:
                 if first_trading_day is not None:
                     monthly_event = ScheduleEvent(
                         timestamp=first_trading_day,
-                        schedule_type="MONTHLY"
+                        schedule_type="MONTHLY",
+                        engine=self,
+                        parameters={
+                            'investment_amount': self.config.monthly_investment,
+                            'current_capital': self.current_capital
+                        }
                     )
                     self.push_event(monthly_event)
                     self.current_month = current_date.month
@@ -269,8 +282,11 @@ class BacktestEngine:
             
             # 只处理交易日
             if current_date in self.data.index:
-                # 获取当前价格
+                # 获取当前价格，处理空值
                 current_price = self.data.loc[current_date, 'close']
+                if pd.isnull(current_price):
+                    self.log_error(f"获取到空价格在 {current_date}, 使用前值填充")
+                    current_price = self.data['close'].shift(1).loc[current_date]
                 self.current_price = current_price
                 
                 # 处理当日事件
@@ -325,7 +341,7 @@ class BacktestEngine:
         # 计算盈利交易数量
         winning_trades = 0
         for trade in self.trades:
-            if trade['side'] == 'buy':
+            if trade['side'] == 'BUY':
                 # 查找对应的卖出交易
                 sell_trades = [t for t in self.trades 
                              if t['side'] == 'sell' 
@@ -337,12 +353,12 @@ class BacktestEngine:
                         winning_trades += 1
             elif trade['side'] == 'sell' and trade['strategy_id']:
                 # 查找对应的买入交易
-                buy_trades = [t for t in self.trades 
-                            if t['side'] == 'buy' 
+                BUY_trades = [t for t in self.trades 
+                            if t['side'] == 'BUY' 
                             and t['strategy_id'] == trade['strategy_id']
                             and t['timestamp'] < trade['timestamp']]
-                if buy_trades:
-                    profit = trade['price'] - buy_trades[0]['price']
+                if BUY_trades:
+                    profit = trade['price'] - BUY_trades[0]['price']
                     if profit > 0:
                         winning_trades += 1
         
@@ -375,14 +391,65 @@ class BacktestEngine:
     def _update_equity(self, market_data):
         """更新净值记录"""
         # 确保数值类型正确
-        close_price = float(market_data['close'])
+        if market_data['close'] is None:
+            self.logger.warning(f"跳过净值更新: 收盘价为None | 时间: {market_data['datetime']}")
+            return  # 如果收盘价为None，跳过更新
+        try:
+            close_price = float(market_data['close'])
+        except (TypeError, ValueError):
+            self.log_error(f"无法将收盘价转换为浮点数: {market_data['close']}")
+            return
         current_capital = float(self.current_capital)
         
         # 计算持仓价值
-        position_value = self.position_meta['quantity'] * close_price
-        unrealized_pnl = (close_price - self.position_meta['avg_price']) * self.position_meta['quantity']
+        position_quantity = self.position_meta['quantity']
+        avg_price = self.position_meta['avg_price']
         
+        # 验证持仓数量
+        if position_quantity == 0:
+            position_value = 0
+            unrealized_pnl = 0
+        else:
+            # 验证持仓方向
+            if self.position_meta['direction'] == 0:
+                self.log_error(f"持仓方向为0但持仓数量不为0: {position_quantity}")
+                position_value = 0
+                unrealized_pnl = 0
+            else:
+                position_value = position_quantity * close_price
+                unrealized_pnl = (close_price - avg_price) * position_quantity
+                
+                # 验证计算
+                if position_value < 0:
+                    self.log_error(f"持仓价值为负: {position_value:.2f} | 数量: {position_quantity} | 价格: {close_price:.2f}")
+                    position_value = 0
+                    
+                # 验证未实现盈亏
+                expected_pnl = (close_price - avg_price) * position_quantity
+                if abs(unrealized_pnl - expected_pnl) > 0.01:
+                    self.log_error(
+                        f"未实现盈亏计算错误: {unrealized_pnl:.2f} vs expected {expected_pnl:.2f} | "
+                        f"数量: {position_quantity} | 价格: {close_price:.2f} | 平均成本: {avg_price:.2f}"
+                    )
+                    unrealized_pnl = expected_pnl
+            
         total_value = current_capital + position_value
+        
+        # 验证总资产计算
+        if total_value < 0:
+            self.log_error(f"总资产为负: {total_value:.2f} | 现金: {current_capital:.2f} | 持仓价值: {position_value:.2f}")
+            total_value = current_capital  # 仅保留现金部分
+            
+        # 记录详细计算过程
+        # self.logger.debug(
+        #     f"净值计算过程 | 现金: {current_capital:.2f} | "
+        #     f"持仓数量: {self.position_meta['quantity']} | "
+        #     f"当前价格: {close_price:.2f} | "
+        #     f"平均成本: {self.position_meta['avg_price']:.2f} | "
+        #     f"持仓价值: {position_value:.2f} | "
+        #     f"未实现盈亏: {unrealized_pnl:.2f} | "
+        #     f"总资产: {total_value:.2f}"
+        # )
         
         # 确保时间戳格式一致
         timestamp = pd.to_datetime(market_data['datetime'])
@@ -414,6 +481,22 @@ class BacktestEngine:
                 # 更新现有记录
                 idx = existing.index[0]
                 self.equity_records.loc[idx] = record
+                
+        # 记录详细的净值计算
+        # self.logger.info(
+        #     f"净值计算 | 时间: {timestamp} | 价格: {close_price:.2f} | "
+        #     f"持仓: {self.position_meta['quantity']} | 现金: {current_capital:.2f} | "
+        #     f"持仓价值: {position_value:.2f} | 总资产: {total_value:.2f} | "
+        #     f"未实现盈亏: {unrealized_pnl:.2f} | 平均成本: {self.position_meta['avg_price']:.2f} | "
+        #     f"持仓方向: {'多头' if self.position_meta['direction'] > 0 else '空头' if self.position_meta['direction'] < 0 else '无'}"
+        # )
+        
+        # 如果总资产没有变化，记录警告
+        # if len(self.equity_records) > 1 and total_value == self.equity_records.iloc[-2]['total_value']:
+        #     self.logger.warning(
+        #         f"总资产未变化 | 当前总资产: {total_value:.2f} | "
+        #         f"前次总资产: {self.equity_records.iloc[-2]['total_value']:.2f}"
+        #     )
 
     def get_historical_data(self, timestamp: datetime, lookback_days: int):
         """获取历史数据"""
@@ -435,12 +518,26 @@ class BacktestEngine:
         print(f"[DEBUG] 数据列: {self.data.columns.tolist()}")
         print(f"[DEBUG] 示例数据:\n{self.data.head(2)}")
         
+        # 添加数据校验
+        if 'close' not in self.data.columns:
+            raise ValueError("数据缺少close字段")
+        print(f"[DEBUG] 空值检查 - close列空值数量: {self.data['close'].isnull().sum()}")
+        
+        # 填充空值（如果存在）
+        self.data['close'].fillna(method='ffill', inplace=True)
+        
         return self.data
 
-    def create_order(self, symbol: str, quantity: int, side: str, price: float, strategy_id: str = None):
+    def create_order(self, timestamp : datetime ,symbol: str, quantity: int, side: str, price: float, strategy_id: str = None):
         """创建交易订单"""
+        # 添加DEBUG日志记录订单创建
+        self.logger.debug(
+            f"Creating order | Symbol: {symbol} | Side: {side} | "
+            f"Qty: {quantity} | Price: {price:.2f} | Strategy: {strategy_id or 'GLOBAL'}"
+        )
+        
         # 如果是定投买入且配置了monthly_investment，则动态计算数量
-        if side == 'buy' and self.config.monthly_investment and strategy_id:
+        if side == 'BUY' and self.config.monthly_investment and strategy_id:
             quantity = int(self.config.monthly_investment / price)
             if quantity <= 0:
                 raise ValueError(f"计算数量无效: {quantity} (price={price}, investment={self.config.monthly_investment})")
@@ -448,14 +545,16 @@ class BacktestEngine:
         # 记录操作前状态
         prev_capital = self.current_capital
         prev_position = self.position_meta.copy()
-            
+        
         # 计算交易金额和手续费
         trade_amount = quantity * price
         commission = trade_amount * self.config.commission
         
         # 更新资金和持仓
-        if side == 'buy':
+        if side == 'BUY':
             self.current_capital -= (trade_amount + commission)
+            # 添加调试日志验证资金扣除
+            self.logger.debug(f"资金扣除验证 | 原金额: {prev_capital:.2f} | 扣除: {trade_amount + commission:.2f} | 新金额: {self.current_capital:.2f}")
             if self.position_meta['quantity'] * quantity < 0:  # 反向交易
                 self._close_position(quantity, price)
             else:
@@ -469,7 +568,12 @@ class BacktestEngine:
                 })
             
             if strategy_id:
+                # 记录操作前持仓
+                prev_strategy_holding = self.strategy_holdings.get(strategy_id, 0)
+                
+                # 更新策略持仓
                 self.strategy_holdings[strategy_id] += quantity
+                
                 # 记录买入时间
                 self.position_records[strategy_id] = {
                     'entry_time': self.current_date,
@@ -477,14 +581,33 @@ class BacktestEngine:
                     'entry_price': price
                 }
                 
-            # 记录交易日志
+                # 验证持仓更新
+                if self.strategy_holdings[strategy_id] != prev_strategy_holding + quantity:
+                    self.log_error(
+                        f"策略持仓更新错误: expected={prev_strategy_holding + quantity} "
+                        f"actual={self.strategy_holdings[strategy_id]}"
+                    )
+                    # 强制修正
+                    self.strategy_holdings[strategy_id] = prev_strategy_holding + quantity
+                
+                # 验证全局持仓
+                if self.strategy_holdings[strategy_id] != self.position_meta['quantity']:
+                    self.log_error(
+                        f"持仓不一致: strategy_holdings={self.strategy_holdings[strategy_id]} "
+                        f"vs position_meta={self.position_meta['quantity']}"
+                    )
+                    # 强制同步
+                    self.position_meta['quantity'] = self.strategy_holdings[strategy_id]
+                
+            # 记录交易日志并立即刷新
             self.logger.info(
-                f"BUY | {symbol} | Qty: {quantity} | Price: {price:.2f} | "
+                f"[{timestamp.strftime('%Y-%m-%d %H:%M:%S')}] BUY | {symbol} | Qty: {quantity} | Price: {price:.2f} | "
                 f"Cost: {trade_amount:.2f} | Commission: {commission:.2f} | "
                 f"Capital: {self.current_capital:.2f} | "
                 f"Position: {self.position_meta['quantity']}@{self.position_meta['avg_price']:.2f} | "
                 f"Strategy: {strategy_id or 'GLOBAL'}"
             )
+            self.logger.handlers[0].flush()
             
         elif side == 'sell':
             # 自动修正卖出数量不超过持仓
@@ -521,7 +644,7 @@ class BacktestEngine:
             else:  # 反向交易
                 self._close_position(-quantity, price)
             
-            # 记录交易日志
+            # 记录交易日志并立即刷新
             self.logger.info(
                 f"SELL | {symbol} | Qty: {quantity} | Price: {price:.2f} | "
                 f"Proceeds: {trade_amount:.2f} | Commission: {commission:.2f} | "
@@ -529,10 +652,17 @@ class BacktestEngine:
                 f"Position: {self.position_meta['quantity']}@{self.position_meta['avg_price']:.2f} | "
                 f"Strategy: {strategy_id or 'GLOBAL'}"
             )
+            self.logger.handlers[0].flush()
             
         # 强制同步持仓状态
         self._sync_position()
             
+        # 触发净值更新
+        self._update_equity({
+            'datetime': self.current_date,
+            'close': self.current_price
+        })
+        
         # 记录交易
         trade = {
             "timestamp": self.current_date if hasattr(self, 'current_date') else datetime.now(),
@@ -545,9 +675,18 @@ class BacktestEngine:
             "remaining_capital": self.current_capital,
             "position_after": self.position_meta['quantity'],
             "strategy_id": strategy_id,
-            "entry_price": price if side == 'buy' else None
+            "entry_price": price if side == 'BUY' else None
         }
         self.trades.append(trade)
+        
+        # 记录详细的交易影响
+        self.logger.info(
+            f"交易影响 | 类型: {side} | 数量: {quantity} | 价格: {price:.2f} | "
+            f"交易金额: {trade_amount:.2f} | 手续费: {commission:.2f} | "
+            f"现金变化: {prev_capital:.2f} -> {self.current_capital:.2f} | "
+            f"持仓变化: {prev_position['quantity']}@{prev_position['avg_price']:.2f} -> "
+            f"{self.position_meta['quantity']}@{self.position_meta['avg_price']:.2f}"
+        )
         
         # 确保策略ID正确传递到交易记录
         if strategy_id:
@@ -564,17 +703,44 @@ class BacktestEngine:
     def _sync_position(self):
         """同步持仓状态，确保position_meta和strategy_holdings一致"""
         total_strategy_holdings = sum(abs(qty) for qty in self.strategy_holdings.values())
-        if abs(self.position_meta['quantity']) != total_strategy_holdings:
+        position_quantity = self.position_meta['quantity']
+        
+        # 验证持仓数量
+        if abs(position_quantity) != total_strategy_holdings:
             self.log_error(
-                f"持仓不一致: position_meta={self.position_meta['quantity']} "
+                f"持仓不一致: position_meta={position_quantity} " 
                 f"vs strategy_holdings={total_strategy_holdings}"
             )
+            
+            # 验证持仓方向
+            expected_direction = 1 if sum(self.strategy_holdings.values()) > 0 else -1
+            if self.position_meta['direction'] != expected_direction:
+                self.log_error(
+                    f"持仓方向不一致: position_meta={self.position_meta['direction']} " 
+                    f"vs expected={expected_direction}"
+                )
+            
             # 强制同步到position_meta
             self.position_meta.update({
                 'quantity': sum(self.strategy_holdings.values()),
                 'avg_price': self.position_meta['avg_price'],
-                'direction': 1 if sum(self.strategy_holdings.values()) > 0 else -1
+                'direction': expected_direction
             })
+            
+            # 记录详细持仓信息
+            self.logger.info(
+                f"持仓同步 | 全局持仓: {self.position_meta['quantity']} | " 
+                f"策略持仓: {total_strategy_holdings} | " 
+                f"平均价格: {self.position_meta['avg_price']:.2f} | " 
+                f"方向: {'多头' if self.position_meta['direction'] > 0 else '空头'}"
+            )
+            
+            # 验证同步结果
+            if abs(self.position_meta['quantity']) != total_strategy_holdings:
+                self.log_error(
+                    f"同步失败: position_meta={self.position_meta['quantity']} " 
+                    f"vs strategy_holdings={total_strategy_holdings}"
+                )
 
     def _close_position(self, qty, price):
         """处理平仓逻辑"""

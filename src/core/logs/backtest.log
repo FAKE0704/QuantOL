@@ -1,24 +1,224 @@
-2025-04-02T02:57:48.639Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T02:57:49.306Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T02:57:49.780Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T02:57:50.240Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:38:00.347Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:38:00.347Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:38:01.005Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:38:01.005Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:38:01.434Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:38:01.434Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:38:01.840Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:38:01.840Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:37.197Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:37.197Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:37.197Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:37.799Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:37.799Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:37.799Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:38.268Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:38.268Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:38.268Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:38.712Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:38.712Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
-2025-04-02T03:50:38.712Z | ERROR | 处理事件失败: 'ScheduleEvent' object has no attribute 'engine'
+2025-04-07T16:37:15.981Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:37:15.982Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:37:15.982Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:37:15.982Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:37:15.982Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T16:37:15.983Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T16:37:17.492Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:37:17.492Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:37:17.492Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:37:17.492Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:37:17.495Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:37:18.475Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:37:18.475Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:37:18.475Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:37:18.475Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:37:18.478Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:42:44.132Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:42:44.132Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:42:44.132Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:42:44.132Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:42:44.132Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T16:42:44.132Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T16:42:45.255Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:42:45.255Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:42:45.255Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:42:45.255Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:42:45.258Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:42:46.169Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:42:46.169Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:42:46.169Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:42:46.169Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:42:46.172Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:46:06.587Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:46:06.588Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:46:06.588Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:46:06.589Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:46:06.589Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T16:46:06.589Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T16:46:07.843Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:46:07.844Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:46:07.844Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:46:07.844Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:46:07.848Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:46:08.958Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:46:08.959Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:46:08.959Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:46:08.959Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:46:08.962Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:48:19.462Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:19.462Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:19.462Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:19.463Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:19.463Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T16:48:19.463Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T16:48:20.552Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:20.552Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:20.552Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:20.552Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:20.554Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:48:21.849Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:21.849Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:21.849Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:21.849Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:21.854Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:48:48.790Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:48.790Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:48.791Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:48.791Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:48.791Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:48.791Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:48.792Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:48.792Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:48.792Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T16:48:48.792Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T16:48:48.792Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T16:48:48.792Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T16:48:50.849Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:50.849Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:50.850Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:50.850Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:50.850Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:50.850Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:50.850Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:50.850Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:50.859Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:48:50.859Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:48:52.325Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:52.325Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T16:48:52.326Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:52.326Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T16:48:52.326Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:52.326Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T16:48:52.326Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:52.326Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T16:48:52.328Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T16:48:52.328Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:25:54.146Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:25:54.146Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:25:54.146Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:25:54.147Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:25:54.147Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T17:25:54.147Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T17:25:55.800Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:25:55.800Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:25:55.800Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:25:55.800Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:25:55.805Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:25:57.328Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:25:57.328Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:25:57.328Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:25:57.329Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:25:57.332Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:28:32.326Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:28:32.326Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:28:32.327Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:28:32.327Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:28:32.327Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T17:28:32.328Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T17:28:35.178Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:28:35.178Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:28:35.178Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:28:35.178Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:28:35.185Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:28:37.110Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:28:37.110Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:28:37.111Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:28:37.111Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:28:37.116Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:30:14.913Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:30:14.913Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:30:14.914Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:30:14.914Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:30:14.914Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:30:14.914Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:30:14.914Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:30:14.914Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:30:14.914Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T17:30:14.914Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T17:30:14.914Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T17:30:14.914Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T17:30:17.111Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:30:17.111Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:30:17.112Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:30:17.112Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:30:17.112Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:30:17.112Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:30:17.112Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:30:17.112Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:30:17.117Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:30:17.117Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:30:18.745Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:30:18.745Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:30:18.745Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:30:18.745Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:30:18.745Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:30:18.745Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:30:18.745Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:30:18.745Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:30:18.747Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:30:18.747Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:32:12.966Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:32:12.966Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:32:12.967Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:32:12.967Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:32:12.967Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T17:32:12.967Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T17:32:14.454Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:32:14.454Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:32:14.454Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:32:14.454Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:32:14.457Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:32:16.400Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:32:16.401Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:32:16.401Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:32:16.401Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:32:16.406Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:36:21.397Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:36:21.397Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:36:21.397Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:36:21.398Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:36:21.398Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T17:36:21.398Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T17:36:22.808Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:36:22.808Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:36:22.808Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:36:22.808Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:36:22.811Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:36:23.889Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:36:23.889Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:36:23.890Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:36:23.890Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:36:23.892Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:40:14.350Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:40:14.350Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:40:14.351Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:40:14.351Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:40:14.351Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T17:40:14.351Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T17:40:15.370Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:40:15.370Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:40:15.370Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:40:15.370Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:40:15.372Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:40:16.265Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:40:16.265Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:40:16.265Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:40:16.265Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:40:16.268Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:49:11.513Z | INFO | [2025-01-02 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 98970.39 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:49:11.514Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:49:11.514Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:49:11.514Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:49:11.514Z | WARNING | 跳过净值更新: 收盘价为None | 时间: 2025-01-02 09:35:00
+2025-04-07T17:49:11.514Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 100000.00 -> 98970.39 | 持仓变化: 0@0.00 -> 0@3.02
+2025-04-07T17:49:12.730Z | INFO | [2025-02-05 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 97940.78 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:49:12.730Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:49:12.730Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:49:12.731Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:49:12.735Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 98970.39 -> 97940.78 | 持仓变化: 0@3.02 -> 0@3.02
+2025-04-07T17:49:13.844Z | INFO | [2025-03-03 09:35:00] BUY | sh.600622 | Qty: 331 | Price: 3.02 | Cost: 999.62 | Commission: 29.99 | Capital: 96911.17 | Position: 331@3.02 | Strategy: GLOBAL
+2025-04-07T17:49:13.844Z | ERROR | ERROR | 持仓不一致: position_meta=331 vs strategy_holdings=0
+2025-04-07T17:49:13.844Z | ERROR | ERROR | 持仓方向不一致: position_meta=1 vs expected=-1
+2025-04-07T17:49:13.844Z | INFO | 持仓同步 | 全局持仓: 0 | 策略持仓: 0 | 平均价格: 3.02 | 方向: 空头
+2025-04-07T17:49:13.846Z | INFO | 交易影响 | 类型: BUY | 数量: 331 | 价格: 3.02 | 交易金额: 999.62 | 手续费: 29.99 | 现金变化: 97940.78 -> 96911.17 | 持仓变化: 0@3.02 -> 0@3.02

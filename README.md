@@ -5,37 +5,43 @@
 C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys
 ## 1.3. 文件结构
 awesome-Qsys/src/
-├── frontend/                     # 前端模块
+├── frontend/               # 前端模块
 │   ├── backtesting.py            # 回测界面
 │   ├── history.py                # 历史行情界面
 │   ├── setting.py                # 设置界面
 │   ├── indicators.py             # 指标界面
 │   ├── trading.py                # 交易管理界面
-├── backend/                      # 后端模块
+├── backend/                # 后端模块
 │   ├── api/                      # API接口
 ├── core/                         # 核心模块
-│   ├── data/                     # 数据模块
+│   ├── data/               # 数据模块
 │   │   ├── database.py           # 股票数据管理
-│   │   ├── baostock_source.py
-│   │   ├── data_source.py
-│   ├── execution/                # 执行模块
+│   │   ├── baostock_source.py    # baostock数据源
+│   │   ├── data_source.py        # 数据源管理
+│   │   ├── stock.py              # 股票实例管理
+│   ├── execution/          # 执行模块
 │   │   ├── Trader.py             # 交易执行
 │   │   ├── TradeDatabaseManager.py # 交易数据管理
 │   ├── risk/                     # 风险模块
-│   ├── strategy/                 # 策略模块
-│   │   ├── strategy.py
-│   ├── backtest.py               # 回测引擎
+│   ├── strategy/           # 策略模块
+│   │   ├── strategy.py           # 策略管理
+│   │   ├── dca_strategy.py       # 定投策略
+│   │   ├── events.py             # 事件管理
+│   │   ├── event_handlers.py     # 事件处理
+│   │   ├── backtest.py           # 回测引擎
 ├── services/                 # 服务模块
 │   ├── chart_service.py                 # 图表管理服务
-│   ├── interaction_service.py                 # 图表关联
-│   ├── progress_service.py                 # 进度条
-│   ├── stock_search.py                 # 股票搜索
+│   ├── interaction_service.py           # 图表关联
+│   ├── progress_service.py              # 进度条
+│   ├── stock_search.py                  # 股票搜索
 │   ├── theme_manager.py                 # 主题管理
-├── notification/                 # 通知模块
+├── notification/             # 通知模块
 ├── support/                      # 支持模块
+│   ├── log/                      # 日志功能
+│   ├── monitor/                      # 监控功能
 ├── venvQuant/                    # 虚拟环境文件夹
 ├── logs/
-│   ├── backtest.log 
+│   ├── backtest.log                   # 回测日志
     ├── database.log                  # 数据库日志
 ├── main.py                       # 项目主函数文件
 ├── myimports.py                  # 自定义导入

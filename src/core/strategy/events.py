@@ -27,11 +27,12 @@ class BaseEvent:
 @dataclass
 class ScheduleEvent(BaseEvent):
     """定时任务事件"""
-    def __init__(self, timestamp: datetime, schedule_type: str): # , parameters: dict
-        """传入(时间，定时类型)"""
+    def __init__(self, timestamp: datetime, schedule_type: str, engine=None, parameters=None): 
+        """传入(时间，定时类型, 引擎实例, 参数)"""
         super().__init__(timestamp, 'SCHEDULE')
         self.schedule_type = schedule_type
-        # self.parameters = parameters
+        self.engine = engine
+        self.parameters = parameters or {}
         
 
     def to_dict(self) -> Dict[str, Any]:

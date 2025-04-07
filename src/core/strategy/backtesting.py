@@ -103,7 +103,7 @@ class BacktestEngine:
         self.handlers = {}
         self.strategies = []  # 改为支持多个策略
         self.data = None
-        self.trades = []
+        self.trades = [] # 交易记录
         self.results = {}
         self.current_capital = config.initial_capital
         self.positions = {}  # 按策略ID存储持仓 {strategy_id: position}
@@ -180,12 +180,23 @@ class BacktestEngine:
         if not hasattr(strategy, 'strategy_id'):
             raise ValueError("策略必须设置strategy_id属性")
             
+        # 验证策略ID是否有效
+        if not strategy.strategy_id or not isinstance(strategy.strategy_id, str):
+            raise ValueError(f"无效的策略ID: {strategy.strategy_id}")
+            
+        # 检查是否已存在相同ID的策略
+        if strategy.strategy_id in self.strategy_holdings:
+            raise ValueError(f"策略ID {strategy.strategy_id} 已存在")
+            
         self.strategies.append(strategy)
         self.strategy_holdings[strategy.strategy_id] = 0  # 初始化持仓
         
         # 为定投策略添加事件处理器
         if hasattr(strategy, 'is_fixed_investment') and strategy.is_fixed_investment:
             self.register_handler(ScheduleEvent, strategy.handle_event)
+            
+        # 记录策略注册日志
+        self.logger.info(f"策略注册成功 | ID: {strategy.strategy_id} | 名称: {strategy.name}")
 
     def push_event(self, event):
         """添加事件到队列"""
@@ -454,17 +465,20 @@ class BacktestEngine:
         # 确保时间戳格式一致
         timestamp = pd.to_datetime(market_data['datetime'])
         
+        # 获取策略持仓
+        strategy_position = sum(self.strategy_holdings.values())
+        
         record = {
             'timestamp': timestamp,
             'price': close_price,
-            'position': self.position_meta['quantity'],
+            'position': strategy_position,  # 使用策略总持仓
             'cash': current_capital,
             'total_value': total_value,
             'position_value': position_value,
             'unrealized_pnl': unrealized_pnl,
             'avg_price': self.position_meta['avg_price'],
-            'position_direction': 'long' if self.position_meta['direction'] > 0 else 
-                                 'short' if self.position_meta['direction'] < 0 else 'flat'
+            'position_direction': 'long' if strategy_position > 0 else 
+                                 'short' if strategy_position < 0 else 'flat'
         }
         
         # 使用loc避免concat警告
@@ -524,7 +538,7 @@ class BacktestEngine:
         print(f"[DEBUG] 空值检查 - close列空值数量: {self.data['close'].isnull().sum()}")
         
         # 填充空值（如果存在）
-        self.data['close'].fillna(method='ffill', inplace=True)
+        # self.data['close'].fillna(method='ffill', inplace=True)
         
         return self.data
 
@@ -654,8 +668,6 @@ class BacktestEngine:
             )
             self.logger.handlers[0].flush()
             
-        # 强制同步持仓状态
-        self._sync_position()
             
         # 触发净值更新
         self._update_equity({
@@ -664,6 +676,21 @@ class BacktestEngine:
         })
         
         # 记录交易
+        # Get position information from strategy if available
+        position_info = {
+            'position_size': 0,
+            'position_cost': 0.0
+        }
+        if strategy_id:
+            for strategy in self.strategies:
+                if strategy.strategy_id == strategy_id:
+                    position_info = {
+                        'position_size': strategy.position_size,
+                        'position_cost': strategy.position_cost
+                    }
+                    break
+
+        # 确保仓位信息正确传递
         trade = {
             "timestamp": self.current_date if hasattr(self, 'current_date') else datetime.now(),
             "symbol": symbol,
@@ -673,12 +700,21 @@ class BacktestEngine:
             "amount": trade_amount,
             "commission": commission,
             "remaining_capital": self.current_capital,
-            "position_after": self.position_meta['quantity'],
             "strategy_id": strategy_id,
-            "entry_price": price if side == 'BUY' else None
+            "entry_price": price if side == 'BUY' else None,
+            "position_size": self.position_meta['quantity'],
+            "position_cost": self.position_meta['avg_price']
         }
-        self.trades.append(trade)
         
+        # 触发策略仓位同步
+        if strategy_id:
+            for strategy in self.strategies:
+                if strategy.strategy_id == strategy_id:
+                    strategy.update_position(
+                        self.position_meta['quantity'],
+                        self.position_meta['avg_price']
+                    )
+        self.trades.append(trade)
         # 记录详细的交易影响
         self.logger.info(
             f"交易影响 | 类型: {side} | 数量: {quantity} | 价格: {price:.2f} | "
@@ -692,13 +728,14 @@ class BacktestEngine:
         if strategy_id:
             for strategy in self.strategies:
                 if strategy.strategy_id == strategy_id:
-                    strategy.on_trade_executed(trade)
+                    # strategy.on_trade_executed(trade)
+                    pass
         
         # 触发持仓更新回调
         if strategy_id:
             for strategy in self.strategies:
                 if strategy.strategy_id == strategy_id:
-                    strategy.on_position_update(self.strategy_holdings[strategy_id])
+                    strategy.update_position(self.strategy_holdings[strategy_id],self.position_meta['avg_price'])
 
     def _sync_position(self):
         """同步持仓状态，确保position_meta和strategy_holdings一致"""

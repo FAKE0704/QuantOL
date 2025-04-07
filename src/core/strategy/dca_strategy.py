@@ -73,16 +73,19 @@ class DCABaseStrategy(BaseStrategy):
                 return True
         return False
                 
+    def sync_position(self, engine_position: dict):
+        """同步引擎仓位到策略"""
+        self.position_size = engine_position['quantity']
+        self.position_cost = engine_position['avg_price']
+        self.current_holdings = self.position_size
+
     def generate_signals(self, order_amount: float):
         """生成交易信号"""
         # 对于卖出订单，检查持仓是否足够
-        if order_amount < 0 and abs(order_amount) > self.current_holdings:
-            order_amount = -self.current_holdings  # 调整卖出数量为当前持仓
-            
-        # 更新持仓
-        self.current_holdings += order_amount
-        # 确保持仓不为负
-        self.current_holdings = max(0, self.current_holdings)
+        if order_amount < 0:
+            current_holdings = self.engine.strategy_holdings.get(self.strategy_id, 0)
+            if abs(order_amount) > current_holdings:
+                order_amount = -current_holdings  # 调整卖出数量为当前持仓
         
         # 生成买入/卖出信号
         signal = {
@@ -91,8 +94,14 @@ class DCABaseStrategy(BaseStrategy):
             'quantity': abs(order_amount),  # 确保数量为正
             'price': None,  # 将在执行时确定
             'type': 'buy' if order_amount > 0 else 'sell',
-            'strategy_id': self.strategy_id
+            'strategy_id': self.strategy_id,
+            'position_size': self.position_size,
+            'position_cost': self.position_cost
         }
+        
+        # 确保策略ID正确传递到引擎
+        if not self.strategy_id:
+            raise ValueError("策略ID不能为空")
         
         # 只有数量大于0时才生成信号
         if signal['quantity'] > 0:

@@ -41,11 +41,12 @@ from typing import Type, Callable, Dict
 
 class BaseStrategy():
     def __init__(self, Data, name, buySignal, sellSignal):
+        import uuid
         self.Data = Data
         self.name : str = name
         self.buySignal = buySignal
         self.sellSignal = sellSignal
-        self.strategy_id = 1
+        self.strategy_id = str(uuid.uuid4())  # 生成唯一ID
         self.position_cost = 0.0  # 平均持仓成本
         self.position_size = 0.0  # 当前持仓数量
         self.position_records = []  # 分笔持仓记录
@@ -81,6 +82,14 @@ class BaseStrategy():
                     sold_qty = 0
             self.position_cost = total_cost / abs(quantity) if quantity !=0 else 0
             self.position_size = remaining_qty
+            
+        print(f"策略仓位更新 | 数量: {self.position_size} | 成本: {self.position_cost}") #debug
+        # 返回更新后的仓位信息
+        return {
+            'position_size': self.position_size,
+            'position_cost': self.position_cost,
+            'timestamp': datetime.now()
+        }
 
     def get_strategy(self):
         return f"strategy name: {self.name}"
@@ -116,7 +125,8 @@ class FixedInvestmentStrategy(BaseStrategy):
             symbol=engine.config.target_symbol,
             quantity=quantity,
             side="BUY",
-            price=current_price
+            price=current_price,
+            strategy_id=self.strategy_id
         )
     def set_name(self,name :str):
         self.name = name

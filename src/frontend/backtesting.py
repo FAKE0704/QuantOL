@@ -81,7 +81,6 @@ async def show_backtesting_page():
         start_date=start_date.strftime("%Y%m%d") # 开始日期
         end_date=end_date.strftime("%Y%m%d") # 结束日期
 
-        # st.write(symbol, start_date, end_date, frequency) # debug
         
         
         # 初始化回测配置
@@ -97,7 +96,7 @@ async def show_backtesting_page():
         # 初始化事件引擎
         engine = BacktestEngine(config=backtest_config)
         data = await engine.load_data(symbol)
-        st.write(data) # debug
+        st.write(data) 
         # 注册事件处理器
         engine.register_handler(ScheduleEvent, handle_schedule)
         engine.register_handler(SignalEvent, handle_signal)

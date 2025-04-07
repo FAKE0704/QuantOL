@@ -101,6 +101,17 @@ class DatabaseManager:
                         type VARCHAR(20),
                         status VARCHAR(10) 
                     );
+
+                    CREATE TABLE IF NOT EXISTS PoliticalEvents (
+                        id SERIAL PRIMARY KEY,
+                        event_date TIMESTAMP NOT NULL,
+                        country VARCHAR(50) NOT NULL,
+                        policy_type VARCHAR(100) NOT NULL,
+                        impact_score NUMERIC(5,2) NOT NULL,
+                        raw_content TEXT NOT NULL,
+                        processed BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    );
                 """)
                 self.logger.info("数据库表结构初始化完成")
 

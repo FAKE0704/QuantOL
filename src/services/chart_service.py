@@ -33,6 +33,46 @@ class ChartBase(ABC):
     def render(self, data: pd.DataFrame):
         pass
 
+class CapitalFlowChart(ChartBase):
+    """资金流图表实现"""
+    def __init__(self, config: ChartConfig):
+        super().__init__(config)
+        self.main_color = '#4E79A7'  # 主力资金颜色
+        self.north_color = '#59A14F'  # 北向资金颜色
+        
+    def render(self, data: pd.DataFrame):
+        from plotly.subplots import make_subplots
+        # 创建双Y轴图表
+        self.figure = make_subplots(specs=[[{"secondary_y": True}]])
+        
+        # 主力资金（左轴）
+        self.figure.add_trace(go.Bar(
+            x=data['date'],
+            y=data['main_net'],
+            name='主力净流入',
+            marker_color=self.main_color,
+            opacity=0.7
+        ), secondary_y=False)
+        
+        # 北向资金（右轴） 
+        self.figure.add_trace(go.Scatter(
+            x=data['date'],
+            y=data['north_net'].cumsum(),
+            name='北向累计',
+            line=dict(color=self.north_color, width=2),
+            secondary_y=True
+        ))
+        
+        # 应用主题配置
+        theme = self.config.themes[self.config.current_theme]
+        self.figure.update_layout(
+            plot_bgcolor=theme['bg_color'],
+            paper_bgcolor=theme['bg_color'],
+            barmode='relative',
+            title='资金流向分析'
+        )
+        return self.figure
+
 class CandlestickChart(ChartBase):
     """K线图表实现"""
     def __init__(self, config: ChartConfig):
@@ -123,11 +163,10 @@ class CombinedChartConfig(ChartConfig):
 
 class DataBundle:
     """数据容器，用于存储多种类型的数据"""
-    def __init__(self,raw_data,transaction_data):
+    def __init__(self, raw_data=None, transaction_data=None, capital_flow_data=None):
         self.kline_data = raw_data  # K线数据
         self.trade_records = transaction_data  # 交易记录
-        # self.transaction_data = None  # 仓位数据
-        # self.trade_records = None  # 净值数据
+        self.capital_flow = capital_flow_data  # 新增资金流数据字段
 
 class ChartService:
     """图表服务，支持多种数据源的图表绘制"""
@@ -158,6 +197,22 @@ class ChartService:
         fig = volume.render(self.data_bundle.kline_data)
         return fig
 
+    def create_capital_flow_chart(self, config: dict = None) -> go.Figure:
+        """创建资金流图表"""
+        if self.data_bundle.capital_flow is None:
+            raise ValueError("缺少资金流数据")
+            
+        # 初始化配置
+        flow_config = ChartConfig()
+        capital_chart = CapitalFlowChart(flow_config)
+        
+        # 应用自定义配置
+        if config:
+            capital_chart.main_color = config.get('main_color', '#4E79A7')
+            capital_chart.north_color = config.get('north_color', '#59A14F')
+            
+        return capital_chart.render(self.data_bundle.capital_flow)
+
     def create_combined_chart(self, chart_types: list, row_heights: list = None) -> go.Figure:
         """创建组合图表
         Args:
@@ -186,7 +241,8 @@ class ChartService:
             'volume': self.create_volume_chart,
             'equity': self.draw_equity,
             'macd': lambda: self.drawMACD(self.data_bundle.kline_data),
-            'rsi': lambda: self.drawRSI(self.data_bundle.kline_data)
+            'rsi': lambda: self.drawRSI(self.data_bundle.kline_data),
+            'capital_flow': self.create_capital_flow_chart
         }
         
         # 添加各图表

@@ -232,117 +232,134 @@ class ChartService:
     
     def render_chart_controls(self) -> go.Figure:
         """渲染图表配置控件（带状态管理）"""
-        # 初始化session_state
-        if 'chart_config' not in st.session_state:
-            st.session_state.chart_config = ChartConfigManager.load_config()
+        # 清理旧的事件监听
+        if hasattr(self, 'interaction_service'):
+            self.interaction_service.clear_all_listeners()
 
-        # 初始化配置
-        if 'chart_config' not in st.session_state:
-            st.session_state.chart_config = ChartConfigManager.load_config()
+        # 初始化session_state配置
+        config_key = f"chart_config_{id(self)}"
+        if config_key not in st.session_state:
+            st.session_state[config_key] = {
+                'version': 1,
+                'main_chart': {
+                    'type': 'K线图',
+                    'fields': ['close'],
+                    'components': {}
+                },
+                'sub_chart': {
+                    'show': True,
+                    'type': '柱状图',
+                    'fields': ['volume'],
+                    'components': {}
+                },
+            }
+
+        config = st.session_state[config_key]
 
         # 使用独立的key来管理每个控件
         with st.expander("📊 图表配置", expanded=True):
             # 主图配置
             col1, col2 = st.columns(2)
             with col1:
-                # 获取当前主图类型，确保在选项列表中
-                current_primary = st.session_state.chart_config.get('primary_type', '折线图')
-                if current_primary not in ["折线图", "K线图", "面积图"]:
-                    current_primary = "折线图"
-                
-                new_primary = st.selectbox(
+                new_type = st.selectbox(
                     "主图类型",
                     options=["折线图", "K线图", "面积图"],
-                    index=["折线图", "K线图", "面积图"].index(current_primary),
-                    key=f'primary_type_select_{id(self)}'
+                    key=f"{id(self)}v{config['version']}_main_type",
+                    index=["折线图", "K线图", "面积图"].index(config['main_chart']['type'])
                 )
-                
-                if new_primary != current_primary:
-                    st.session_state.chart_config['primary_type'] = new_primary
-                    ChartConfigManager.save_config(st.session_state.chart_config)
-            
+                if new_type != config['main_chart']['type']:
+                    config['main_chart']['type'] = new_type
+                    config['version'] += 1
+
             with col2:
                 available_fields = self.data_bundle.get_all_columns()
-                current_fields = st.session_state.chart_config.get('primary_fields', ['close'])
                 new_fields = st.multiselect(
-                    "主图字段", 
+                    "主图字段",
                     options=available_fields,
-                    default=current_fields,
-                    key=f'primary_fields_select_{id(self)}'
+                    default=config['main_chart']['fields'],
+                    key=f"{id(self)}v{config['version']}_main_fields"
                 )
-                
-                if new_fields != current_fields:
-                    st.session_state.chart_config['primary_fields'] = new_fields
-                    ChartConfigManager.save_config(st.session_state.chart_config)
+                if set(new_fields) != set(config['main_chart']['fields']):
+                    config['main_chart']['fields'] = new_fields
+                    config['version'] += 1
 
             # 副图配置
-            current_show_secondary = st.session_state.chart_config.get('show_secondary', True)
-            new_show_secondary = st.checkbox(
-                "显示副图", 
-                value=current_show_secondary,
-                key=f'show_secondary_checkbox_{id(self)}'
+            show_sub = st.checkbox(
+                "显示副图",
+                value=config['sub_chart']['show'],
+                key=f"{id(self)}v{config['version']}_show_sub"
             )
-            
-            if new_show_secondary != current_show_secondary:
-                st.session_state.chart_config['show_secondary'] = new_show_secondary
-                ChartConfigManager.save_config(st.session_state.chart_config)
+            if show_sub != config['sub_chart']['show']:
+                config['sub_chart']['show'] = show_sub
+                config['version'] += 1
 
-            if st.session_state.chart_config['show_secondary']:
+            if config['sub_chart']['show']:
                 col3, col4 = st.columns(2)
                 with col3:
-                    # 获取当前副图类型，确保在选项列表中
-                    current_secondary = st.session_state.chart_config.get('secondary_type', '柱状图')
-                    if current_secondary not in ["柱状图", "折线图", "MACD"]:
-                        current_secondary = "柱状图"
-                    
-                    new_secondary = st.selectbox(
+                    new_sub_type = st.selectbox(
                         "副图类型",
                         options=["柱状图", "折线图", "MACD"],
-                        index=["柱状图", "折线图", "MACD"].index(current_secondary),
-                        key='secondary_type_select'
+                        key=f"{id(self)}v{config['version']}_sub_type",
+                        index=["柱状图", "折线图", "MACD"].index(config['sub_chart']['type'])
                     )
-                    
-                    if new_secondary != current_secondary:
-                        st.session_state.chart_config['secondary_type'] = new_secondary
-                        ChartConfigManager.save_config(st.session_state.chart_config)
-                
+                    if new_sub_type != config['sub_chart']['type']:
+                        config['sub_chart']['type'] = new_sub_type
+                        config['version'] += 1
+
                 with col4:
-                    current_secondary_fields = st.session_state.chart_config.get('secondary_fields', ['volume'])
-                    new_secondary_fields = st.multiselect(
+                    new_sub_fields = st.multiselect(
                         "副图字段",
                         options=available_fields,
-                        default=current_secondary_fields,
-                        key=f'secondary_fields_select_{id(self)}'
+                        default=config['sub_chart']['fields'],
+                        key=f"{id(self)}v{config['version']}_sub_fields"
                     )
-                    
-                    if new_secondary_fields != current_secondary_fields:
-                        st.session_state.chart_config['secondary_fields'] = new_secondary_fields
-                        # 使用set_timeout延迟保存配置
-                        if 'save_timeout' in st.session_state:
-                            clearTimeout(st.session_state.save_timeout)
-                        st.session_state.save_timeout = setTimeout(
-                            lambda: ChartConfigManager.save_config(st.session_state.chart_config),
-                            500
-                        )
+                    if set(new_sub_fields) != set(config['sub_chart']['fields']):
+                        config['sub_chart']['fields'] = new_sub_fields
+                        config['version'] += 1
 
-            # 配置管理按钮
-            config_col1, config_col2 = st.columns(2)
-            with config_col1:
-                if st.button("💾 保存当前配置", key='save_config_button'):
-                    ChartConfigManager.save_config(st.session_state.chart_config)
-                    st.success("配置已保存！")
-            with config_col2:
-                if st.button("🔄 恢复默认", key='reset_config_button'):
-                    st.session_state.chart_config = ChartConfigManager._get_default_config()
-                    ChartConfigManager.save_config(st.session_state.chart_config)
-                    st.success("已恢复默认配置！")
+            # 配置管理
+            col5, col6 = st.columns(2)
+            with col5:
+                if st.button("💾 保存配置", key=f"save_{config_key}"):
+                    ChartConfigManager.save_config({
+                        'primary_type': config['main_chart']['type'],
+                        'primary_fields': config['main_chart']['fields'],
+                        'show_secondary': config['sub_chart']['show'],
+                        'secondary_type': config['sub_chart']['type'],
+                        'secondary_fields': config['sub_chart']['fields']
+                    })
+                    st.success("配置已保存!")
+            with col6:
+                if st.button("🔄 重置", key=f"reset_{config_key}"):
+                    default_config = ChartConfigManager._get_default_config()
+                    config.update({
+                        'main_chart': {
+                            'type': default_config['primary_type'],
+                            'fields': default_config['primary_fields']
+                        },
+                        'sub_chart': {
+                            'show': default_config['show_secondary'],
+                            'type': default_config['secondary_type'],
+                            'fields': default_config['secondary_fields']
+                        },
+                        'version': config['version'] + 1
+                    })
                     st.experimental_rerun()
 
-        # 同步到实例变量
-        self._chart_types['primary'] = st.session_state.chart_config['primary_type']
-        self._selected_primary_fields = st.session_state.chart_config['primary_fields']
-        self._chart_types['secondary'] = st.session_state.chart_config.get('secondary_type', 'K线图')
-        self._selected_secondary_fields = st.session_state.chart_config.get('secondary_fields', [])
+        # 直接比对配置变更
+        prev_main = config['main_chart'].copy()
+        prev_sub = config['sub_chart'].copy()
+        
+        if (config['main_chart'] != prev_main 
+           or config['sub_chart'] != prev_sub):
+            config['version'] += 1
+            # 同步到实例变量
+            self._chart_types = {
+                'primary': config['main_chart']['type'],
+                'secondary': config['sub_chart']['type']
+            }
+            self._selected_primary_fields = config['main_chart']['fields']
+            self._selected_secondary_fields = config['sub_chart']['fields']
         
         return self.figure
 

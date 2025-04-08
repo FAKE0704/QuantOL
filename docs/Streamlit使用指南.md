@@ -53,10 +53,17 @@ with col2:
 ```
 
 ## 状态管理
+### st.session_state
+`st.session_state`通过浏览器Cookie与服务器内存绑定，在用户会话期间（页面未刷新）保持数据持久性。每次脚本重跑（rerun）不会重置状态，但浏览器刷新或新标签页会创建新会话
+
 ```python
 # 初始化状态
 if 'key' not in st.session_state:
     st.session_state['key'] = 'value'
+
+selected = st.selectbox("选择城市", ["北京", "上海"], key="city_select")
+# 等价于 st.session_state.city_select = selected
+
 
 # 更新状态
 st.session_state['key'] = 'new_value'

@@ -1,32 +1,68 @@
+from functools import wraps
+import time
+
+def debounce(wait):
+    def decorator(fn):
+        last_called = 0
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            nonlocal last_called
+            now = time.time()
+            if now - last_called >= wait:
+                last_called = now
+                return fn(*args, **kwargs)
+        return wrapped
+    return decorator
+
 class InteractionService:
     """图表交互服务，负责处理图表间的联动"""
     def __init__(self):
         self.subscribers = [] # 订阅
         self.current_xrange = None #当前时间范围
+        self.event_handlers = {} # 事件处理器
+        self.last_xrange = None # 记录上次范围
 
     def subscribe(self, callback):
         """订阅图表更新事件
         Args:
             callback: 回调函数，接收x_range参数
+        Returns:
+            unsubscribe_func: 取消订阅的函数
         """
         self.subscribers.append(callback)
+        return lambda: self.unsubscribe(callback)
 
+    def unsubscribe(self, callback):
+        """取消订阅图表更新事件"""
+        if callback in self.subscribers:
+            self.subscribers.remove(callback)
+
+    @debounce(0.5)  # 500ms防抖
     def handle_zoom_event(self, source: str, x_range: list):
         """处理缩放事件
         Args:
             source: 事件来源图表名称
             x_range: 新的x轴范围 [start, end]
         """
-        self.current_xrange = x_range
-        for callback in self.subscribers:
-            try:
-                callback(x_range)
-            except Exception as e:
-                print(f"Error in callback: {e}")
+        if x_range != self.last_xrange:  # 仅当范围变化时处理
+            self.current_xrange = x_range
+            self.last_xrange = x_range
+            # 使用副本遍历防止回调中修改订阅列表
+            for callback in self.subscribers.copy():
+                try:
+                    callback(x_range)
+                except Exception as e:
+                    print(f"Error in callback: {e}")
 
     def get_current_xrange(self):
         """获取当前x轴范围"""
         return self.current_xrange
+
+    def clear_all_listeners(self):
+        """清理所有事件监听"""
+        self.subscribers.clear()
+        if hasattr(self, 'event_handlers'):
+            self.event_handlers.clear()
 
     # 注册缩放回调（异步兼容）
     async def update_current_xrange(self,relayout_data)->None:

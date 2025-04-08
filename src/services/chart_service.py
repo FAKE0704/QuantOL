@@ -5,6 +5,45 @@ from services.theme_manager import ThemeManager
 from services.interaction_service import InteractionService
 import pandas as pd
 import numpy as np
+from typing import List, Optional
+from pandas import DataFrame
+from pathlib import Path
+import json
+
+class ChartConfigManager:
+    CONFIG_PATH = Path("src/support/config/chart_config.json")
+    
+    @classmethod
+    def load_config(cls) -> dict:
+        """加载持久化配置"""
+        try:
+            if cls.CONFIG_PATH.exists():
+                with open(cls.CONFIG_PATH, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            st.error(f"配置加载失败: {str(e)}")
+        return cls._get_default_config()
+
+    @classmethod
+    def save_config(cls, config: dict):
+        """保存配置到文件"""
+        try:
+            cls.CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(cls.CONFIG_PATH, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            st.error(f"配置保存失败: {str(e)}")
+
+    @staticmethod
+    def _get_default_config() -> dict:
+        """获取默认配置"""
+        return {
+            "primary_type": "折线图",
+            "primary_fields": ["close"],
+            "show_secondary": True,
+            "secondary_type": "柱状图", 
+            "secondary_fields": ["volume"]
+        }
 
 class ChartConfig:
     """可视化配置管理"""
@@ -163,10 +202,20 @@ class CombinedChartConfig(ChartConfig):
 
 class DataBundle:
     """数据容器，用于存储多种类型的数据"""
-    def __init__(self, raw_data=None, transaction_data=None, capital_flow_data=None):
+    def __init__(self, raw_data : DataFrame = None, transaction_data : DataFrame =None, capital_flow_data : DataFrame =None):
         self.kline_data = raw_data  # K线数据
         self.trade_records = transaction_data  # 交易记录
         self.capital_flow = capital_flow_data  # 新增资金流数据字段
+
+    def get_all_columns(self) -> list:
+        """获取所有 DataFrame 的列名集合"""
+        columns = set()
+        # 遍历所有数据容器字段
+        for attr in ['kline_data', 'trade_records', 'capital_flow']:
+            df = getattr(self, attr)
+            if df is not None and isinstance(df, DataFrame):
+                columns.update(df.columns.tolist())
+        return columns
 
 class ChartService:
     """图表服务，支持多种数据源的图表绘制"""
@@ -174,12 +223,154 @@ class ChartService:
         self.data_bundle = data_bundle
         self.interaction_service = InteractionService()
         self.figure = go.Figure()
+        self._selected_primary_fields = [] 
+        self._selected_secondary_fields = []
+        self._chart_types = {
+            'primary': 'K线图',
+            'secondary': 'K线图'
+        }
+    
+    def render_chart_controls(self) -> go.Figure:
+        """渲染图表配置控件（带状态管理）"""
+        # 初始化session_state
+        if 'chart_config' not in st.session_state:
+            st.session_state.chart_config = ChartConfigManager.load_config()
+
+        # 初始化配置
+        if 'chart_config' not in st.session_state:
+            st.session_state.chart_config = ChartConfigManager.load_config()
+
+        # 使用独立的key来管理每个控件
+        with st.expander("📊 图表配置", expanded=True):
+            # 主图配置
+            col1, col2 = st.columns(2)
+            with col1:
+                # 获取当前主图类型，确保在选项列表中
+                current_primary = st.session_state.chart_config.get('primary_type', '折线图')
+                if current_primary not in ["折线图", "K线图", "面积图"]:
+                    current_primary = "折线图"
+                
+                new_primary = st.selectbox(
+                    "主图类型",
+                    options=["折线图", "K线图", "面积图"],
+                    index=["折线图", "K线图", "面积图"].index(current_primary),
+                    key=f'primary_type_select_{id(self)}'
+                )
+                
+                if new_primary != current_primary:
+                    st.session_state.chart_config['primary_type'] = new_primary
+                    ChartConfigManager.save_config(st.session_state.chart_config)
+            
+            with col2:
+                available_fields = self.data_bundle.get_all_columns()
+                current_fields = st.session_state.chart_config.get('primary_fields', ['close'])
+                new_fields = st.multiselect(
+                    "主图字段", 
+                    options=available_fields,
+                    default=current_fields,
+                    key=f'primary_fields_select_{id(self)}'
+                )
+                
+                if new_fields != current_fields:
+                    st.session_state.chart_config['primary_fields'] = new_fields
+                    ChartConfigManager.save_config(st.session_state.chart_config)
+
+            # 副图配置
+            current_show_secondary = st.session_state.chart_config.get('show_secondary', True)
+            new_show_secondary = st.checkbox(
+                "显示副图", 
+                value=current_show_secondary,
+                key=f'show_secondary_checkbox_{id(self)}'
+            )
+            
+            if new_show_secondary != current_show_secondary:
+                st.session_state.chart_config['show_secondary'] = new_show_secondary
+                ChartConfigManager.save_config(st.session_state.chart_config)
+
+            if st.session_state.chart_config['show_secondary']:
+                col3, col4 = st.columns(2)
+                with col3:
+                    # 获取当前副图类型，确保在选项列表中
+                    current_secondary = st.session_state.chart_config.get('secondary_type', '柱状图')
+                    if current_secondary not in ["柱状图", "折线图", "MACD"]:
+                        current_secondary = "柱状图"
+                    
+                    new_secondary = st.selectbox(
+                        "副图类型",
+                        options=["柱状图", "折线图", "MACD"],
+                        index=["柱状图", "折线图", "MACD"].index(current_secondary),
+                        key='secondary_type_select'
+                    )
+                    
+                    if new_secondary != current_secondary:
+                        st.session_state.chart_config['secondary_type'] = new_secondary
+                        ChartConfigManager.save_config(st.session_state.chart_config)
+                
+                with col4:
+                    current_secondary_fields = st.session_state.chart_config.get('secondary_fields', ['volume'])
+                    new_secondary_fields = st.multiselect(
+                        "副图字段",
+                        options=available_fields,
+                        default=current_secondary_fields,
+                        key=f'secondary_fields_select_{id(self)}'
+                    )
+                    
+                    if new_secondary_fields != current_secondary_fields:
+                        st.session_state.chart_config['secondary_fields'] = new_secondary_fields
+                        # 使用set_timeout延迟保存配置
+                        if 'save_timeout' in st.session_state:
+                            clearTimeout(st.session_state.save_timeout)
+                        st.session_state.save_timeout = setTimeout(
+                            lambda: ChartConfigManager.save_config(st.session_state.chart_config),
+                            500
+                        )
+
+            # 配置管理按钮
+            config_col1, config_col2 = st.columns(2)
+            with config_col1:
+                if st.button("💾 保存当前配置", key='save_config_button'):
+                    ChartConfigManager.save_config(st.session_state.chart_config)
+                    st.success("配置已保存！")
+            with config_col2:
+                if st.button("🔄 恢复默认", key='reset_config_button'):
+                    st.session_state.chart_config = ChartConfigManager._get_default_config()
+                    ChartConfigManager.save_config(st.session_state.chart_config)
+                    st.success("已恢复默认配置！")
+                    st.experimental_rerun()
+
+        # 同步到实例变量
+        self._chart_types['primary'] = st.session_state.chart_config['primary_type']
+        self._selected_primary_fields = st.session_state.chart_config['primary_fields']
+        self._chart_types['secondary'] = st.session_state.chart_config.get('secondary_type', 'K线图')
+        self._selected_secondary_fields = st.session_state.chart_config.get('secondary_fields', [])
         
+        return self.figure
+
+    def create_interactive_chart(self) -> go.Figure:
+        """生成交互式配置的图表"""
+        # 参数有效性检查
+        if not self._selected_primary_fields:
+            raise ValueError("至少需要选择一个主图字段")
+
+        # 创建基础图表
+        fig = self.create_combined_chart(
+            primary_cols=self._selected_primary_fields,
+            secondary_cols=self._selected_secondary_fields if self._selected_secondary_fields else None
+        )
+
+        # 应用图表类型样式
+        if self._chart_types['primary'] == 'K线图':
+            fig = self._apply_candlestick_style(fig)
+        elif self._chart_types['primary'] == '面积图':
+            fig = self._apply_area_style(fig, self._selected_primary_fields)
+
+        return fig
+
     def create_kline(self) -> go.Figure:
         """创建K线图"""
         if self.data_bundle.kline_data is None:
             raise ValueError("缺少K线数据")
-            
+
         # 配置作图参数
         config = ChartConfig()
         kline = CandlestickChart(config)
@@ -213,65 +404,62 @@ class ChartService:
             
         return capital_chart.render(self.data_bundle.capital_flow)
 
-    def create_combined_chart(self, chart_types: list, row_heights: list = None) -> go.Figure:
-        """创建组合图表
-        Args:
-            chart_types: 图表类型列表，支持['kline', 'volume', 'equity', 'macd', 'rsi']
-            row_heights: 各行高度比例，默认为均分
+    def create_combined_chart(
+        self,
+        primary_cols: List[str],
+        secondary_cols: Optional[List[str]] = None,
+        secondary_y_name: str = "Secondary Y"
+    ) -> go.Figure:
+        """
+        创建支持单/双Y轴的组合图表
+
+        Parameters:
+        -----------
+        databundle:DataBundle
+            包含图表数据的DataFrame，索引应为时间序列
+        primary_cols : List[str]
+            主Y轴要显示的数据列名称列表
+        secondary_cols : Optional[List[str]], default=None
+            次Y轴要显示的数据列名称列表，为None时不显示次Y轴
+        secondary_y_name : str, default="Secondary Y"
+            次Y轴的名称标签
+
+        Returns:
+        --------
+        go.Figure
+            配置好的Plotly图表对象
+
+        Examples:
+        ---------
+        >>> # 单Y轴调用
+        >>> fig = create_combined_chart(df, ['close', 'MA20'])
+        
+        >>> # 双Y轴调用
+        >>> fig = create_combined_chart(df, ['close'], ['volume'], "成交量")
         """
         from plotly.subplots import make_subplots
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
         
-        # 验证输入
-        if not chart_types:
-            raise ValueError("至少需要指定一个图表类型")
-            
-        if row_heights and len(row_heights) != len(chart_types):
-            raise ValueError("row_heights长度必须与chart_types一致")
-            
-        # 创建子图布局
-        rows = len(chart_types)
-        fig = make_subplots(rows=rows, cols=1,
-                          shared_xaxes=True,
-                          vertical_spacing=0.05,
-                          row_heights=row_heights or [1/rows]*rows)
-        
-        # 图表创建方法映射
-        chart_methods = {
-            'kline': self.create_kline,
-            'volume': self.create_volume_chart,
-            'equity': self.draw_equity,
-            'macd': lambda: self.drawMACD(self.data_bundle.kline_data),
-            'rsi': lambda: self.drawRSI(self.data_bundle.kline_data),
-            'capital_flow': self.create_capital_flow_chart
-        }
-        
-        # 添加各图表
-        for idx, chart_type in enumerate(chart_types):
-            if chart_type not in chart_methods:
-                raise ValueError(f"不支持的图表类型: {chart_type}")
-                
-            chart = chart_methods[chart_type]()
-            for trace in chart.data:
-                fig.add_trace(trace, row=idx+1, col=1)
-            
-        # 应用统一主题
-        config = ChartConfig()
-        theme = config.themes[config.current_theme]
-        layout_updates = {
-            'plot_bgcolor': theme['bg_color'],
-            'paper_bgcolor': theme['bg_color']
-        }
-        
-        # 为每个子图设置主题
-        for i in range(1, rows+1):
-            layout_updates[f'xaxis{i}'] = dict(gridcolor=theme['grid_color'])
-            layout_updates[f'yaxis{i}'] = dict(gridcolor=theme['grid_color'])
-            
-        fig.update_layout(**layout_updates)
-        
-        # 设置交互
-        self.interaction_service.sync_zooming([fig])
-        
+        # 主Y轴绘图
+        for col in primary_cols:
+            fig.add_trace(
+                go.Scatter(x=self.data_bundle.kline_data['combined_time'], y=self.data_bundle.kline_data[col], name=col),
+                secondary_y=False
+            )
+
+        # 次Y轴绘图
+        if secondary_cols:
+            for col in secondary_cols:
+                fig.add_trace(
+                    go.Scatter(
+                        x=self.data_bundle.trade_records.timestamp, 
+                        y=self.data_bundle.trade_records[col], 
+                        name=f"{col} ({secondary_y_name})"
+                    ),
+                secondary_y=True
+            )
+            fig.update_layout(yaxis2=dict(title=secondary_y_name))
+        self.figure = fig
         return fig
 
     def draw_equity(self) -> go.Figure:
@@ -286,180 +474,106 @@ class ChartService:
             line=dict(color='#1f77b4', width=2)
         ))
         
-        # if drawdown_data is not None:
-        #     fig.add_trace(go.Scatter(
-        #         x=drawdown_data['date'],
-        #         y=drawdown_data['drawdown'],
-        #         fill='tozeroy',
-        #         fillcolor='rgba(255, 0, 0, 0.2)',
-        #         line=dict(width=0),
-        #         name='回撤区间'
-        #     ))
-        
         return self.figure
 
     def drawMACD(self, fast=12, slow=26, signal=9):
-        """
-        绘制MACD指标
-        :param data: 包含价格数据的DataFrame
-        :param fast: 快速EMA周期
-        :param slow: 慢速EMA周期
-        :param signal: 信号线周期
-        """
-        
-
-        # 计算MACD
+        """绘制MACD指标"""
         exp1 = self.data["close"].ewm(span=fast, adjust=False).mean()
         exp2 = self.data["close"].ewm(span=slow, adjust=False).mean()
         macd = exp1 - exp2
         signal_line = macd.ewm(span=signal, adjust=False).mean()
         histogram = macd - signal_line
 
-        # 添加MACD线
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=macd,
-                name="MACD",
-                line=dict(color="blue", width=self.default_line_width),
-            )
-        )
-
-        # 添加信号线
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=signal_line,
-                name="Signal",
-                line=dict(color="orange", width=self.default_line_width),
-            )
-        )
-
-        # 添加柱状图
-        fig.add_trace(
-            go.Bar(
-                x=data.index,
-                y=histogram,
-                name="Histogram",
-                marker_color=np.where(histogram >= 0, "green", "red"),
-            )
-        )
-
-        # 更新布局
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=data.index,
+            y=macd,
+            name="MACD",
+            line=dict(color="blue", width=self.default_line_width),
+        ))
+        fig.add_trace(go.Scatter(
+            x=data.index,
+            y=signal_line,
+            name="Signal",
+            line=dict(color="orange", width=self.default_line_width),
+        ))
+        fig.add_trace(go.Bar(
+            x=data.index,
+            y=histogram,
+            name="Histogram",
+            marker_color=np.where(histogram >= 0, "green", "red"),
+        ))
         fig.update_layout(
             title="MACD", xaxis_title="时间", yaxis_title="MACD", template="plotly_dark"
         )
-
         st.plotly_chart(fig)
 
     def drawBollingerBands(self, data, window=20, num_std=2):
-        """
-        绘制布林带
-        :param data: 包含价格数据的DataFrame
-        :param window: 移动平均窗口
-        :param num_std: 标准差倍数
-        """
+        """绘制布林带"""
         fig = go.Figure()
-
-        # 计算布林带
         rolling_mean = data["close"].rolling(window=window).mean()
         rolling_std = data["close"].rolling(window=window).std()
         upper_band = rolling_mean + (rolling_std * num_std)
         lower_band = rolling_mean - (rolling_std * num_std)
 
-        # 添加价格线
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=data["close"],
-                name="价格",
-                line=dict(color="white", width=self.default_line_width),
-            )
-        )
-
-        # 添加布林带
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=upper_band,
-                name="上轨",
-                line=dict(color="red", width=self.default_line_width),
-            )
-        )
-
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=rolling_mean,
-                name="中轨",
-                line=dict(color="blue", width=self.default_line_width),
-            )
-        )
-
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=lower_band,
-                name="下轨",
-                line=dict(color="green", width=self.default_line_width),
-            )
-        )
-
-        # 更新布局
+        fig.add_trace(go.Scatter(
+            x=data.index,
+            y=data["close"],
+            name="价格",
+            line=dict(color="white", width=self.default_line_width),
+        ))
+        fig.add_trace(go.Scatter(
+            x=data.index,
+            y=upper_band,
+            name="上轨",
+            line=dict(color="red", width=self.default_line_width),
+        ))
+        fig.add_trace(go.Scatter(
+            x=data.index,
+            y=rolling_mean,
+            name="中轨",
+            line=dict(color="blue", width=self.default_line_width),
+        ))
+        fig.add_trace(go.Scatter(
+            x=data.index,
+            y=lower_band,
+            name="下轨",
+            line=dict(color="green", width=self.default_line_width),
+        ))
         fig.update_layout(
             title="布林带",
             xaxis_title="时间",
             yaxis_title="价格",
             template="plotly_dark",
         )
-
         st.plotly_chart(fig)
 
-    
-
     def drawVolume(self, data):
-        """
-        绘制成交量图
-        :param data: 包含价格和成交量数据的DataFrame
-        """
+        """绘制成交量图"""
         fig = go.Figure()
-
-        # 添加成交量柱状图
-        fig.add_trace(
-            go.Bar(
-                x=data.index,
-                y=data["volume"],
-                name="成交量",
-                marker_color=np.where(data["close"] >= data["open"], "green", "red"),
-            )
-        )
-
-        # 更新布局
+        colors = np.where(data["close"] >= data["open"], "green", "red")
+        fig.add_trace(go.Bar(
+            x=data.index,
+            y=data["volume"],
+            name="成交量",
+            marker_color=colors,
+        ))
         fig.update_layout(
             title="成交量",
             xaxis_title="时间",
             yaxis_title="成交量",
             template="plotly_dark",
         )
-
         st.plotly_chart(fig)
 
     def drawCandlestick(self, data):
-        """
-        绘制K线图（新版本）
-        :param data: 包含开盘、收盘、最高、最低价格数据的DataFrame
-        """
-        # 初始化主题管理器
+        """绘制K线图"""
         theme_manager = ThemeManager()
-        
-        # 主题选择
         current_theme = st.sidebar.selectbox(
             "主题模式",
             options=list(theme_manager.themes.keys()),
             index=0
         )
-        
-        # 均线配置
         show_ma = st.sidebar.checkbox("显示均线", value=True)
         ma_periods = st.sidebar.multiselect(
             "均线周期",
@@ -475,11 +589,7 @@ class ChartService:
             close=self.data['close'],
             name='K线'
         ))
-        
-        # 应用主题
         fig = theme_manager.apply_theme(fig, current_theme)
-        
-        # 动态更新均线
         if show_ma and ma_periods:
             for period in ma_periods:
                 ma = data['close'].rolling(period).mean()
@@ -490,21 +600,13 @@ class ChartService:
                     line=dict(width=1),
                     opacity=0.7
                 ))
-
-        # 应用最新配置
         fig.update_layout(
             title="K线图",
             xaxis_title="时间",
             yaxis_title="价格"
         )
-        
-        # 创建FigureWidget实现联动
         fw = go.FigureWidget(fig)
-        
-        # 初始化交互服务
         interaction_service = InteractionService()
-        
-        # 注册缩放回调
         def update_kline_xrange(relayout_data):
             if 'xaxis.range[0]' in relayout_data:
                 interaction_service.handle_zoom_event(
@@ -514,82 +616,51 @@ class ChartService:
                         relayout_data['xaxis.range[1]']
                     ]
                 )
-        
         fw.layout.on_change(update_kline_xrange, 'xaxis.range')
-        
-        # 订阅其他图表更新
         def update_other_charts(x_range):
             fw.update_xaxes(range=x_range)
-        
         interaction_service.subscribe(update_other_charts)
-        
-        # 应用共享缩放范围
         if 'shared_xrange' in st.session_state:
             fw.update_xaxes(range=st.session_state.shared_xrange)
-        
         st.plotly_chart(fw, use_container_width=True)
 
-    
     def drawRSI(self, data, window=14):
-        """
-        绘制相对强弱指数(RSI)
-        :param data: 包含价格数据的DataFrame
-        :param window: RSI计算窗口
-        """
+        """绘制相对强弱指数(RSI)"""
         fig = go.Figure()
-
-        # 计算RSI
         delta = data["close"].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
         rs = gain / loss
         rsi = 100 - (100 / (1 + rs))
-
-        # 添加RSI线
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=rsi,
-                name="RSI",
-                line=dict(color="blue", width=self.default_line_width),
-            )
-        )
-
-        # 添加参考线
+        fig.add_trace(go.Scatter(
+            x=data.index,
+            y=rsi,
+            name="RSI",
+            line=dict(color="blue", width=self.default_line_width),
+        ))
         fig.add_hline(y=30, line_dash="dash", line_color="red")
         fig.add_hline(y=70, line_dash="dash", line_color="red")
-
-        # 更新布局
         fig.update_layout(
             title="相对强弱指数(RSI)",
             xaxis_title="时间",
             yaxis_title="RSI",
             template="plotly_dark",
         )
-
         st.plotly_chart(fig)
 
-
     def drawallRSI(data, window, color, line_width):
-        """
-        color:线的颜色
-        line_width:width,线的粗细
-        """
+        """绘制所有RSI"""
         fig_rsi = go.Figure()
-        fig_rsi.add_trace(
-            # 绘制RSI
-            go.Scatter(
-                x=data.index,
-                y=data[f"{window}RSI"],
-                yaxis="y1",
-                mode="lines",
-                line=dict(color=color, width=line_width),
-                name=f"{window}RSI",
-                hovertext=data["time"],
-                showlegend=True,
-            )
-        )
-
+        fig_rsi.add_trace(go.Scatter(
+            x=data.index,
+            y=data[f"{window}RSI"],
+            yaxis="y1",
+            mode="lines",
+            line=dict(color=color, width=line_width),
+            name=f"{window}RSI",
+            hovertext=data["time"],
+            showlegend=True,
+        ))
         fig_rsi.add_hline(
             y=30,
             line_dash="dash",
@@ -597,7 +668,6 @@ class ChartService:
             annotation_text="y=30",
             annotation_position="top left",
         )
-
         fig_rsi.add_hline(
             y=70,
             line_dash="dash",
@@ -605,7 +675,6 @@ class ChartService:
             annotation_text="y=70",
             annotation_position="top left",
         )
-
         fig_rsi.update_layout(
             title=f"{window}RSI",
             xaxis=dict(
@@ -623,67 +692,46 @@ class ChartService:
                 ticktext=["30", "70"],
             ),
             template="plotly",
-            legend=dict(x=0.1, y=1.1),  # 设置图例位置
+            legend=dict(x=0.1, y=1.1),
             hovermode="x unified",
         )
-
         st.plotly_chart(fig_rsi)
 
-
     def drawRSI(data, feature1, line1_col, RSI, line2_col, line_width):
-        """
-        feature1 2:column,需要绘制的特征
-        line_col:color,线的颜色
-        line_width:width,线的粗细
-        """
+        """绘制RSI相关图表"""
         fig4 = go.Figure()
-        fig4.add_trace(
-            # 添加RSI大于70或小于30的数据点，设置为白色线
-            go.Scatter(
-                x=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)].index,
-                y=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)][feature1],
-                yaxis="y1",
-                mode="markers",
-                marker=dict(color="white", size=line_width),
-                name=feature1,
-            )
-        )
-
-        fig4.add_trace(
-            go.Scatter(
-                x=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)].index,
-                y=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)][feature1],
-                yaxis="y1",
-                mode="markers",
-                marker=dict(color=line1_col, size=line_width),
-                name=feature1,
-            )
-        )
-
-        # 添加RSI大于70或小于30的数据点，设置为白色线
-        fig4.add_trace(
-            go.Scatter(
-                x=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)].index,
-                y=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)]["RSI"],
-                yaxis="y2",
-                mode="markers",
-                marker=dict(color="white", size=line_width),
-                name="12RSI (Extremes)",
-            )
-        )
-
-        # 添加RSI小于70且大于30的数据点，设置为第二种颜色线
-        fig4.add_trace(
-            go.Scatter(
-                x=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)].index,
-                y=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)]["RSI"],
-                yaxis="y2",
-                mode="markers",
-                marker=dict(color=line2_col, size=line_width),
-                name="12RSI (Moderate)",
-            )
-        )
-
+        fig4.add_trace(go.Scatter(
+            x=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)].index,
+            y=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)][feature1],
+            yaxis="y1",
+            mode="markers",
+            marker=dict(color="white", size=line_width),
+            name=feature1,
+        ))
+        fig4.add_trace(go.Scatter(
+            x=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)].index,
+            y=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)][feature1],
+            yaxis="y1",
+            mode="markers",
+            marker=dict(color=line1_col, size=line_width),
+            name=feature1,
+        ))
+        fig4.add_trace(go.Scatter(
+            x=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)].index,
+            y=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)]["RSI"],
+            yaxis="y2",
+            mode="markers",
+            marker=dict(color="white", size=line_width),
+            name="12RSI (Extremes)",
+        ))
+        fig4.add_trace(go.Scatter(
+            x=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)].index,
+            y=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)]["RSI"],
+            yaxis="y2",
+            mode="markers",
+            marker=dict(color=line2_col, size=line_width),
+            name="12RSI (Moderate)",
+        ))
         fig4.update_layout(
             title="xxx",
             xaxis=dict(
@@ -703,12 +751,10 @@ class ChartService:
                 tickfont=dict(color="orange"),
                 overlaying="y",
                 side="right",
-                # range=[0, data["volume"].max() * 4],
             ),
             template="plotly",
             legend=dict(x=0.5, y=1.1),
             hovermode="x unified",
         )
-
         st.title("股票图像")
         st.plotly_chart(fig4)

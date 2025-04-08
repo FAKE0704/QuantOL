@@ -1,0 +1,11 @@
+{
+  "primary_type": "折线图",
+  "primary_fields": [
+    "close"
+  ],
+  "show_secondary": true,
+  "secondary_type": "柱状图",
+  "secondary_fields": [
+    "volume"
+  ]
+}

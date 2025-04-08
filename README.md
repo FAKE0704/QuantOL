@@ -360,6 +360,22 @@ graph TD
    - MACD/RSI/KDJ 等指标
    - 多周期对比
    - 自定义指标公式
+### 用法
+```python
+# 单Y轴调用
+fig = chart_service.create_combined_chart(
+    data=df,
+    primary_cols=['close', 'MA5', 'MA20']
+)
+
+# 双Y轴调用
+fig = chart_service.create_combined_chart(
+    data=df,
+    primary_cols=['close', 'MA5', 'MA20'],
+    secondary_cols=['volume'],
+    secondary_y_name='成交量'
+)
+```
 ## 3.3. 2.3 实时通信模块
 功能：支持前端与后端的实时数据通信。
 子模块：

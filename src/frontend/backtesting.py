@@ -134,11 +134,10 @@ async def show_backtesting_page():
 
                 databundle = DataBundle(data,equity_data)
                 chart_service = ChartService(databundle)
+                st.write(chart_service.data_bundle.get_all_columns())
+                
+                combined_fig = chart_service.render_chart_controls()
 
-                combined_fig = chart_service.create_combined_chart(
-                    chart_types=['equity', 'kline'],
-                    row_heights=[0.5, 0.5]
-                )
                 st.plotly_chart(combined_fig, use_container_width=True)
                 
                 # 显示交易记录

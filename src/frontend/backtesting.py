@@ -14,6 +14,10 @@ import time
 
 
 async def show_backtesting_page():
+    # 初始化策略ID
+    if 'strategy_id' not in st.session_state:
+        import uuid
+        st.session_state.strategy_id = str(uuid.uuid4())
     st.title("策略回测")
     
     # 初始化服务
@@ -78,16 +82,25 @@ async def show_backtesting_page():
     initial_capital = st.number_input("初始资金(元)", min_value=10000, value=100000, key="initial_capital_input")
     commission_rate = st.number_input("交易佣金(%)", min_value=0.0, max_value=1.0, value=0.03, key="commission_rate_input")
     
-    if st.button("开始回测", key="start_backtest"):
+    # 初始化按钮状态
+    if 'start_backtest_clicked' not in st.session_state:
+        st.session_state.start_backtest_clicked = False
+
+    # 带回调的按钮组件
+    def on_backtest_click():
+        st.session_state.start_backtest_clicked = not st.session_state.start_backtest_clicked
+
+    if st.button(
+        "开始回测", 
+        key="start_backtest",
+        on_click=on_backtest_click
+    ):
+        # 初始化回测配置
         symbol = selected[0] # 股票代号
         frequency = "5"      # 数据频率
         start_date=start_date.strftime("%Y%m%d") # 开始日期
         end_date=end_date.strftime("%Y%m%d") # 结束日期
-
-        
-        
-        # 初始化回测配置
-        backtest_config = BacktestConfig(
+        backtest_config = BacktestConfig( # 设置回测参数
             start_date=start_date,
             end_date=end_date,
             frequency=frequency,
@@ -144,7 +157,6 @@ async def show_backtesting_page():
                     config_key = f"chart_config_{st.session_state.chart_instance_id}"
                     if config_key not in st.session_state:
                         st.session_state[config_key] = {
-                            'version': 1,
                             'main_chart': {
                                 'type': 'K线图',
                                 'fields': ['close'],
@@ -155,14 +167,7 @@ async def show_backtesting_page():
                                 'type': '柱状图',
                                 'fields': ['volume'],
                                 'components': {}
-                            },
-                            'config_hash': hash(str({
-                                'main_type': 'K线图',
-                                'main_fields': ['close'],
-                                'show_sub': True,
-                                'sub_type': '柱状图',
-                                'sub_fields': ['volume']
-                            }))
+                            }
                         }
                 
                 chart_service = st.session_state.chart_service
@@ -173,18 +178,14 @@ async def show_backtesting_page():
                 if hasattr(chart_service, 'interaction_service'):
                     chart_service.interaction_service.clear_all_listeners()
                 
-                st.write(chart_service.data_bundle.get_all_columns())
-                
                 combined_fig = chart_service.render_chart_controls()
                 
                 config_key = f"chart_config_{st.session_state.chart_instance_id}"
                 current_config = st.session_state[config_key]
-                if st.session_state.get('prev_chart_config') != current_config['config_hash']:
-                    print("debug2")
-                    st.plotly_chart(combined_fig, 
-                        use_container_width=True,
-                        key=f"backtest_chart_{id(chart_service)}")
-                    st.session_state.prev_chart_config = current_config
+                # 根据按钮状态显示图表
+                st.plotly_chart(combined_fig, 
+                    use_container_width=True,
+                    key=f"backtest_chart_{st.session_state.strategy_id}")
 
                 # 显示交易记录
                 st.subheader("交易记录")

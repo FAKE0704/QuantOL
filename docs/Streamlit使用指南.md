@@ -69,6 +69,8 @@ selected = st.selectbox("选择城市", ["北京", "上海"], key="city_select")
 st.session_state['key'] = 'new_value'
 ```
 
+- 除了会话状态需要管理，还需要作显示内容的持久化
+
 ## 性能优化
 1. 缓存数据
 ```python

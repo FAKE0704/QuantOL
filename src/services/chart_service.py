@@ -240,7 +240,6 @@ class ChartService:
         config_key = f"chart_config_{id(self)}"
         if config_key not in st.session_state:
             st.session_state[config_key] = {
-                'version': 1,
                 'main_chart': {
                     'type': 'K线图',
                     'fields': ['close'],
@@ -254,7 +253,7 @@ class ChartService:
                 },
             }
 
-        config = st.session_state[config_key]
+        config = st.session_state[config_key] # 组件值变更后未通过回调即时更新状态
 
         # 使用独立的key来管理每个控件
         with st.expander("📊 图表配置", expanded=True):
@@ -264,12 +263,11 @@ class ChartService:
                 new_type = st.selectbox(
                     "主图类型",
                     options=["折线图", "K线图", "面积图"],
-                    key=f"{id(self)}v{config['version']}_main_type",
+                    key=f"{st.session_state.strategy_id}_main_type",
                     index=["折线图", "K线图", "面积图"].index(config['main_chart']['type'])
                 )
                 if new_type != config['main_chart']['type']:
                     config['main_chart']['type'] = new_type
-                    config['version'] += 1
 
             with col2:
                 available_fields = self.data_bundle.get_all_columns()
@@ -277,21 +275,19 @@ class ChartService:
                     "主图字段",
                     options=available_fields,
                     default=config['main_chart']['fields'],
-                    key=f"{id(self)}v{config['version']}_main_fields"
+                    key=f"{st.session_state.strategy_id}_main_fields"
                 )
                 if set(new_fields) != set(config['main_chart']['fields']):
                     config['main_chart']['fields'] = new_fields
-                    config['version'] += 1
 
             # 副图配置
             show_sub = st.checkbox(
                 "显示副图",
                 value=config['sub_chart']['show'],
-                key=f"{id(self)}v{config['version']}_show_sub"
+                key=f"{st.session_state.strategy_id}_show_sub"
             )
             if show_sub != config['sub_chart']['show']:
                 config['sub_chart']['show'] = show_sub
-                config['version'] += 1
 
             if config['sub_chart']['show']:
                 col3, col4 = st.columns(2)
@@ -299,23 +295,21 @@ class ChartService:
                     new_sub_type = st.selectbox(
                         "副图类型",
                         options=["柱状图", "折线图", "MACD"],
-                        key=f"{id(self)}v{config['version']}_sub_type",
+                        key=f"{st.session_state.strategy_id}_sub_type",
                         index=["柱状图", "折线图", "MACD"].index(config['sub_chart']['type'])
                     )
                     if new_sub_type != config['sub_chart']['type']:
                         config['sub_chart']['type'] = new_sub_type
-                        config['version'] += 1
 
                 with col4:
                     new_sub_fields = st.multiselect(
                         "副图字段",
                         options=available_fields,
                         default=config['sub_chart']['fields'],
-                        key=f"{id(self)}v{config['version']}_sub_fields"
+                        key=f"{st.session_state.strategy_id}_sub_fields"
                     )
                     if set(new_sub_fields) != set(config['sub_chart']['fields']):
                         config['sub_chart']['fields'] = new_sub_fields
-                        config['version'] += 1
 
             # 配置管理
             col5, col6 = st.columns(2)
@@ -341,8 +335,7 @@ class ChartService:
                             'show': default_config['show_secondary'],
                             'type': default_config['secondary_type'],
                             'fields': default_config['secondary_fields']
-                        },
-                        'version': config['version'] + 1
+                        }
                     })
                     st.experimental_rerun()
 
@@ -352,7 +345,6 @@ class ChartService:
         
         if (config['main_chart'] != prev_main 
            or config['sub_chart'] != prev_sub):
-            config['version'] += 1
             # 同步到实例变量
             self._chart_types = {
                 'primary': config['main_chart']['type'],
@@ -622,7 +614,7 @@ class ChartService:
             xaxis_title="时间",
             yaxis_title="价格"
         )
-        fw = go.FigureWidget(fig)
+        fw = go.FigureWidget(fg)
         interaction_service = InteractionService()
         def update_kline_xrange(relayout_data):
             if 'xaxis.range[0]' in relayout_data:
@@ -663,7 +655,7 @@ class ChartService:
             yaxis_title="RSI",
             template="plotly_dark",
         )
-        st.plotly_chart(fig)
+        st.plotly_chart(fg)
 
     def drawallRSI(data, window, color, line_width):
         """绘制所有RSI"""

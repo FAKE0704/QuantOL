@@ -1,8 +1,9 @@
 import streamlit as st
+import plotly.express as px
 from services.chart_service import ChartService
 from services.theme_manager import ThemeManager
 from services.interaction_service import InteractionService
-from services.policy_service import PolicyService
+# from services.policy_service import PolicyService
 import pandas as pd
 from datetime import datetime
 
@@ -10,7 +11,7 @@ def show_dashboard():
     # 初始化服务
     theme_manager = ThemeManager()
     interaction_service = InteractionService()
-    policy_service = PolicyService()
+    # policy_service = PolicyService() # 初始化政策获取服务
     
     # 页面标题
     st.title('量化投资仪表盘')
@@ -21,7 +22,34 @@ def show_dashboard():
     # 资金流图表
     with col1:
         st.header('资金流向分析')
-        # 这里将添加资金流图表调用逻辑
+        from core.data.akshare_source import AkShareSource
+        akshare = AkShareSource()
+        akshare['date'] = pd.to_datetime(akshare['date'])
+        try:
+            fund_flow = akshare.get_market_fund_flow()
+            # debug
+            st.write(fund_flow)
+
+            # 使用实际的列名绘制资金流向图
+            fig = px.line(
+                fund_flow,
+                x='date',
+                y=['主力净流入-净额', '超大单净流入-净额', '大单净流入-净额', '中单净流入-净额', '小单净流入-净额'],
+                labels={
+                    'value': '资金流向 (亿)',
+                    'date': '日期',
+                    'variable': '资金类型'
+                },
+                title='大盘资金流向分析'
+            )
+            fig.update_layout(
+                legend_title_text='资金类型',
+                xaxis_title='日期',
+                yaxis_title='资金流向 (亿)'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as e:
+            st.error(f"获取资金流向数据失败: {str(e)}")
         
     # K线图表 
     with col2:
@@ -61,7 +89,8 @@ def show_dashboard():
             )
             
             if st.button("刷新政策事件"):
-                st.session_state.policy_events = policy_service.get_recent_events()
+                pass
+                # st.session_state.policy_events = policy_service.get_recent_events()
                 
             if 'policy_events' in st.session_state:
                 for event in st.session_state.policy_events:

@@ -10,6 +10,7 @@ from core.strategy.events import ScheduleEvent, SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from services.stock_search import StockSearchService
 from core.strategy.strategy import FixedInvestmentStrategy
+from services.progress_service import progress_service
 import time
 
 
@@ -130,69 +131,85 @@ async def show_backtesting_page():
             engine.register_strategy(fixed_strategy)
         
         # 启动事件循环
-        with st.spinner("回测进行中..."):
-            engine.run(pd.to_datetime(start_date), pd.to_datetime(end_date))
+        task_id = f"backtest_{st.session_state.strategy_id}"
+        progress_service.start_task(task_id, 100)
         
-            # 获取回测结果
-            results = engine.get_results()
-            equity_data = engine.equity_records
+        # 模拟进度更新
+        for i in range(100):
+            time.sleep(0.1)  # 模拟回测过程
+            progress_service.update_progress(task_id, (i + 1) / 100)
+        
+        engine.run(pd.to_datetime(start_date), pd.to_datetime(end_date))
+        progress_service.end_task(task_id)
+        
+        # 获取回测结果
+        results = engine.get_results()
+        equity_data = engine.equity_records
+        
+        if results:
+            st.success("回测完成！")
             
-            if results:
-                st.success("回测完成！")
-                
-                # 显示回测结果
-                st.subheader("回测结果")
-                st.dataframe(results["summary"])
-                
-                # 绘制净值曲线vs收盘价曲线
+            # 显示回测结果
+            st.subheader("回测结果")
+            st.dataframe(results["summary"])
+            
+            # 绘制净值曲线vs收盘价曲线
 
-                st.subheader("净值曲线")
-                
-                # 创建净值曲线和K线图的组合图表
+            st.subheader("净值曲线")
+            
+            # 创建净值曲线和K线图的组合图表
 
+            # 会话级缓存ChartService实例
+            @st.cache_resource(ttl=3600, show_spinner=False)
+            def init_chart_service(data,equity_data):
                 databundle = DataBundle(data,equity_data)
-                # 会话级缓存ChartService实例
-                @st.cache_resource(ttl=3600, show_spinner=False)
-                def init_chart_service(data,equity_data):
-                    databundle = DataBundle(data,equity_data)
-                    return ChartService(databundle)
-                if 'chart_service' not in st.session_state: # 如果缓存没有chart_service，就新建个
-                    st.session_state.chart_service = init_chart_service(data,equity_data)
-                    st.session_state.chart_instance_id = id(st.session_state.chart_service)
-                    # 初始化chart_config
-                    config_key = f"chart_config_{st.session_state.chart_instance_id}"
-                    if config_key not in st.session_state:
-                        st.session_state[config_key] = {
-                            'main_chart': {
-                                'type': 'K线图',
-                                'fields': ['close'],
-                                'components': {}
-                            },
-                            'sub_chart': {
-                                'show': True,
-                                'type': '柱状图',
-                                'fields': ['volume'],
-                                'components': {}
-                            }
-                        }
-                chart_service = st.session_state.chart_service
-                st.write(f"ChartService实例ID: {st.session_state.chart_instance_id}")
-                print(f"ChartService实例ID: {st.session_state.chart_instance_id}")
-
-                combined_fig = chart_service.render_chart_controls()
-                
+                return ChartService(databundle)
+            if 'chart_service' not in st.session_state: # 如果缓存没有chart_service，就新建个
+                st.session_state.chart_service = init_chart_service(data,equity_data)
+                st.session_state.chart_instance_id = id(st.session_state.chart_service)
+                # 初始化chart_config
                 config_key = f"chart_config_{st.session_state.chart_instance_id}"
-                current_config = st.session_state[config_key]
-                # 根据按钮状态显示图表
+                if config_key not in st.session_state:
+                    st.session_state[config_key] = {
+                        'main_chart': {
+                            'type': 'K线图',
+                            'fields': ['close'],
+                            'components': {}
+                        },
+                        'sub_chart': {
+                            'show': True,
+                            'type': '柱状图',
+                            'fields': ['volume'],
+                            'components': {}
+                        }
+                    }
+            chart_service = st.session_state.chart_service
+            st.write(f"ChartService实例ID: {st.session_state.chart_instance_id}")
+            print(f"ChartService实例ID: {st.session_state.chart_instance_id}")
+
+            combined_fig = chart_service.render_chart_controls()  # 调用配置
+            
+            config_key = f"chart_config_{st.session_state.chart_instance_id}"
+            current_config = st.session_state[config_key]
+            
+            # 带回调的按钮组件
+            if "draw_backtest" not in st.session_state:  # 初始化 session_state
+                st.session_state.draw_backtest = False 
+            def on_draw_backtest_click():
+                st.session_state.draw_backtest = not st.session_state.draw_backtest
+            
+            st.button("显示回测曲线", on_click=on_draw_backtest_click) # 根据按钮状态显示图表
+                
+            if st.session_state.draw_backtest:
                 st.plotly_chart(combined_fig, 
                     use_container_width=True,
                     key=f"backtest_chart_{st.session_state.strategy_id}")
 
-                # 显示交易记录
-                st.subheader("交易记录")
-                st.subheader("仓位明细")
-                st.dataframe(equity_data)
+            # 显示交易记录
+            st.subheader("交易记录")
+            st.subheader("仓位明细")
+            st.dataframe(equity_data)
 
 
-            else:
-                st.error("回测失败，请检查输入参数")
+        else:
+            st.error("回测失败，请检查输入参数")

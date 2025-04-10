@@ -4,6 +4,7 @@ from frontend.indicators import show_indicators_page
 from frontend.backtesting import show_backtesting_page
 from frontend.trading import show_trading_page
 from frontend.settings import show_settings_page
+from frontend.dashboard import show_dashboard
 import streamlit as st
 from core.data.database import DatabaseManager
 from services.stock_search import StockSearchService
@@ -45,6 +46,8 @@ async def main():
         show_trading_page()
     elif page == "系统设置":
         show_settings_page()
+    elif page == "仪表盘":
+        show_dashboard()
 
 if __name__ == "__main__":
     import asyncio

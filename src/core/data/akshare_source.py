@@ -1,0 +1,133 @@
+import akshare as ak
+import pandas as pd
+import logging
+from datetime import datetime
+from typing import Optional
+from functools import lru_cache
+from tenacity import retry, stop_after_attempt, wait_exponential
+from .data_source import DataSource
+
+logger = logging.getLogger(__name__)
+
+class AkShareSource(DataSource):
+    """AkShare数据源实现，遵循DataSource接口规范"""
+    
+    def check_data_exists(self, symbol: str, start_date: str, end_date: str) -> bool:
+        """检查指定时间段的数据是否存在"""
+        try:
+            df = self.get_data(symbol, start_date, end_date)
+            return not df.empty
+        except Exception:
+            return False
+            
+    async def load_data(self, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """异步加载数据"""
+        return self.get_data(symbol, start_date, end_date)
+        
+    def save_data(self, symbol: str, data: pd.DataFrame) -> bool:
+        """保存数据（AkShare为只读数据源，此方法仅用于接口兼容）"""
+        return False
+    
+    def __init__(self):
+        self._initialized = False
+        self._field_mapping = {
+            "日期": "date",
+            "开盘": "open",
+            "收盘": "close",
+            "最高": "high",
+            "最低": "low",
+            "成交量": "volume",
+            "成交额": "amount"
+        }
+        
+    async def async_init(self):
+        """异步初始化，验证依赖和连接"""
+        try:
+            # 测试一个简单请求验证akshare可用性
+            ak.stock_zh_a_spot()
+            self._initialized = True
+        except Exception as e:
+            logger.error(f"Akshare初始化失败: {str(e)}")
+            raise RuntimeError("AkShare初始化失败，请检查依赖和网络连接") from e
+            
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    def _fetch_from_akshare(self, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """带重试机制的AkShare数据获取"""
+        try:
+            df = ak.stock_zh_a_daily(
+                symbol=symbol, 
+                start_date=start_date,
+                end_date=end_date,
+                adjust="hfq"
+            )
+            return df
+        except Exception as e:
+            logger.error(f"AkShare请求失败: {str(e)}")
+            raise
+            
+    def _convert_data_format(self, raw_df: pd.DataFrame) -> pd.DataFrame:
+        """将AkShare数据格式转换为项目标准格式"""
+        df = raw_df.copy()
+        
+        # 字段重命名
+        df.rename(columns=self._field_mapping, inplace=True)
+        
+        # 日期格式标准化
+        if 'date' in df.columns:
+            df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y%m%d')
+            df.set_index('date', inplace=True)
+            
+        # 类型转换
+        numeric_cols = ['open', 'close', 'high', 'low', 'volume', 'amount']
+        df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors='coerce')
+        
+        return df
+
+    @lru_cache(maxsize=128)
+    def get_data(self, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """获取股票历史数据"""
+        if not self._initialized:
+            raise RuntimeError("AkShare数据源未初始化")
+            
+        try:
+            raw_df = self._fetch_from_akshare(symbol, start_date, end_date)
+            processed_df = self._convert_data_format(raw_df)
+            return processed_df
+        except Exception as e:
+            logger.error(f"获取数据失败: {symbol} {start_date}-{end_date}")
+            raise RuntimeError(f"数据获取失败: {str(e)}") from e
+            
+    def clear_cache(self):
+        """清理缓存"""
+        self.get_data.cache_clear()
+        logger.info("AkShare数据缓存已清除")
+
+    @property
+    def available_symbols(self) -> list:
+        """获取可用的股票代码列表"""
+        try:
+            spot_df = ak.stock_zh_a_spot()
+            return spot_df['代码'].tolist()
+        except Exception as e:
+            logger.error("获取股票列表失败")
+            return []
+
+    def get_market_fund_flow(self) -> pd.DataFrame:
+        """获取大盘资金流向数据"""
+        try:
+            df = ak.stock_market_fund_flow()
+            # 字段重命名
+            df.rename(columns={
+                '日期': 'date',
+                '主力净流入': 'main_net_inflow',
+                '小单净流入': 'retail_net_inflow',
+                '中单净流入': 'mid_net_inflow',
+                '大单净流入': 'large_net_inflow',
+                '超大单净流入': 'super_large_net_inflow'
+            }, inplace=True)
+            # 日期格式标准化
+            df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y%m%d')
+            return df
+        except Exception as e:
+            logger.error("获取大盘资金流向失败")
+            raise RuntimeError(f"获取大盘资金流向失败: {str(e)}") from e

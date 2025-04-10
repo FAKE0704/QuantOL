@@ -187,24 +187,13 @@ async def show_backtesting_page():
             st.write(f"ChartService实例ID: {st.session_state.chart_instance_id}")
             print(f"ChartService实例ID: {st.session_state.chart_instance_id}")
 
-            combined_fig = chart_service.render_chart_controls()  # 调用配置
+            chart_service.render_chart_controls()  # 调用配置及作图组件
             
             config_key = f"chart_config_{st.session_state.chart_instance_id}"
             current_config = st.session_state[config_key]
             
-            # 带回调的按钮组件
-            if "draw_backtest" not in st.session_state:  # 初始化 session_state
-                st.session_state.draw_backtest = False 
-            def on_draw_backtest_click():
-                st.session_state.draw_backtest = not st.session_state.draw_backtest
-            
-            st.button("显示回测曲线", on_click=on_draw_backtest_click) # 根据按钮状态显示图表
-                
-            if st.session_state.draw_backtest:
-                st.plotly_chart(combined_fig, 
-                    use_container_width=True,
-                    key=f"backtest_chart_{st.session_state.strategy_id}")
 
+            
             # 显示交易记录
             st.subheader("交易记录")
             st.subheader("仓位明细")

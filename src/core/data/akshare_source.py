@@ -1,5 +1,6 @@
 import akshare as ak
 import pandas as pd
+import streamlit as st
 import logging
 from datetime import datetime
 from typing import Optional
@@ -112,21 +113,37 @@ class AkShareSource(DataSource):
             logger.error("获取股票列表失败")
             return []
 
+    # @st.cache_data
     def get_market_fund_flow(self) -> pd.DataFrame:
         """获取大盘资金流向数据"""
         try:
             df = ak.stock_market_fund_flow()
+            # print(df.columns)
+            # print(df.shape)
+            
             # 字段重命名
             df.rename(columns={
                 '日期': 'date',
-                '主力净流入': 'main_net_inflow',
-                '小单净流入': 'retail_net_inflow',
-                '中单净流入': 'mid_net_inflow',
-                '大单净流入': 'large_net_inflow',
-                '超大单净流入': 'super_large_net_inflow'
+                '上证-收盘价': 'sh_close',          # 上海市场收盘价
+                '上证-涨跌幅': 'sh_change_pct',     # 上海市场涨跌幅百分比
+                '深证-收盘价': 'sz_close',          # 深圳市场收盘价
+                '深证-涨跌幅': 'sz_change_pct',     # 深圳市场涨跌幅百分比
+                '主力净流入-净额': 'main_net_inflow_amt',       # 主力资金净流入金额
+                '主力净流入-净占比': 'main_net_inflow_ratio',    # 主力资金净流入占比
+                '超大单净流入-净额': 'super_large_net_inflow_amt',  # 超大单资金净流入金额
+                '超大单净流入-净占比': 'super_large_net_inflow_ratio', # 超大单资金净流入占比
+                '大单净流入-净额': 'large_net_inflow_amt',       # 大单资金净流入金额
+                '大单净流入-净占比': 'large_net_inflow_ratio',    # 大单资金净流入占比
+                '中单净流入-净额': 'mid_net_inflow_amt',        # 中单资金净流入金额
+                '中单净流入-净占比': 'mid_net_inflow_ratio',     # 中单资金净流入占比
+                '小单净流入-净额': 'retail_net_inflow_amt',      # 散户资金净流入金额
+                '小单净流入-净占比': 'retail_net_inflow_ratio'   # 散户资金净流入占比
             }, inplace=True)
-            # 日期格式标准化
-            df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y%m%d')
+
+            # 日期格式调整
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values(by = 'date',ascending=True)
+            
             return df
         except Exception as e:
             logger.error("获取大盘资金流向失败")

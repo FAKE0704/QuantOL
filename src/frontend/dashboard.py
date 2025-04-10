@@ -1,6 +1,6 @@
 import streamlit as st
-import plotly.express as px
-from services.chart_service import ChartService
+
+from services.chart_service import ChartService, DataBundle
 from services.theme_manager import ThemeManager
 from services.interaction_service import InteractionService
 # from services.policy_service import PolicyService
@@ -24,32 +24,16 @@ def show_dashboard():
         st.header('资金流向分析')
         from core.data.akshare_source import AkShareSource
         akshare = AkShareSource()
-        akshare['date'] = pd.to_datetime(akshare['date'])
+        
+        
         try:
             fund_flow = akshare.get_market_fund_flow()
-            # debug
-            st.write(fund_flow)
-
-            # 使用实际的列名绘制资金流向图
-            fig = px.line(
-                fund_flow,
-                x='date',
-                y=['主力净流入-净额', '超大单净流入-净额', '大单净流入-净额', '中单净流入-净额', '小单净流入-净额'],
-                labels={
-                    'value': '资金流向 (亿)',
-                    'date': '日期',
-                    'variable': '资金类型'
-                },
-                title='大盘资金流向分析'
-            )
-            fig.update_layout(
-                legend_title_text='资金类型',
-                xaxis_title='日期',
-                yaxis_title='资金流向 (亿)'
-            )
+            chart_service = ChartService(DataBundle(capital_flow_data=fund_flow))
+            fig = chart_service.create_fund_flow_chart(fund_flow)
             st.plotly_chart(fig, use_container_width=True)
         except Exception as e:
             st.error(f"获取资金流向数据失败: {str(e)}")
+        
         
     # K线图表 
     with col2:

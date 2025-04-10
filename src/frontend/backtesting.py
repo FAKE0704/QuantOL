@@ -13,6 +13,7 @@ from core.strategy.strategy import FixedInvestmentStrategy
 import time
 
 
+
 async def show_backtesting_page():
     # 初始化策略ID
     if 'strategy_id' not in st.session_state:
@@ -43,7 +44,8 @@ async def show_backtesting_page():
             options=st.session_state.stock_cache,
             format_func=lambda x: f"{x[0]} {x[1]}",
             help="输入股票代码或名称进行筛选",
-            key="stock_select"
+            key="stock_select",
+            index = 6500
         )
     with col2:
         if st.button("🔄 刷新列表", help="点击手动更新股票列表", key="refresh_button"):
@@ -54,7 +56,7 @@ async def show_backtesting_page():
     # 时间范围选择
     col1, col2 = st.columns(2)
     with col1:
-        start_date = st.date_input("开始日期", key="start_date_input")
+        start_date = st.date_input("开始日期", key="start_date_input", value= "2025-04-01")
     with col2:
         end_date = st.date_input("结束日期", key="end_date_input")
     
@@ -150,8 +152,12 @@ async def show_backtesting_page():
 
                 databundle = DataBundle(data,equity_data)
                 # 会话级缓存ChartService实例
-                if 'chart_service' not in st.session_state:
-                    st.session_state.chart_service = ChartService(databundle)
+                @st.cache_resource(ttl=3600, show_spinner=False)
+                def init_chart_service(data,equity_data):
+                    databundle = DataBundle(data,equity_data)
+                    return ChartService(databundle)
+                if 'chart_service' not in st.session_state: # 如果缓存没有chart_service，就新建个
+                    st.session_state.chart_service = init_chart_service(data,equity_data)
                     st.session_state.chart_instance_id = id(st.session_state.chart_service)
                     # 初始化chart_config
                     config_key = f"chart_config_{st.session_state.chart_instance_id}"
@@ -169,15 +175,10 @@ async def show_backtesting_page():
                                 'components': {}
                             }
                         }
-                
                 chart_service = st.session_state.chart_service
                 st.write(f"ChartService实例ID: {st.session_state.chart_instance_id}")
                 print(f"ChartService实例ID: {st.session_state.chart_instance_id}")
 
-                # 清理旧的事件监听
-                if hasattr(chart_service, 'interaction_service'):
-                    chart_service.interaction_service.clear_all_listeners()
-                
                 combined_fig = chart_service.render_chart_controls()
                 
                 config_key = f"chart_config_{st.session_state.chart_instance_id}"

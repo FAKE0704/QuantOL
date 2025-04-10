@@ -56,6 +56,10 @@ with col2:
 ### st.session_state
 `st.session_state`通过浏览器Cookie与服务器内存绑定，在用户会话期间（页面未刷新）保持数据持久性。每次脚本重跑（rerun）不会重置状态，但浏览器刷新或新标签页会创建新会话
 
+Streamlit 的默认机制是：任何不在 `st.form` 内的组件交互都会立即触发全局 rerun
+
+
+`st.expander` 的展开/折叠状态默认不会被自动保存到 session_state。当页面 rerun 时，该组件会恢复默认展开状态，导致其内部的控件被重新初始化
 ```python
 # 初始化状态
 if 'key' not in st.session_state:

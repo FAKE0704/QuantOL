@@ -9,6 +9,7 @@ from typing import List, Optional
 from pandas import DataFrame
 from pathlib import Path
 import json
+import uuid
 
 class ChartConfigManager:
     CONFIG_PATH = Path("src/support/config/chart_config.json")
@@ -230,128 +231,183 @@ class ChartService:
             'secondary': 'K线图'
         }
     
-    def render_chart_controls(self) -> go.Figure:
-        """渲染图表配置控件（带状态管理）"""
-        # 清理旧的事件监听
-        if hasattr(self, 'interaction_service'):
-            self.interaction_service.clear_all_listeners()
+    @st.cache_resource(show_spinner=False)
+    def get_chart_service(_strategy_id: str, data_bundle: DataBundle):
+        """基于策略ID的缓存实例工厂"""
+        return ChartService(data_bundle)
 
-        # 初始化session_state配置
-        config_key = f"chart_config_{id(self)}"
-        if config_key not in st.session_state:
-            st.session_state[config_key] = {
-                'main_chart': {
-                    'type': 'K线图',
-                    'fields': ['close'],
-                    'components': {}
-                },
-                'sub_chart': {
-                    'show': True,
-                    'type': '柱状图',
-                    'fields': ['volume'],
-                    'components': {}
-                },
-            }
+    def _handle_config_change(config_key: str, field_type: str):
+        # 防抖机制：如果距离上次变更时间小于300ms则忽略
+        current_time = time.time()
+        if current_time - st.session_state.get('last_change', 0) < 0.3:
+            return
+        st.session_state['last_change'] = current_time
 
-        config = st.session_state[config_key] # 组件值变更后未通过回调即时更新状态
-
-        # 使用独立的key来管理每个控件
-        with st.expander("📊 图表配置", expanded=True):
-            # 主图配置
-            col1, col2 = st.columns(2)
-            with col1:
-                new_type = st.selectbox(
-                    "主图类型",
-                    options=["折线图", "K线图", "面积图"],
-                    key=f"{st.session_state.strategy_id}_main_type",
-                    index=["折线图", "K线图", "面积图"].index(config['main_chart']['type'])
-                )
-                if new_type != config['main_chart']['type']:
-                    config['main_chart']['type'] = new_type
-
-            with col2:
-                available_fields = self.data_bundle.get_all_columns()
-                new_fields = st.multiselect(
-                    "主图字段",
-                    options=available_fields,
-                    default=config['main_chart']['fields'],
-                    key=f"{st.session_state.strategy_id}_main_fields"
-                )
-                if set(new_fields) != set(config['main_chart']['fields']):
-                    config['main_chart']['fields'] = new_fields
-
-            # 副图配置
-            show_sub = st.checkbox(
-                "显示副图",
-                value=config['sub_chart']['show'],
-                key=f"{st.session_state.strategy_id}_show_sub"
-            )
-            if show_sub != config['sub_chart']['show']:
-                config['sub_chart']['show'] = show_sub
-
-            if config['sub_chart']['show']:
-                col3, col4 = st.columns(2)
-                with col3:
-                    new_sub_type = st.selectbox(
-                        "副图类型",
-                        options=["柱状图", "折线图", "MACD"],
-                        key=f"{st.session_state.strategy_id}_sub_type",
-                        index=["柱状图", "折线图", "MACD"].index(config['sub_chart']['type'])
-                    )
-                    if new_sub_type != config['sub_chart']['type']:
-                        config['sub_chart']['type'] = new_sub_type
-
-                with col4:
-                    new_sub_fields = st.multiselect(
-                        "副图字段",
-                        options=available_fields,
-                        default=config['sub_chart']['fields'],
-                        key=f"{st.session_state.strategy_id}_sub_fields"
-                    )
-                    if set(new_sub_fields) != set(config['sub_chart']['fields']):
-                        config['sub_chart']['fields'] = new_sub_fields
-
-            # 配置管理
-            col5, col6 = st.columns(2)
-            with col5:
-                if st.button("💾 保存配置", key=f"save_{config_key}"):
-                    ChartConfigManager.save_config({
-                        'primary_type': config['main_chart']['type'],
-                        'primary_fields': config['main_chart']['fields'],
-                        'show_secondary': config['sub_chart']['show'],
-                        'secondary_type': config['sub_chart']['type'],
-                        'secondary_fields': config['sub_chart']['fields']
-                    })
-                    st.success("配置已保存!")
-            with col6:
-                if st.button("🔄 重置", key=f"reset_{config_key}"):
-                    default_config = ChartConfigManager._get_default_config()
-                    config.update({
-                        'main_chart': {
-                            'type': default_config['primary_type'],
-                            'fields': default_config['primary_fields']
-                        },
-                        'sub_chart': {
-                            'show': default_config['show_secondary'],
-                            'type': default_config['secondary_type'],
-                            'fields': default_config['secondary_fields']
-                        }
-                    })
-                    st.experimental_rerun()
-
-        # 直接比对配置变更
-        prev_main = config['main_chart'].copy()
-        prev_sub = config['sub_chart'].copy()
+        # 仅更新目标字段，避免触发全局状态变更
+        new_value = st.session_state[f"{st.session_state.strategy_id}_{field_type}"]
+        st.session_state[config_key][field_type.split('_')[0]].update({field_type.split('_')[1]: new_value})
         
-        if (config['main_chart'] != prev_main 
-           or config['sub_chart'] != prev_sub):
-            # 同步到实例变量
-            self._chart_types = {
-                'primary': config['main_chart']['type'],
-                'secondary': config['sub_chart']['type']
-            }
-            self._selected_primary_fields = config['main_chart']['fields']
-            self._selected_secondary_fields = config['sub_chart']['fields']
+        # 在渲染前检查局部更新标记
+        if st.session_state.get('need_partial_refresh', False):
+            st.session_state.need_partial_refresh = False
+            st.experimental_rerun()
+
+        # 手动标记需要局部更新（替代全局 rerun）
+        st.session_state.need_partial_refresh = True
+
+        # 设置重绘标志（触发图表更新）
+        st.session_state['need_redraw'] = True
+
+    def _refresh_chart(self, config: dict):
+        """根据配置刷新图表"""
+        # 更新主图类型
+        self._chart_types['primary'] = config['main_chart']['type']
+        # 更新副图类型
+        self._chart_types['secondary'] = config['sub_chart']['type']
+        # 更新主图字段
+        self._selected_primary_fields = config['main_chart']['fields']
+        # 更新副图字段
+        self._selected_secondary_fields = config['sub_chart']['fields']
+
+    def render_chart_controls(self) -> go.Figure:
+        # 生成配置key
+        config_key = f"{st.session_state.strategy_id}_chart_config"
+        
+        # 片段级状态初始化
+        fragment_id = f"chart_fragment_{uuid.uuid4().hex[:8]}"
+        fragment_state = {
+            'main_chart': {'type':'K线图', 'fields':['close']},
+            'sub_chart': {'show':True, 'type':'柱状图', 'fields':['volume']},
+            'expander_expanded': True,
+            'version': 1
+        }
+        
+        # 双缓冲配置
+        active_config = fragment_state.copy()
+        pending_config = fragment_state.copy()
+
+        # 片段级渲染
+        @st.fragment
+        def _render_main_controls():
+            with st.expander("📊 图表配置", expanded=active_config['expander_expanded']) as frag:
+                # 获取片段状态
+                frag_state = fragment_state
+                # 主图配置
+                col1, col2 = st.columns(2)
+                with col1:
+                    new_type = st.selectbox(
+                        "主图类型",
+                        options=["折线图", "K线图", "面积图"],
+                        key=f"{st.session_state.strategy_id}_main_type",
+                        index=["折线图", "K线图", "面积图"].index(active_config['main_chart']['type']),
+                        on_change=self._handle_config_change,
+                        args=(active_config, 'main_type')
+                    )
+
+                with col2:
+                    available_fields = self.data_bundle.get_all_columns()
+                    new_fields = st.multiselect(
+                        "主图字段",
+                        options=available_fields,
+                        default=active_config['main_chart']['fields'],
+                        key=f"{st.session_state.strategy_id}_main_fields",
+                        on_change=self._handle_config_change,
+                        args=(config_key, 'main_fields')
+                    )
+
+                # 副图配置
+                show_sub = st.checkbox(
+                    "显示副图",
+                    value=active_config['sub_chart']['show'],
+                    key=f"{st.session_state.strategy_id}_show_sub",
+                    on_change=self._handle_config_change,
+                    args=(config_key, 'show_sub')
+                )
+
+                if active_config['sub_chart']['show']:
+                    col3, col4 = st.columns(2)
+                    with col3:
+                        new_sub_type = st.selectbox(
+                            "副图类型",
+                            options=["柱状图", "折线图", "MACD"],
+                            key=f"{st.session_state.strategy_id}_sub_type",
+                            index=["柱状图", "折线图", "MACD"].index(active_config['sub_chart']['type']),
+                            on_change=self._handle_config_change,
+                            args=(config_key, 'sub_type')
+                        )
+
+                    with col4:
+                        new_sub_fields = st.multiselect(
+                            "副图字段",
+                            options=available_fields,
+                            default=active_config['sub_chart']['fields'],
+                            key=f"{st.session_state.strategy_id}_sub_fields",
+                            on_change=self._handle_config_change,
+                            args=(config_key, 'sub_fields')
+                        )
+
+                # 配置管理
+                col5, col6 = st.columns(2)
+                with col5:
+                    if st.button("💾 保存配置", key=f"save_{config_key}"):
+                        ChartConfigManager.save_config({
+                            'primary_type': active_config['main_chart']['type'],
+                            'primary_fields': active_config['main_chart']['fields'],
+                            'show_secondary': active_config['sub_chart']['show'],
+                            'secondary_type': active_config['sub_chart']['type'],
+                            'secondary_fields': active_config['sub_chart']['fields']
+                        })
+                        st.success("配置已保存!")
+                with col6:
+                    if st.button("🔄 重置", key=f"reset_{config_key}"):
+                        default_config = ChartConfigManager._get_default_config()
+                        active_config.update({
+                            'main_chart': {
+                                'type': default_config['primary_type'],
+                                'fields': default_config['primary_fields']
+                            },
+                            'sub_chart': {
+                                'show': default_config['show_secondary'],
+                                'type': default_config['secondary_type'],
+                                'fields': default_config['secondary_fields']
+                            }
+                        })
+        # 执行渲染
+        _render_main_controls()
+
+        # 防抖回调
+        def _safe_config_change(config_key: str, field_type: str):
+            # 获取当前时间
+            current_time = time.time()
+            
+            # 防抖检查：如果距离上次变更时间小于300ms则忽略
+            if current_time - st.session_state.get('last_change', 0) < 0.3:
+                return
+            st.session_state['last_change'] = current_time
+            
+            # 更新pending配置
+            new_value = st.session_state[f"{st.session_state.strategy_id}_{field_type}"]
+            pending_config[field_type.split('_')[0]].update({field_type.split('_')[1]: new_value})
+            
+            # 版本递增
+            pending_config['version'] += 1
+            
+            # 标记需要更新
+            st.session_state['need_redraw'] = True
+            
+            # 异步应用配置变更
+            if not st.session_state.get('is_applying_changes', False):
+                st.session_state['is_applying_changes'] = True
+                time.sleep(0.3)  # 等待防抖时间
+                
+                # 应用pending配置到active配置
+                active_config.update(pending_config)
+                st.session_state['is_applying_changes'] = False
+
+        # 版本驱动更新
+        if st.session_state.get('config_version') != active_config['version']:
+            self._refresh_chart(active_config)
+            st.session_state.config_version = active_config['version']
         
         return self.figure
 

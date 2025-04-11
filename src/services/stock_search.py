@@ -4,16 +4,12 @@ from core.data.database import DatabaseManager
 class StockSearchService:
     """股票搜索服务"""
     
-    def __init__(self):
-        self.db = DatabaseManager()
-        
-    async def async_init(self):
-        await self.db.initialize()
+    def __init__(self, db: DatabaseManager):
+        self.db = db
 
     async def get_all_stocks(self):
         """异步获取全部股票信息"""
-        df = await self.db.get_all_stocks()
-        return [(row['code'], row['code_name']) for _, row in df.iterrows()]
+        return await self.db.get_all_stocks()
     
     async def search(self, query: str) -> list:
         """异步执行股票搜索"""

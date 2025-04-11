@@ -4,8 +4,13 @@ from typing import Optional
 import pandas as pd
 import chinese_calendar as calendar
 from .stock import Stock
-import streamlit as st# debug
+import streamlit as st
 from datetime import datetime
+import asyncio
+from contextlib import asynccontextmanager
+import uuid
+import time
+import traceback
 
 class DatabaseManager:
     def __init__(self, host='113.45.40.20', port='8080', dbname='quantdb', 
@@ -29,7 +34,9 @@ class DatabaseManager:
         self._initialized = False
         self.pool = None  # 异步连接池
         self.max_pool_size = 20  # 最大连接数
-        self.query_timeout = 30  # 查询超时时间（秒）
+        self.query_timeout = 15  # 查询超时时间（秒）
+        self.active_connections = {}
+        self._conn_lock = asyncio.Lock()
         
     def _init_logger(self):
         """Initialize logger configuration"""
@@ -63,12 +70,13 @@ class DatabaseManager:
                 **valid_config,
                 min_size=5,
                 max_size=self.max_pool_size,
-                command_timeout=self.query_timeout
+                command_timeout=self.query_timeout,
+                max_inactive_connection_lifetime= 40 # 40秒不用就终止
             )
 
     async def _init_db_tables(self):
         """异步初始化表结构"""
-        async with self.pool.acquire() as conn:
+        async with self.acquire_connection() as conn:
             async with conn.transaction():
                 # debug
                 # await conn.execute(
@@ -160,7 +168,7 @@ class DatabaseManager:
         """异步获取数据库连接"""
         try:
             await self.initialize()  # 确保连接池已初始化
-            return self.pool.acquire()  # 获取单个连接
+            return self.acquire_connection()  # 使用跟踪的连接获取方法
         except Exception as e:
             self.logger.error(f"Failed to get database connection: {str(e)}")
             raise
@@ -169,7 +177,7 @@ class DatabaseManager:
                       stock_type: str, status: str, out_date: Optional[str] = None) -> bool:
         """异步保存股票基本信息到StockInfo表"""
         try:
-            async with await self._get_connection() as conn:
+            async with self.acquire_connection() as conn:
                 await conn.execute("""
                     INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
                     VALUES ($1, $2, $3, $4, $5, $6)
@@ -202,7 +210,7 @@ class DatabaseManager:
             # end_dt = pd.to_datetime(end_date).date()
             
             # 使用上下文管理器获取连接
-            async with await self._get_connection() as conn:
+            async with self.acquire_connection() as conn:
                 # 获取数据库中已有日期
                 query = """
                     SELECT DISTINCT date 
@@ -284,7 +292,7 @@ class DatabaseManager:
                 ORDER BY date
             """
             
-            async with await self._get_connection() as conn:
+            async with self.acquire_connection() as conn:
                 rows = await conn.fetch(query, symbol, start_dt, end_dt, frequency)
                 
                 
@@ -324,7 +332,7 @@ class DatabaseManager:
         try:
             # 检查数据是否最新
             if await self._is_stock_info_up_to_date():
-                async with await self._get_connection() as conn:
+                async with self.acquire_connection() as conn:
                     rows = await conn.fetch("SELECT * FROM StockInfo")
                     return pd.DataFrame(rows, columns=['code', 'code_name', 'ipoDate', 'outDate', 'type', 'status'])
             else:
@@ -343,7 +351,7 @@ class DatabaseManager:
     async def _is_stock_info_up_to_date(self) -> bool:
         """异步检查StockInfo表是否最新"""
         try:
-            async with await self._get_connection() as conn:
+            async with self.acquire_connection() as conn:
                 latest_ipo = await conn.fetchval("""
                     SELECT MAX(ipoDate) FROM StockInfo
                 """)
@@ -401,7 +409,7 @@ class DatabaseManager:
         # 先验证所有数据
         for idx, row in df.iterrows():
             try:
-                validated_data = self._validate_stock_info(row)
+                validated_data = await self._validate_stock_info(row)
                 valid_data.append(validated_data)
             except Exception as e:
                 invalid_rows.append((idx, str(e)))
@@ -412,7 +420,7 @@ class DatabaseManager:
             return 0, len(df)
             
         try:
-            async with await self._get_connection() as conn:
+            async with self.acquire_connection() as conn:
                 async with conn.transaction():
                     # 清空现有数据
                     self.logger.debug("Truncating StockInfo table")
@@ -435,7 +443,7 @@ class DatabaseManager:
     async def get_stock_info(self, code: str) -> dict:
         """异步获取股票完整信息"""
         try:
-            async with await self._get_connection() as conn:
+            async with self.acquire_connection() as conn:
                 row = await conn.fetchrow("""
                     SELECT code_name, ipoDate, outDate, type, status 
                     FROM StockInfo 
@@ -460,7 +468,7 @@ class DatabaseManager:
     async def get_stock_name(self, code: str) -> str:
         """异步根据股票代码获取名称"""
         try:
-            async with await self._get_connection() as conn:
+            async with self.acquire_connection() as conn:
                 row = await conn.fetchrow("""
                     SELECT code_name FROM StockInfo WHERE code = $1
                 """, code)
@@ -482,7 +490,6 @@ class DatabaseManager:
         """
         try:
             # 将DataFrame转换为适合插入的格式
-
             records = data.to_dict('records')
             insert_data = [
                 (
@@ -501,7 +508,7 @@ class DatabaseManager:
                 for record in records
             ]
 
-            async with await self._get_connection() as conn:
+            async with self.acquire_connection() as conn:
                 await conn.executemany("""
                     INSERT INTO StockData (
                         code, date, time, open, high, low, close, 
@@ -524,3 +531,35 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"保存股票数据失败: {str(e)}")
             raise
+
+    @asynccontextmanager
+    async def acquire_connection(self):
+        """获取数据库连接"""
+        if not self.pool:
+            await self._create_pool()
+        conn = await self.pool.acquire()
+        try:
+            yield conn
+        finally:
+            await self.pool.release(conn)
+
+    async def release_connection(self, conn):
+        """释放并停止跟踪数据库连接"""
+        await self.pool.release(conn)
+        async with self._conn_lock:
+            del self.active_connections[id(conn)]
+
+    def get_pool_status(self):
+        """获取连接池状态"""
+        return {
+            "max_size": self.max_pool_size,
+            "active": len(self.active_connections),
+            "oldest": min((v["acquired_at"] for v in self.active_connections.values()), default=None)
+        }
+
+    async def monitor_connections(self):
+        """定期记录连接池状态"""
+        while True:
+            status = self.get_pool_status()
+            self.logger.info(f"Connection pool status: {status}")
+            await asyncio.sleep(60)

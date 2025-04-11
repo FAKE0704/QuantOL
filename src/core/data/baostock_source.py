@@ -118,7 +118,7 @@ class BaostockDataSource(DataSource):
 
         return data
 
-    def _get_all_stocks(self) -> pd.DataFrame:
+    async def _get_all_stocks(self) -> pd.DataFrame:
         """从Baostock获取所有股票信息"""
         from services.progress_service import progress_service
         

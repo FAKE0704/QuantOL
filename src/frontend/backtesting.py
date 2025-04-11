@@ -23,9 +23,9 @@ async def show_backtesting_page():
     st.title("策略回测")
     
     # 初始化服务
-    search_service = StockSearchService()
-    await search_service.async_init()
     db = DatabaseManager()
+    await db.initialize()
+    search_service = StockSearchService(db)
 
     # 股票搜索（带筛选的下拉框）
     col1, col2 = st.columns([3, 1])
@@ -34,8 +34,10 @@ async def show_backtesting_page():
         if 'stock_cache' not in st.session_state or st.session_state.stock_cache is None:
             with st.spinner("正在加载股票列表..."):
                 try:
-                    st.session_state.stock_cache = await search_service.get_all_stocks()
-                    st.session_state.last_stock_update = time.time()
+                    stocks = await search_service.get_all_stocks()
+                    print(stocks.shape)
+
+                    st.session_state.stock_cache = list(zip(stocks['code'], stocks['code_name']))
                 except Exception as e:
                     st.error(f"加载股票列表失败: {str(e)}")
                     st.session_state.stock_cache = []
@@ -52,7 +54,7 @@ async def show_backtesting_page():
         if st.button("🔄 刷新列表", help="点击手动更新股票列表", key="refresh_button"):
             if 'stock_cache' in st.session_state:
                 del st.session_state.stock_cache
-            st.experimental_rerun()
+            st.rerun()
     
     # 时间范围选择
     col1, col2 = st.columns(2)
@@ -164,40 +166,39 @@ async def show_backtesting_page():
 
             # 会话级缓存ChartService实例
             @st.cache_resource(ttl=3600, show_spinner=False)
-            def init_chart_service(data,equity_data):
-                databundle = DataBundle(data,equity_data)
+            def init_chart_service(raw_data, transaction_data):
+                databundle = DataBundle(raw_data,transaction_data, capital_flow_data=None)
                 return ChartService(databundle)
+            
+            
             if 'chart_service' not in st.session_state: # 如果缓存没有chart_service，就新建个
                 st.session_state.chart_service = init_chart_service(data,equity_data)
                 st.session_state.chart_instance_id = id(st.session_state.chart_service)
-                
-                config_key = f"chart_config_{st.session_state.chart_instance_id}"
-                # 初始化回测曲线参数chart_config
-                if config_key not in st.session_state:
-                    st.session_state[config_key] = {
-                        'main_chart': {
-                            'type': 'K线图',
-                            'fields': ['close'],
-                            'components': {}
-                        },
-                        'sub_chart': {
-                            'show': True,
-                            'type': '柱状图',
-                            'fields': ['volume'],
-                            'components': {}
-                        }
-                    }
-            
+
             chart_service = st.session_state.chart_service
             
+            # 初始化回测曲线参数config_key
+            config_key = f"chart_config_{st.session_state.chart_instance_id}"
+            if config_key not in st.session_state:
+                st.session_state[config_key] = {
+                    'main_chart': {
+                        'type': 'K线图',
+                        'fields': ['close'],
+                        'components': {}
+                    },
+                    'sub_chart': {
+                        'show': True,
+                        'type': '柱状图',
+                        'fields': ['volume'],
+                        'components': {}
+                    }
+                }
+
             st.write(f"ChartService实例ID: {st.session_state.chart_instance_id}")
             print(f"ChartService实例ID: {st.session_state.chart_instance_id}")
 
-            chart_service.render_chart_controls()  # 调用配置及作图组件
-            
-            config_key = f"chart_config_{st.session_state.chart_instance_id}"
-            current_config = st.session_state[config_key]
-            
+            chart_service.render_chart_controls()  # 作图配置
+            chart_service.render_chart_button(st.session_state[config_key]) # 作图按钮
 
             
             # 显示交易记录

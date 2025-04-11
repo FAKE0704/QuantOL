@@ -18,8 +18,8 @@ async def init_global_services():
         await st.session_state.db.initialize()  # 假设有连接方法
         
     if 'search_service' not in st.session_state:
-        st.session_state.search_service = StockSearchService()
-        await st.session_state.search_service.async_init()
+        st.session_state.search_service = StockSearchService(st.session_state.db)
+        
 
 def show_home_page():
     st.title("欢迎使用量化交易系统")

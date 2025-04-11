@@ -1,3 +1,5 @@
+# cline: disable
+
 # 1. 量化交易系统项目
 ## 1.1. 项目概述
 本项目是基于streamlit开发的量化交易系统,分为几个模块。
@@ -196,7 +198,7 @@ success = db_manager.save_stock_data(df, "sh.600622", "5")
 df = db_manager.load_stock_data("sh.600622", "2025-03-01", "2025-03-25", "5")
 ```
 
-### Stock类
+
 
 ### 2.1.3. 数据获取流程
 1. 检查内存缓存
@@ -319,9 +321,34 @@ config_json = config.to_json()
 new_config = BacktestConfig.from_json(config_json)
 ```
 
-
-## 3.2. 2.2 数据可视化模块
+# 服务模块
+## 数据可视化模块 services/chart_service
 功能：将数据和交易结果以可视化形式展示。
+### ChartConfigManager类
+职责：处理配置的加载/保存/默认值
+特性：
+使用类方法实现单例模式效果
+配置文件路径：src/support/config/chart_config.json
+提供默认配置兜底（_get_default_config）
+错误处理包含用户提示（通过Streamlit）
+
+### ChartConfig（基础图表配置）
+核心配置项：
+current_theme: 当前主题（dark/light）
+themes: 主题颜色配置字典
+UI交互：
+在__init__中直接创建主题选择侧边栏控件
+使用唯一化key防止组件冲突（id(self)）
+
+### CombinedChartConfig（组合图表配置）
+
+扩展配置项：
+layout_type: 垂直堆叠/网格排列
+row_heights: 行高比例配置
+vertical_spacing: 图表间距
+继承关系：
+复用ChartConfig的主题配置
+扩展布局相关配置项
 
 ### 最新功能：
 - 主题管理系统（暗黑/明亮模式切换）

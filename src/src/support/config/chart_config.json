@@ -1,5 +1,5 @@
 {
-  "primary_type": "K线图",
+  "primary_type": "折线图",
   "primary_fields": [
     "close"
   ],

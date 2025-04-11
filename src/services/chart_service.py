@@ -5,11 +5,13 @@ from services.theme_manager import ThemeManager
 from services.interaction_service import InteractionService
 import pandas as pd
 import numpy as np
+import plotly.express as px
 from typing import List, Optional
 from pandas import DataFrame
 from pathlib import Path
 import json
 import uuid
+import time
 
 class ChartConfigManager:
     CONFIG_PATH = Path("src/support/config/chart_config.json")
@@ -236,26 +238,33 @@ class ChartService:
         """基于策略ID的缓存实例工厂"""
         return ChartService(data_bundle)
 
-    def _handle_config_change(config_key: str, field_type: str):
+    def _handle_config_change(*args):
+        """处理配置变更的回调函数"""
+        # 解析参数 - Streamlit会传递3个参数: widget_key, value, field_type
+        if len(args) == 3:
+            _, _, field_type = args
+        else:
+            field_type = args[1] if len(args) > 1 else args[0]
+        
         # 防抖机制：如果距离上次变更时间小于300ms则忽略
         current_time = time.time()
         if current_time - st.session_state.get('last_change', 0) < 0.3:
             return
         st.session_state['last_change'] = current_time
 
-        # 仅更新目标字段，避免触发全局状态变更
-        new_value = st.session_state[f"{st.session_state.strategy_id}_{field_type}"]
-        st.session_state[config_key][field_type.split('_')[0]].update({field_type.split('_')[1]: new_value})
+        # 获取配置key
+        config_key = f"{st.session_state.strategy_id}_chart_config"
         
-        # 在渲染前检查局部更新标记
-        if st.session_state.get('need_partial_refresh', False):
-            st.session_state.need_partial_refresh = False
-            st.experimental_rerun()
+        # 获取新值
+        new_value = st.session_state[f"{st.session_state.strategy_id}_{field_type}"]
+        
+        # 更新配置
+        if field_type in ['main_type', 'main_fields']:
+            st.session_state[config_key]['main_chart'].update({field_type.split('_')[1]: new_value})
+        elif field_type in ['sub_type', 'sub_fields', 'show_sub']:
+            st.session_state[config_key]['sub_chart'].update({field_type.split('_')[1]: new_value})
 
-        # 手动标记需要局部更新（替代全局 rerun）
-        st.session_state.need_partial_refresh = True
-
-        # 设置重绘标志（触发图表更新）
+        # 设置重绘标志
         st.session_state['need_redraw'] = True
 
     def _refresh_chart(self, config: dict):
@@ -346,32 +355,58 @@ class ChartService:
                             args=(config_key, 'sub_fields')
                         )
 
-                # 配置管理
-                col5, col6 = st.columns(2)
-                with col5:
-                    if st.button("💾 保存配置", key=f"save_{config_key}"):
-                        ChartConfigManager.save_config({
-                            'primary_type': active_config['main_chart']['type'],
-                            'primary_fields': active_config['main_chart']['fields'],
-                            'show_secondary': active_config['sub_chart']['show'],
-                            'secondary_type': active_config['sub_chart']['type'],
-                            'secondary_fields': active_config['sub_chart']['fields']
-                        })
-                        st.success("配置已保存!")
-                with col6:
-                    if st.button("🔄 重置", key=f"reset_{config_key}"):
-                        default_config = ChartConfigManager._get_default_config()
-                        active_config.update({
-                            'main_chart': {
-                                'type': default_config['primary_type'],
-                                'fields': default_config['primary_fields']
-                            },
-                            'sub_chart': {
-                                'show': default_config['show_secondary'],
-                                'type': default_config['secondary_type'],
-                                'fields': default_config['secondary_fields']
-                            }
-                        })
+                # 配置管理 - 使用Fragment隔离保存操作
+                @st.experimental_fragment
+                def config_saver():
+                    col5, col6 = st.columns(2)
+                    with col5:
+                        if st.button("💾 保存配置", key=f"save_{config_key}"):
+                            # 保存配置到文件
+                            ChartConfigManager.save_config({
+                                'primary_type': active_config['main_chart']['type'],
+                                'primary_fields': active_config['main_chart']['fields'],
+                                'show_secondary': active_config['sub_chart']['show'],
+                                'secondary_type': active_config['sub_chart']['type'],
+                                'secondary_fields': active_config['sub_chart']['fields']
+                            })
+                            
+                            # 使用更安全的状态更新方式
+                            with st.session_state.suppress_rerun():
+                                st.session_state[config_key] = {
+                                    'main_chart': {
+                                        'type': active_config['main_chart']['type'],
+                                        'fields': active_config['main_chart']['fields']
+                                    },
+                                    'sub_chart': {
+                                        'show': active_config['sub_chart']['show'],
+                                        'type': active_config['sub_chart']['type'],
+                                        'fields': active_config['sub_chart']['fields']
+                                    }
+                                }
+                                st.session_state['need_redraw'] = True
+                            
+                            # 使用更轻量的通知方式
+                            st.toast("✅ 配置已保存", duration=1)
+                
+                    # 执行隔离的保存组件
+                    config_saver()
+                    with col6:
+                        if st.button("🔄 重置", key=f"reset_{config_key}"):
+                            default_config = ChartConfigManager._get_default_config()
+                            active_config.update({
+                                'main_chart': {
+                                    'type': default_config['primary_type'],
+                                    'fields': default_config['primary_fields']
+                                },
+                                'sub_chart': {
+                                    'show': default_config['show_secondary'],
+                                    'type': default_config['secondary_type'],
+                                    'fields': default_config['secondary_fields']
+                                }
+                            })
+                
+            
+
         # 执行渲染
         _render_main_controls()
 
@@ -823,3 +858,27 @@ class ChartService:
         )
         st.title("股票图像")
         st.plotly_chart(fig4)
+
+    def create_fund_flow_chart(self, fund_flow_data: pd.DataFrame) -> go.Figure:
+        """创建资金流向图表"""
+        fig = px.line(
+            fund_flow_data,
+            x='date',
+            y=['main_net_inflow_amt', 
+                'super_large_net_inflow_amt', 
+                'large_net_inflow_amt', 
+                'mid_net_inflow_amt', 
+                'retail_net_inflow_amt'],
+            labels={
+                'value': '资金流向 (亿)',
+                'date': '日期',
+                'variable': '资金类型'
+            },
+            title='大盘资金流向分析'
+        )
+        fig.update_layout(
+            legend_title_text='资金类型',
+            xaxis_title='日期',
+            yaxis_title='资金流向 (亿)'
+        )
+        return fig

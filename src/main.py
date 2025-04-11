@@ -10,19 +10,16 @@ from core.data.database import DatabaseManager
 from services.stock_search import StockSearchService
 import asyncio
 
-def init_global_services():
+async def init_global_services():
     """初始化全局服务并存储在session_state"""
     
     if 'db' not in st.session_state:
         st.session_state.db = DatabaseManager()
-        st.session_state.db.initialize()  # 假设有连接方法
+        await st.session_state.db.initialize()  # 假设有连接方法
         
     if 'search_service' not in st.session_state:
         st.session_state.search_service = StockSearchService()
-        # 异步初始化需要特殊处理
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(st.session_state.search_service.async_init())
+        await st.session_state.search_service.async_init()
 
 def show_home_page():
     st.title("欢迎使用量化交易系统")
@@ -30,7 +27,7 @@ def show_home_page():
 
 async def main():
     # 初始化全局服务
-    init_global_services()
+    await init_global_services()
     
     page = initialize_navigation()
     

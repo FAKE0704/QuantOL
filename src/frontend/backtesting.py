@@ -103,6 +103,8 @@ async def show_backtesting_page():
         frequency = "5"      # 数据频率
         start_date=start_date.strftime("%Y%m%d") # 开始日期
         end_date=end_date.strftime("%Y%m%d") # 结束日期
+
+        # 初始化回测参数BacktestConfig
         backtest_config = BacktestConfig( # 设置回测参数
             start_date=start_date,
             end_date=end_date,
@@ -112,7 +114,7 @@ async def show_backtesting_page():
             commission=commission_rate
         )
         
-        # 初始化事件引擎
+        # 初始化事件引擎BacktestEngine
         engine = BacktestEngine(config=backtest_config)
         data = await engine.load_data(symbol)
         st.write(data) 
@@ -128,13 +130,14 @@ async def show_backtesting_page():
                 buySignal=True,
                 sellSignal=False
             )
+            # 注册策略
             engine.register_strategy(fixed_strategy)
         
         # 启动事件循环
         task_id = f"backtest_{st.session_state.strategy_id}"
         progress_service.start_task(task_id, 100)
         
-        # 模拟进度更新
+        # 模拟进度更新  这里没有结合engine.run
         for i in range(100):
             time.sleep(0.1)  # 模拟回测过程
             progress_service.update_progress(task_id, (i + 1) / 100)
@@ -167,8 +170,9 @@ async def show_backtesting_page():
             if 'chart_service' not in st.session_state: # 如果缓存没有chart_service，就新建个
                 st.session_state.chart_service = init_chart_service(data,equity_data)
                 st.session_state.chart_instance_id = id(st.session_state.chart_service)
-                # 初始化chart_config
+                
                 config_key = f"chart_config_{st.session_state.chart_instance_id}"
+                # 初始化回测曲线参数chart_config
                 if config_key not in st.session_state:
                     st.session_state[config_key] = {
                         'main_chart': {
@@ -183,7 +187,9 @@ async def show_backtesting_page():
                             'components': {}
                         }
                     }
+            
             chart_service = st.session_state.chart_service
+            
             st.write(f"ChartService实例ID: {st.session_state.chart_instance_id}")
             print(f"ChartService实例ID: {st.session_state.chart_instance_id}")
 

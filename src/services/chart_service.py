@@ -677,12 +677,9 @@ class ChartService:
         >>> # 双Y轴调用
         >>> fig = create_combined_chart(df, ['close'], ['volume'], "成交量")
         """
-<<<<<<< HEAD
-=======
         
 
 
->>>>>>> 9070ea9 (ok)
         from plotly.subplots import make_subplots
         
         sub_cfg = config.get('sub_chart', {})  # 安全获取子配置

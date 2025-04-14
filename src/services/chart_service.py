@@ -677,12 +677,11 @@ class ChartService:
         >>> # 双Y轴调用
         >>> fig = create_combined_chart(df, ['close'], ['volume'], "成交量")
         """
-        print(config)# debug
         from plotly.subplots import make_subplots
         
         sub_cfg = config.get('sub_chart', {})  # 安全获取子配置
 
-        if config['sub_chart'].get('show', True):
+        if sub_cfg.get('show', True):
             # 双轴模式（参考网页1的make_subplots实现）
             fig = make_subplots(specs=[[{"secondary_y": True}]])
             yaxis2_config = dict(showgrid=True, title=sub_cfg.get('yaxis_name', 'Secondary Y'))
@@ -694,25 +693,26 @@ class ChartService:
         # 主图绘制逻辑
         main_cfg =config.get('main_chart', {})
 
-        
-        for field in main_cfg['fields']:
-            fig.add_trace(
-                go.Scatter(
-                    x=self.data_bundle.kline_data['combined_time'],
-                    y=self.data_bundle.kline_data[field],
-                    name=f"{main_cfg.get('style', {})}-{field}",
-                    line=dict(
-                        width=main_cfg.get('style', {}).get('line_width', 1.2),
-                        color=main_cfg.get('style', {}).get('color', '#1f77b4')
-                    )
-                ),
-                secondary_y=False
-            )
+        if main_cfg.get("type", {}) == "K线图":
+            for trace in self.drawCandlestick().data:
+                fig.add_trace(trace)
+        elif main_cfg.get("type", {}) == "折线图":
+            for field in main_cfg['fields']:
+                fig.add_trace(
+                    go.Scatter(
+                        x=self.data_bundle.kline_data['combined_time'],
+                        y=self.data_bundle.kline_data[field],
+                        name=f"{main_cfg.get('style', {})}-{field}",
+                        line=dict(
+                            width=main_cfg.get('style', {}).get('line_width', 1.2),
+                            color=main_cfg.get('style', {}).get('color', '#1f77b4')
+                        )
+                    ),
+                    secondary_y=False
+                )
         
         # 副图绘制逻辑（参考网页8的条件渲染）
-        if config['sub_chart'].get('show', True):
-            sub_cfg =config.get('sub_chart', {})
-            
+        if sub_cfg.get('show', True): # 如果要显示第二个轴
             # 动态选择图形类型
             graph_type = go.Bar if sub_cfg.get('style', {}) == 'bar' else go.Scatter
             
@@ -873,63 +873,47 @@ class ChartService:
         )
         st.plotly_chart(fig)
 
-    def drawCandlestick(self, data):
+    def drawCandlestick(self):
         """绘制K线图"""
+        # 初始化主题
         theme_manager = ThemeManager()
-        current_theme = st.sidebar.selectbox(
+        current_theme = st.selectbox(
             "主题模式", options=list(theme_manager.themes.keys()), index=0
         )
-        show_ma = st.sidebar.checkbox("显示均线", value=True)
-        ma_periods = st.sidebar.multiselect(
+        show_ma = st.checkbox("显示均线", value=True)
+        ma_periods = st.multiselect(
             "均线周期", options=[5, 10, 20, 30, 60], default=[5, 10, 20]
         )
+        print(self.data_bundle.kline_data.dtypes)#debug
+        # 初始化画布
         fig = go.Figure()
         fig.add_trace(
             go.Candlestick(
-                x=self.data.index,
-                open=self.data["open"],
-                high=self.data["high"],
-                low=self.data["low"],
-                close=self.data["close"],
+                x=self.data_bundle.kline_data['combined_time'],
+                open=self.data_bundle.kline_data["open"],
+                high=self.data_bundle.kline_data["high"],
+                low=self.data_bundle.kline_data["low"],
+                close=self.data_bundle.kline_data["close"],
                 name="K线",
             )
         )
         fig = theme_manager.apply_theme(fig, current_theme)
         if show_ma and ma_periods:
-            for period in ma_periods:
-                ma = data["close"].rolling(period).mean()
-                fig.add_trace(
-                    go.Scatter(
-                        x=data.index,
-                        y=ma,
-                        name=f"MA{period}",
-                        line=dict(width=1),
-                        opacity=0.7,
-                    )
-                )
+            pass  # 后续补充MA作图
+            # for period in ma_periods:
+            #     ma = self.data_bundle.kline_data["close"].rolling(period).mean()
+            #     fig.add_trace(
+            #         go.Scatter(
+            #             x=self.data_bundle.kline_data['combined_time'],
+            #             y=ma,
+            #             name=f"MA{period}",
+            #             line=dict(width=1),
+            #             opacity=0.7,
+            #         )
+            #     )
         fig.update_layout(title="K线图", xaxis_title="时间", yaxis_title="价格")
-        fw = go.FigureWidget(fg)
-        interaction_service = InteractionService()
-
-        def update_kline_xrange(relayout_data):
-            if "xaxis.range[0]" in relayout_data:
-                interaction_service.handle_zoom_event(
-                    source="kline",
-                    x_range=[
-                        relayout_data["xaxis.range[0]"],
-                        relayout_data["xaxis.range[1]"],
-                    ],
-                )
-
-        fw.layout.on_change(update_kline_xrange, "xaxis.range")
-
-        def update_other_charts(x_range):
-            fw.update_xaxes(range=x_range)
-
-        interaction_service.subscribe(update_other_charts)
-        if "shared_xrange" in st.session_state:
-            fw.update_xaxes(range=st.session_state.shared_xrange)
-        st.plotly_chart(fw, use_container_width=True)
+        
+        return fig
 
     def drawRSI(self, data, window=14):
         """绘制相对强弱指数(RSI)"""

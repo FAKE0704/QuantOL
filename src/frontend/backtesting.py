@@ -8,7 +8,6 @@ from services.chart_service import  ChartService, DataBundle
 from core.data.database import DatabaseManager
 from core.strategy.events import ScheduleEvent, SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
-from services.stock_search import StockSearchService
 from core.strategy.strategy import FixedInvestmentStrategy
 from services.progress_service import progress_service
 import time
@@ -21,11 +20,7 @@ async def show_backtesting_page():
         import uuid
         st.session_state.strategy_id = str(uuid.uuid4())
     st.title("策略回测")
-    
-    # 初始化服务
-    db = DatabaseManager()
-    await db.initialize()
-    search_service = StockSearchService(db)
+
 
     # 股票搜索（带筛选的下拉框）
     col1, col2 = st.columns([3, 1])
@@ -34,7 +29,7 @@ async def show_backtesting_page():
         if 'stock_cache' not in st.session_state or st.session_state.stock_cache is None:
             with st.spinner("正在加载股票列表..."):
                 try:
-                    stocks = await search_service.get_all_stocks()
+                    stocks = await st.session_state.search_service.get_all_stocks()
                     print(stocks.shape)
 
                     st.session_state.stock_cache = list(zip(stocks['code'], stocks['code_name']))
@@ -167,6 +162,11 @@ async def show_backtesting_page():
             # 会话级缓存ChartService实例
             @st.cache_resource(ttl=3600, show_spinner=False)
             def init_chart_service(raw_data, transaction_data):
+                raw_data['open'] = raw_data['open'].astype(float)
+                raw_data['high'] = raw_data['high'].astype(float)
+                raw_data['low'] = raw_data['low'].astype(float)
+                raw_data['close'] = raw_data['close'].astype(float)
+                raw_data['combined_time'] = pd.to_datetime(raw_data['combined_time'])
                 databundle = DataBundle(raw_data,transaction_data, capital_flow_data=None)
                 return ChartService(databundle)
             

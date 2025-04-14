@@ -1,83 +1,136 @@
-[2025-04-11 19:50:29,987] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 19:51:43,336] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 19:51:50,564] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 19:51:51,021] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 19:52:11,522] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 19:52:13,164] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 19:52:13,662] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 19:52:13,684] [ERROR] [database] 检查StockInfo表状态失败: object _AsyncGeneratorContextManager can't be used in 'await' expression
-[2025-04-11 19:52:14,558] [ERROR] [database] 批量插入失败: object _AsyncGeneratorContextManager can't be used in 'await' expression
-[2025-04-11 19:52:14,572] [ERROR] [database] 获取所有股票信息失败: object _AsyncGeneratorContextManager can't be used in 'await' expression
-[2025-04-11 20:06:16,928] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:06:19,434] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:06:51,079] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:06:56,627] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:06:56,650] [ERROR] [database] 检查StockInfo表状态失败: object _AsyncGeneratorContextManager can't be used in 'await' expression
-[2025-04-11 20:06:58,630] [ERROR] [database] 批量插入失败: object _AsyncGeneratorContextManager can't be used in 'await' expression
-[2025-04-11 20:06:58,631] [ERROR] [database] 获取所有股票信息失败: object _AsyncGeneratorContextManager can't be used in 'await' expression
-[2025-04-11 20:08:28,564] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:08:33,442] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:09:26,257] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:09:29,566] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:09:57,078] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:10:11,091] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:10:13,790] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:11:48,606] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:11:50,579] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:13:01,432] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:13:04,294] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:16:36,246] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:16:37,781] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:18:00,048] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:18:08,324] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:18:10,986] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:21:06,995] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:21:09,077] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:21:45,598] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:21:47,674] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:22:35,633] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:22:37,445] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:24:17,692] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:24:19,577] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:24:56,923] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:25:00,120] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:25:01,856] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:28:07,860] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:28:09,908] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:28:43,828] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:28:48,595] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:28:50,136] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:31:17,892] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:31:21,948] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:31:23,758] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:32:25,108] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:32:27,316] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:33:30,069] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:33:37,925] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:34:22,049] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:36:45,531] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:37:37,462] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:37:39,116] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:39:23,883] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:39:25,863] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:40:24,355] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:40:48,181] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:40:50,085] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:44:37,319] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:44:40,342] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:44:42,281] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:47:57,175] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:54:25,570] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:54:26,973] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:55:50,636] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:56:30,223] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 20:56:32,063] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:05:11,702] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:05:32,682] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:05:34,047] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:08:03,315] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:08:06,007] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:08:09,061] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:11:08,328] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:11:12,742] [INFO] [database] 数据库表结构初始化完成
-[2025-04-11 21:11:14,810] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 12:21:17,595] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 12:25:09,307] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 12:25:11,321] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 12:36:43,700] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 12:36:46,003] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 12:37:32,087] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:02:17,890] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:02:21,345] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:02:23,323] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:03:06,281] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:03:09,052] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:03:42,886] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:03:43,573] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:03:44,101] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:03:44,112] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:04:29,610] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:04:33,495] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:04:35,233] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:07:32,264] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:07:34,838] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:07:34,839] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:07:34,840] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:07:34,845] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:07:44,613] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:07:47,526] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:07:47,527] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:07:47,527] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:07:47,535] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:08:15,847] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:08:21,520] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:08:24,691] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:08:24,692] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:08:24,693] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:08:24,702] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:12:10,986] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:12:13,523] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:12:13,524] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:12:13,525] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:12:13,529] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:13:46,922] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:13:57,993] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:14:01,302] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:14:01,303] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:14:01,303] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:14:01,313] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:20:46,190] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:21:32,867] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:21:35,696] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:21:35,697] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:21:35,697] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:21:35,706] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:26:33,298] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:26:38,667] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:26:38,669] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:26:38,670] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:26:38,687] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:32:51,622] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:32:54,253] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-14 14:32:54,253] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-14 14:32:54,259] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:33:25,423] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:34:47,662] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:34:59,538] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-14 14:34:59,539] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-14 14:34:59,551] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:41:39,375] [ERROR] [database] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-14 14:41:42,136] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-14 14:41:42,136] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-14 14:42:32,151] [ERROR] [database] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-14 14:42:34,695] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-14 14:42:34,695] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-14 14:48:57,062] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 14:50:22,917] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:50:32,057] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:50:32,061] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:50:32,061] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 14:50:32,075] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 14:58:08,120] [ERROR] [database] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-14 14:58:10,854] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-14 14:58:10,854] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-14 15:15:45,052] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 15:18:31,618] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 15:18:34,986] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 15:18:34,987] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 15:18:34,987] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 15:18:34,993] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 15:34:20,088] [INFO] [database] 数据库表结构初始化完成
+[2025-04-14 15:37:49,526] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-14 15:37:57,160] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-14 15:37:57,193] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-14 15:37:57,195] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-14 15:37:57,226] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation

@@ -33,7 +33,7 @@ class DatabaseManager:
         }
         self._initialized = False
         self.pool = None  # 异步连接池
-        self.max_pool_size = 20  # 最大连接数
+        self.max_pool_size = 50  # 最大连接数
         self.query_timeout = 15  # 查询超时时间（秒）
         self.active_connections = {}
         self._conn_lock = asyncio.Lock()
@@ -55,6 +55,7 @@ class DatabaseManager:
         """异步初始化整个模块"""
         await self._create_pool()
         await self._init_db_tables()
+        self.initialized = True  # 添加状态标记
 
     async def _create_pool(self):
         """创建连接池"""
@@ -68,10 +69,11 @@ class DatabaseManager:
             }
             self.pool = await asyncpg.create_pool(
                 **valid_config,
-                min_size=5,
+                min_size=20,
                 max_size=self.max_pool_size,
                 command_timeout=self.query_timeout,
-                max_inactive_connection_lifetime= 40 # 40秒不用就终止
+                max_inactive_connection_lifetime= 30, # 30秒不用就终止
+                max_queries=10_000  # 防止单连接过度使用
             )
 
     async def _init_db_tables(self):
@@ -100,16 +102,20 @@ class DatabaseManager:
                         frequency VARCHAR(10) NOT NULL,
                         UNIQUE (code, date, time, frequency)
                     );
+                    """)
 
-                    CREATE TABLE IF NOT EXISTS StockInfo (
-                        code VARCHAR(20) PRIMARY KEY,
-                        code_name VARCHAR(50) NOT NULL,
-                        ipoDate DATE NOT NULL,
-                        outDate DATE,
-                        type VARCHAR(20),
-                        status VARCHAR(10) 
-                    );
+                await conn.execute("""              
+                CREATE TABLE IF NOT EXISTS StockInfo (
+                    code VARCHAR(20) PRIMARY KEY,
+                    code_name VARCHAR(50) NOT NULL,
+                    ipoDate DATE NOT NULL,
+                    outDate DATE,
+                    type VARCHAR(20),
+                    status VARCHAR(10) 
+                );
+                """)
 
+                await conn.execute("""
                     CREATE TABLE IF NOT EXISTS PoliticalEvents (
                         id SERIAL PRIMARY KEY,
                         event_date TIMESTAMP NOT NULL,
@@ -121,57 +127,12 @@ class DatabaseManager:
                         created_at TIMESTAMP DEFAULT NOW()
                     );
                 """)
+                
                 self.logger.info("数据库表结构初始化完成")
 
-    def _init_tables(self, connection):
-        """Initialize database tables"""
-        with connection.cursor() as cursor:
-            # cursor.execute(
-            #     """
-            #     DROP TABLE StockInfo;
-                
-            #     DROP TABLE StockData;
+    
 
-            #     """
-            # )
-
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS StockData (
-                    id SERIAL PRIMARY KEY,
-                    code VARCHAR(20) NOT NULL,
-                    date DATE NOT NULL,
-                    time TIME,
-                    open NUMERIC NOT NULL,
-                    high NUMERIC NOT NULL,
-                    low NUMERIC NOT NULL,
-                    close NUMERIC NOT NULL,
-                    volume NUMERIC NOT NULL,
-                    amount NUMERIC,
-                    adjustflag VARCHAR(10),
-                    frequency VARCHAR(10) NOT NULL
-                );
-
-                CREATE TABLE IF NOT EXISTS StockInfo (
-                    code VARCHAR(20) PRIMARY KEY,
-                    code_name VARCHAR(50) NOT NULL,
-                    ipoDate DATE NOT NULL,
-                    outDate DATE,
-                    type VARCHAR(20),
-                    status VARCHAR(10) 
-                );
-                """
-            )
-        connection.commit()
-
-    async def _get_connection(self):
-        """异步获取数据库连接"""
-        try:
-            await self.initialize()  # 确保连接池已初始化
-            return self.acquire_connection()  # 使用跟踪的连接获取方法
-        except Exception as e:
-            self.logger.error(f"Failed to get database connection: {str(e)}")
-            raise
+    
 
     async def save_stock_info(self, code: str, code_name: str, ipo_date: str, 
                       stock_type: str, status: str, out_date: Optional[str] = None) -> bool:
@@ -275,12 +236,12 @@ class DatabaseManager:
                 data = pd.DataFrame()
                 for range_start, range_end in missing_ranges:
                     self.logger.info(f"Fetching data from {range_start} to {range_end}")
-                    st.write(symbol, range_start, range_end, frequency) # debug 
+                    # st.write(symbol, range_start, range_end, frequency) # debug 
                     new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
-                    await self.save_stock_data(symbol, new_data, frequency)
+                    await self.save_stock_data(symbol, new_data, frequency)  # save stock data into table Stockdata
                     data = pd.concat([data, new_data])
 
-            # save stock data into table Stockdata
+            
 
             # Load complete data from database
             query = """
@@ -352,6 +313,7 @@ class DatabaseManager:
         """异步检查StockInfo表是否最新"""
         try:
             async with self.acquire_connection() as conn:
+                # 设置可重复读隔离级别
                 latest_ipo = await conn.fetchval("""
                     SELECT MAX(ipoDate) FROM StockInfo
                 """)
@@ -539,9 +501,12 @@ class DatabaseManager:
             await self._create_pool()
         conn = await self.pool.acquire()
         try:
+            # 验证连接有效性
+            if await conn.fetchval("SELECT 1") != 1:
+                raise ConnectionResetError("连接已失效")
             yield conn
         finally:
-            await self.pool.release(conn)
+            await self.pool.release(conn)  # 无条件释放，由连接池自动处理失效连接
 
     async def release_connection(self, conn):
         """释放并停止跟踪数据库连接"""

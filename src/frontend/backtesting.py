@@ -21,7 +21,6 @@ async def show_backtesting_page():
         st.session_state.strategy_id = str(uuid.uuid4())
     st.title("策略回测")
 
-
     # 股票搜索（带筛选的下拉框）
     col1, col2 = st.columns([3, 1])
     with col1:

@@ -134,3 +134,221 @@ asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the mid
 [2025-04-14 15:37:57,226] [ERROR] [base_events] Future exception was never retrieved
 future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
 asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 11:03:40,973] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 11:09:54,101] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 11:10:05,201] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 11:10:05,253] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 11:10:05,292] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 11:10:05,375] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 12:09:54,451] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 12:09:58,594] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 12:09:58,595] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 12:09:58,596] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 12:09:58,604] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 12:10:38,858] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 12:13:56,063] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 12:13:56,064] [ERROR] [database] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-22 12:14:02,244] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-22 12:14:02,245] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 12:14:02,258] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 12:16:38,141] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 12:16:38,168] [ERROR] [database] 连接释放异常: 2314753379344
+[2025-04-22 12:17:11,741] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 12:17:11,742] [ERROR] [database] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-22 12:17:17,270] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-22 12:17:17,272] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 12:17:17,292] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 12:45:32,522] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 12:45:32,541] [ERROR] [database] 连接释放异常: 1751310828304
+[2025-04-22 12:50:31,020] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 12:50:31,040] [ERROR] [database] 连接释放异常: 1533799581152
+[2025-04-22 13:06:57,926] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 13:06:57,928] [ERROR] [database] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-22 13:07:04,131] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 13:07:04,132] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 13:07:04,133] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-22 13:07:04,133] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 13:07:04,148] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:13:47,211] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 14:13:47,231] [ERROR] [database] 连接释放异常: 2296599723072
+[2025-04-22 14:14:32,991] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 14:14:32,992] [ERROR] [database] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-22 14:14:37,528] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:14:37,529] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 14:14:37,530] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-22 14:14:37,530] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 14:14:37,543] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:16:09,029] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 14:16:09,030] [ERROR] [database] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-22 14:16:16,241] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:16:16,243] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 14:16:16,243] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-22 14:16:16,244] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 14:16:16,254] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:17:53,436] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 14:27:58,765] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 14:28:02,127] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:28:09,554] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:28:09,555] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:28:09,555] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:28:09,569] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:34:27,242] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 14:37:33,764] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:37:38,021] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:37:38,021] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:37:38,022] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:37:38,029] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:54:48,098] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 14:56:01,399] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:56:05,454] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 14:56:05,455] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:56:05,456] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 14:56:05,461] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:00:27,958] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 15:10:13,016] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:10:18,761] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:10:18,763] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:10:18,763] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:10:18,769] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:12:56,119] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 15:14:42,562] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:14:47,341] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:14:47,342] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:14:47,343] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:14:47,348] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:16:27,693] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:16:33,643] [ERROR] [database] 批量插入失败: Event loop is closed
+[2025-04-22 15:16:33,644] [ERROR] [database] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 15:16:33,652] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:18:56,194] [ERROR] [database] 检查StockInfo表状态失败: cannot access local variable 'conn' where it is not associated with a value
+[2025-04-22 15:19:01,859] [ERROR] [database] 批量插入失败: cannot access local variable 'conn' where it is not associated with a value
+[2025-04-22 15:19:01,859] [ERROR] [database] 获取所有股票信息失败: cannot access local variable 'conn' where it is not associated with a value
+[2025-04-22 15:19:31,210] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 15:19:52,421] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:19:58,045] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:19:58,046] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:19:58,046] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:19:58,057] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:25:38,639] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 15:26:21,868] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:26:25,532] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:26:25,533] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:26:25,533] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:26:25,538] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:29:55,479] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 15:32:10,091] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:32:17,592] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:32:17,593] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:32:17,593] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:32:17,598] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:41:54,966] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 15:43:27,606] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 15:43:27,609] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:43:33,372] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 15:43:33,372] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:43:33,374] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:43:33,374] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:43:33,386] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:48:02,005] [INFO] [database] 数据库表结构初始化完成
+[2025-04-22 15:48:07,520] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 15:48:07,521] [ERROR] [database] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:48:11,932] [ERROR] [database] 连接释放异常: cannot perform operation: another operation is in progress
+[2025-04-22 15:48:11,932] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 15:48:11,933] [ERROR] [database] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:48:11,933] [ERROR] [database] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 15:48:11,939] [ERROR] [base_events] Future exception was never retrieved
+future: <Future finished exception=ConnectionDoesNotExistError('connection was closed in the middle of operation')>
+asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the middle of operation
+[2025-04-22 16:13:06,596] [INFO] [database:149] [conn:N/A] 数据库表结构初始化完成
+[2025-04-22 16:13:22,185] [ERROR] [database:552] [conn:N/A] 安全释放连接异常: cannot perform operation: another operation is in progress
+[2025-04-22 16:13:22,186] [ERROR] [database:345] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-22 16:13:29,351] [ERROR] [database:552] [conn:N/A] 安全释放连接异常: cannot perform operation: another operation is in progress
+[2025-04-22 16:13:29,352] [ERROR] [database:424] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-22 16:13:29,353] [ERROR] [database:327] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 17:35:18,844] [INFO] [database:149] [conn:N/A] 数据库表结构初始化完成
+[2025-04-22 17:35:18,905] [ERROR] [database:566] [conn:N/A] 安全释放连接异常: 'Connection' object has no attribute '_count_queries'
+[2025-04-22 17:35:59,938] [ERROR] [database:566] [conn:N/A] 安全释放连接异常: cannot perform operation: another operation is in progress
+[2025-04-22 17:35:59,939] [ERROR] [database:349] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-22 17:36:40,897] [ERROR] [database:566] [conn:N/A] 安全释放连接异常: cannot perform operation: another operation is in progress
+[2025-04-22 17:36:40,898] [ERROR] [database:428] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-22 17:36:40,898] [ERROR] [database:327] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 17:45:13,488] [INFO] [database:149] [conn:N/A] 数据库表结构初始化完成
+[2025-04-22 17:45:22,835] [ERROR] [database:572] [conn:N/A] 安全释放连接异常: cannot perform operation: another operation is in progress
+[2025-04-22 17:45:22,835] [ERROR] [database:349] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-22 17:45:42,186] [ERROR] [database:572] [conn:N/A] 安全释放连接异常: cannot perform operation: another operation is in progress
+[2025-04-22 17:45:42,186] [ERROR] [database:428] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-22 17:45:42,187] [ERROR] [database:327] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 17:52:05,700] [INFO] [database:149] [conn:N/A] 数据库表结构初始化完成
+[2025-04-22 17:52:13,032] [WARNING] [database:547] [conn:N/A] 连接初始化失败: Event loop is closed
+[2025-04-22 17:52:13,033] [ERROR] [database:349] [conn:N/A] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 17:52:19,482] [WARNING] [database:547] [conn:N/A] 连接初始化失败: Event loop is closed
+[2025-04-22 17:52:19,484] [ERROR] [database:428] [conn:N/A] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 17:52:19,484] [ERROR] [database:327] [conn:N/A] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-22 17:52:26,294] [WARNING] [database:547] [conn:N/A] 连接初始化失败: Event loop is closed
+[2025-04-22 17:52:26,295] [ERROR] [database:349] [conn:N/A] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 17:52:34,841] [ERROR] [database:428] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-22 17:52:34,842] [ERROR] [database:327] [conn:N/A] 获取所有股票信息失败: Event loop is closed

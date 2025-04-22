@@ -33,22 +33,40 @@ class DatabaseManager:
         }
         self._initialized = False
         self.pool = None  # 异步连接池
-        self.max_pool_size = 50  # 最大连接数
+        self.max_pool_size = 15  # 最大连接数
         self.query_timeout = 15  # 查询超时时间（秒）
         self.active_connections = {}
         self._conn_lock = asyncio.Lock()
         
     def _init_logger(self):
-        """Initialize logger configuration"""
-        logging.basicConfig(
-            level=logging.INFO,
-            format='[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s',
-            handlers=[
-                logging.StreamHandler(),
-                logging.FileHandler('database.log')
-            ]
-        )
+        """增强日志配置"""
         self.logger = logging.getLogger(__name__)
+        self.logger.propagate = False
+        self.logger.setLevel(logging.INFO)
+        
+        # 创建文件处理器
+        file_handler = logging.FileHandler('database.log')
+        file_handler.setFormatter(logging.Formatter(
+            '[%(asctime)s] [%(levelname)s] [%(module)s:%(lineno)d] [conn:%(connection_id)s] %(message)s'
+        ))
+        
+        # 创建控制台处理器
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter(
+            '[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s'
+        ))
+        
+        # 添加处理器
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+        
+        # 添加追踪ID的过滤器
+        class ConnectionFilter(logging.Filter):
+            def filter(self, record):
+                record.connection_id = getattr(record, 'connection_id', 'N/A')
+                return True
+                
+        self.logger.addFilter(ConnectionFilter())
 
 
     async def initialize(self):
@@ -69,7 +87,7 @@ class DatabaseManager:
             }
             self.pool = await asyncpg.create_pool(
                 **valid_config,
-                min_size=20,
+                min_size=3,
                 max_size=self.max_pool_size,
                 command_timeout=self.query_timeout,
                 max_inactive_connection_lifetime= 30, # 30秒不用就终止
@@ -313,12 +331,20 @@ class DatabaseManager:
         """异步检查StockInfo表是否最新"""
         try:
             async with self.acquire_connection() as conn:
-                # 设置可重复读隔离级别
+                # 使用自动提交模式避免事务挂起
+                await conn.set_builtin_type_codec('pg8000', codec_name='auto')
                 latest_ipo = await conn.fetchval("""
                     SELECT MAX(ipoDate) FROM StockInfo
+                    /* 移除非标准SQL语法 */
                 """)
+                
+                # 添加空事务显式提交
+                async with conn.transaction():
+                    pass  # 确保事务完成
+                
                 # 如果最新IPO日期在最近30天内，则认为数据是最新的
-                return (pd.Timestamp.now() - pd.Timestamp(latest_ipo)) < pd.Timedelta(days=30)
+                cutoff = pd.Timestamp.now() - pd.Timedelta(days=30)
+                return latest_ipo >= cutoff if latest_ipo else False
         except Exception as e:
             self.logger.error(f"检查StockInfo表状态失败: {str(e)}")
             return False
@@ -496,23 +522,76 @@ class DatabaseManager:
 
     @asynccontextmanager
     async def acquire_connection(self):
-        """获取数据库连接"""
+        """增强版连接上下文管理器"""
         if not self.pool:
             await self._create_pool()
-        conn = await self.pool.acquire()
+
+        async with self._conn_lock:
+            conn = await self.pool.acquire()
+            # 新增加连接健康检查
+            if conn.is_closed():
+                await conn.reconnect()
+            
+            conn_id = id(conn)
+            self.logger.debug(f"获取连接 {conn_id}")
+            self.active_connections[conn_id] = {
+                "acquired_at": time.time(),
+                "status": "active"
+            }
+
+            # 确保连接处于空闲状态
+            try:
+                await conn.execute("ABORT;")  # 终止任何挂起的事务
+                await conn.reset()  # 重置连接状态
+            except Exception as e:
+                self.logger.warning(f"连接初始化失败: {str(e)}")
+                await self.pool.release(conn)
+                raise
+
         try:
-            # 验证连接有效性
-            if await conn.fetchval("SELECT 1") != 1:
-                raise ConnectionResetError("连接已失效")
             yield conn
+        except Exception as e:
+            self.logger.error(f"连接操作异常: {str(e)}")
+            raise
         finally:
-            await self.pool.release(conn)  # 无条件释放，由连接池自动处理失效连接
+            try:
+                if not conn.is_closed():
+                    if conn.is_in_transaction():
+                        await conn.rollback()
+                    await conn.reset()
+            except Exception as e:
+                self.logger.warning(f"连接清理失败: {str(e)}")
+            finally:
+                await self.release_connection(conn)
 
     async def release_connection(self, conn):
-        """释放并停止跟踪数据库连接"""
-        await self.pool.release(conn)
-        async with self._conn_lock:
-            del self.active_connections[id(conn)]
+        """安全释放连接方法"""
+        conn_id = id(conn)
+        try:
+            # 检查连接状态
+            if conn.is_closed():
+                return
+
+            # 确保所有操作完成
+            try:
+                if conn.is_in_transaction():
+                    await conn.rollback()
+                await conn.reset()
+            except Exception as e:
+                self.logger.warning(f"连接清理失败: {str(e)}")
+
+            # 延迟释放连接，确保操作完成
+            await asyncio.sleep(0.1)  # 100ms延迟
+            await self.pool.release(conn)
+            
+        except Exception as e:
+            self.logger.error(f"安全释放连接异常: {str(e)}")
+            self.logger.debug(f"异常连接ID: {conn_id} 状态: {conn.is_closed()}")
+        finally:
+            async with self._conn_lock:
+                if conn_id in self.active_connections:
+                    del self.active_connections[conn_id]
+            self.logger.debug(f"连接{conn_id}已释放 | 当前活跃连接: {len(self.active_connections)}")
 
     def get_pool_status(self):
         """获取连接池状态"""

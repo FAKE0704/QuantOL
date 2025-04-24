@@ -352,3 +352,75 @@ asyncpg.exceptions.ConnectionDoesNotExistError: connection was closed in the mid
 [2025-04-22 17:52:26,295] [ERROR] [database:349] [conn:N/A] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
 [2025-04-22 17:52:34,841] [ERROR] [database:428] [conn:N/A] 批量插入失败: Event loop is closed
 [2025-04-22 17:52:34,842] [ERROR] [database:327] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-22 20:01:56,844] [INFO] [database:149] [conn:N/A] 数据库表结构初始化完成
+[2025-04-22 20:02:06,902] [WARNING] [database:547] [conn:N/A] 连接初始化失败: Event loop is closed
+[2025-04-22 20:02:06,903] [ERROR] [database:349] [conn:N/A] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-22 20:02:23,212] [WARNING] [database:547] [conn:N/A] 连接初始化失败: Event loop is closed
+[2025-04-22 20:02:23,214] [ERROR] [database:428] [conn:N/A] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-22 20:02:23,214] [ERROR] [database:327] [conn:N/A] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-23 15:53:02,797] [INFO] [database:149] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 15:55:20,731] [WARNING] [database:547] [conn:N/A] 连接初始化失败: Event loop is closed
+[2025-04-23 15:55:20,771] [ERROR] [database:349] [conn:N/A] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-23 15:55:28,960] [WARNING] [database:547] [conn:N/A] 连接初始化失败: Event loop is closed
+[2025-04-23 15:55:28,962] [ERROR] [database:428] [conn:N/A] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-23 15:55:28,963] [ERROR] [database:327] [conn:N/A] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-23 16:08:32,630] [INFO] [database:151] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 16:08:57,547] [ERROR] [database:351] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-23 16:09:05,560] [ERROR] [database:430] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-23 16:09:05,561] [ERROR] [database:329] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-23 16:18:41,373] [INFO] [database:151] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 16:21:50,714] [INFO] [database:151] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 16:26:58,746] [INFO] [database:151] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 16:28:16,637] [ERROR] [database:555] [conn:N/A] 连接获取异常: Event loop is closed
+[2025-04-23 16:28:16,638] [WARNING] [database:586] [conn:N/A] 连接清理失败: cannot perform operation: another operation is in progress
+[2025-04-23 16:28:16,744] [ERROR] [database:599] [conn:N/A] 安全释放连接异常: cannot perform operation: another operation is in progress
+[2025-04-23 16:28:16,745] [ERROR] [database:351] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-23 16:28:27,320] [ERROR] [database:555] [conn:N/A] 连接获取异常: Event loop is closed
+[2025-04-23 16:28:27,360] [WARNING] [database:586] [conn:N/A] 连接清理失败: cannot perform operation: another operation is in progress
+[2025-04-23 16:28:27,487] [ERROR] [database:599] [conn:N/A] 安全释放连接异常: cannot perform operation: another operation is in progress
+[2025-04-23 16:28:27,506] [ERROR] [database:430] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-23 16:28:27,522] [ERROR] [database:329] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-23 16:38:07,151] [INFO] [database:150] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 16:38:35,062] [ERROR] [database:552] [conn:N/A] 连接获取失败: Event loop is closed
+[2025-04-23 16:38:35,067] [ERROR] [database:350] [conn:N/A] 检查StockInfo表状态失败: cannot perform operation: another operation is in progress
+[2025-04-23 16:39:00,801] [ERROR] [database:552] [conn:N/A] 连接获取失败: Event loop is closed
+[2025-04-23 16:39:00,806] [ERROR] [database:429] [conn:N/A] 批量插入失败: cannot perform operation: another operation is in progress
+[2025-04-23 16:39:00,807] [ERROR] [database:328] [conn:N/A] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-04-23 16:54:38,298] [ERROR] [database:553] [conn:N/A] Connection acquisition failed: 'DatabaseManager' object has no attribute '_is_loop_safe'
+[2025-04-23 16:57:08,906] [INFO] [database:150] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 16:59:23,736] [ERROR] [database:553] [conn:N/A] Connection acquisition failed: Event loop is closed
+[2025-04-23 16:59:23,758] [ERROR] [database:350] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-23 16:59:33,538] [ERROR] [database:553] [conn:N/A] Connection acquisition failed: Event loop is closed
+[2025-04-23 16:59:33,539] [ERROR] [database:429] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-23 16:59:33,539] [ERROR] [database:328] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-23 17:04:55,180] [INFO] [database:150] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 17:05:44,597] [ERROR] [database:553] [conn:N/A] Connection acquisition failed: Event loop is closed
+[2025-04-23 17:05:44,624] [ERROR] [database:350] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-23 17:06:01,136] [ERROR] [database:553] [conn:N/A] Connection acquisition failed: Event loop is closed
+[2025-04-23 17:06:01,158] [ERROR] [database:429] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-23 17:06:01,162] [ERROR] [database:328] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-23 17:13:03,276] [INFO] [database:150] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 17:13:15,001] [ERROR] [database:553] [conn:N/A] Connection acquisition failed: Event loop is closed
+[2025-04-23 17:13:15,001] [ERROR] [database:350] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-23 17:13:18,514] [ERROR] [database:553] [conn:N/A] Connection acquisition failed: Event loop is closed
+[2025-04-23 17:13:18,514] [ERROR] [database:429] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-23 17:13:18,515] [ERROR] [database:328] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-23 17:33:04,801] [INFO] [database:151] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 17:33:08,420] [ERROR] [database:351] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-23 17:33:16,627] [ERROR] [database:430] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-23 17:33:16,627] [ERROR] [database:329] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-23 17:37:57,221] [INFO] [database:151] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 17:49:13,523] [ERROR] [database:351] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-23 17:49:21,643] [ERROR] [database:430] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-23 17:49:21,643] [ERROR] [database:329] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-23 17:54:12,470] [INFO] [database:151] [conn:N/A] 数据库表结构初始化完成
+[2025-04-23 18:20:43,140] [ERROR] [database:351] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-23 18:20:55,079] [ERROR] [database:430] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-23 18:20:55,089] [ERROR] [database:329] [conn:N/A] 获取所有股票信息失败: Event loop is closed
+[2025-04-24 12:08:43,459] [INFO] [database:546] [conn:2070690101232] Connection acquired
+[2025-04-24 12:08:43,519] [INFO] [database:152] [conn:N/A] 数据库表结构初始化完成
+[2025-04-24 12:09:02,103] [INFO] [database:546] [conn:2070690309088] Connection acquired
+[2025-04-24 12:09:02,103] [ERROR] [database:352] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
+[2025-04-24 12:09:07,957] [INFO] [database:546] [conn:2070698154192] Connection acquired
+[2025-04-24 12:09:07,958] [ERROR] [database:431] [conn:N/A] 批量插入失败: Event loop is closed
+[2025-04-24 12:09:07,959] [ERROR] [database:330] [conn:N/A] 获取所有股票信息失败: Event loop is closed

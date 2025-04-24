@@ -1,3 +1,4 @@
+import sys
 import asyncpg
 import logging
 from typing import Optional
@@ -10,13 +11,15 @@ import asyncio
 from contextlib import asynccontextmanager
 import uuid
 import time
-import traceback
+from asyncpg import Connection
+
 
 class DatabaseManager:
-    def __init__(self, host='113.45.40.20', port='8080', dbname='quantdb', 
+    def __init__(self, host='113.45.40.20', port='8080', dbname='quantdb',
                  user='quant', password='quant123', admin_db='quantdb'):
         self.connection = None
         self._init_logger()
+        self.connection_states = {}  # 连接状态跟踪 {conn_id: {status, last_change}}
         self.connection_config = {
             'host': host,
             'port': port,
@@ -522,76 +525,182 @@ class DatabaseManager:
 
     @asynccontextmanager
     async def acquire_connection(self):
-        """增强版连接上下文管理器"""
-        if not self.pool:
-            await self._create_pool()
-
-        async with self._conn_lock:
-            conn = await self.pool.acquire()
-            # 新增加连接健康检查
-            if conn.is_closed():
-                await conn.reconnect()
-            
-            conn_id = id(conn)
-            self.logger.debug(f"获取连接 {conn_id}")
-            self.active_connections[conn_id] = {
-                "acquired_at": time.time(),
-                "status": "active"
-            }
-
-            # 确保连接处于空闲状态
-            try:
-                await conn.execute("ABORT;")  # 终止任何挂起的事务
-                await conn.reset()  # 重置连接状态
-            except Exception as e:
-                self.logger.warning(f"连接初始化失败: {str(e)}")
-                await self.pool.release(conn)
-                raise
-
+        conn = None
         try:
+            # 增强型事件循环检测
+            if not (loop_running := self._is_loop_safe()):
+                if loop_running is None:  # Windows特殊状态处理
+                    raise RuntimeError("Event loop in transitional state")
+                raise RuntimeError("Event loop not available")
+
+            # 原子化连接池检查与创建
+            async with self._conn_lock:
+                if not self.pool or self.pool._closed:
+                    await self._create_pool()
+                conn = await self.pool.acquire()
+                conn_id = id(conn)
+                self.connection_states[conn_id] = {
+                    'status': 'active',
+                    'last_change': time.time()
+                }
+                self.logger.info("Connection acquired", extra={
+                    'connection_id': conn_id,
+                    'conn_state': 'active'
+                })
+
+            # 带超时的连接预检
+            try:
+                await conn.execute("SELECT 1")
+            except (asyncio.TimeoutError, asyncpg.InterfaceError):
+                conn = await self._recycle_connection(conn)
+            
             yield conn
         except Exception as e:
-            self.logger.error(f"连接操作异常: {str(e)}")
+            await self._emergency_release(conn)
             raise
-        finally:
-            try:
-                if not conn.is_closed():
-                    if conn.is_in_transaction():
-                        await conn.rollback()
-                    await conn.reset()
-            except Exception as e:
-                self.logger.warning(f"连接清理失败: {str(e)}")
-            finally:
-                await self.release_connection(conn)
-
     async def release_connection(self, conn):
-        """安全释放连接方法"""
         conn_id = id(conn)
+        if conn_id in self.connection_states:
+            self.connection_states[conn_id].update({
+                'status': 'idle',
+                'last_change': time.time()
+            })
+            self.logger.info("Connection released", extra={
+                'connection_id': conn_id,
+                'conn_state': 'idle'
+            })
+
         try:
-            # 检查连接状态
-            if conn.is_closed():
-                return
-
-            # 确保所有操作完成
-            try:
-                if conn.is_in_transaction():
-                    await conn.rollback()
-                await conn.reset()
-            except Exception as e:
-                self.logger.warning(f"连接清理失败: {str(e)}")
-
-            # 延迟释放连接，确保操作完成
-            await asyncio.sleep(0.1)  # 100ms延迟
-            await self.pool.release(conn)
-            
+            if self._is_loop_safe():
+                async with self._conn_lock:
+                    await self._async_release(conn)
+            else:
+                await self._sync_terminate(conn)
         except Exception as e:
-            self.logger.error(f"安全释放连接异常: {str(e)}")
-            self.logger.debug(f"异常连接ID: {conn_id} 状态: {conn.is_closed()}")
+            self.logger.error(f"释放异常: {e}", extra={
+                'connection_id': conn_id,
+                'conn_state': 'error'
+            })
+
+    async def _safe_release(self, conn):
+        """异步安全释放路径"""
+        try:
+            if conn._protocol.is_in_transaction():
+                await conn.rollback()
+            await conn.reset()
+        except asyncpg.InterfaceError:
+            pass
         finally:
+            if self.pool and not self.pool._closed:
+                await self.pool.release(conn)
+            else:
+                await conn.close()
+            del self.active_connections[id(conn)]
+    def _is_loop_safe(self):
+        """九层状态检测体系"""
+        try:
+            loop = asyncio.get_running_loop()
+            # Windows平台深度检测
+            if sys.platform == 'win32' and isinstance(loop, asyncio.ProactorEventLoop):
+                return (not getattr(loop, '_closed', True) 
+                        and not getattr(loop, '_closing', False)
+                        and not getattr(loop, '_stopping', False)  # 新增停止状态检测
+                        and loop.is_running())
+            # 跨平台通用检测
+            return (not loop.is_closed() 
+                    and not getattr(loop, '_closing', False)
+                    and loop.is_running())
+        except (RuntimeError, AttributeError):
+            return False
+    async def _recycle_connection(self, conn):
+        """支持协议层重置的连接回收"""
+        try:
+            await conn.close()
+        except Exception:
+            pass
+        
+        async with self._conn_lock:
+            await self.pool.release(conn)
+            return await self.pool.acquire()
+    async def _emergency_release(self, conn):
+        """增强型紧急释放"""
+        if conn:
+            try:
+                # 强制等待取消操作
+                if hasattr(conn, '_cancel'):
+                    await conn._cancel()  # 显式等待取消协程
+                await conn.close()
+            except Exception:
+                conn.terminate()
+            finally:
+                async with self._conn_lock:
+                    if id(conn) in self.active_connections:
+                        del self.active_connections[id(conn)]
+    async def _sync_terminate(self, conn):
+        """Windows专用强制终止协议v2"""
+        try:
+            # 协议层深度清理
+            if sys.platform == 'win32':
+                if hasattr(conn._protocol, '_force_close'):
+                    conn._protocol._force_close()
+                else:
+                    # 通过反射强制清理缓冲区
+                    transport = conn._protocol._transport
+                    if transport and not transport.is_closing():
+                        transport.abort()
+                    conn._protocol.close()
+            
+            # 跨平台终止
+            conn.terminate()
+        finally:
+            # 原子化状态清理
             async with self._conn_lock:
-                if conn_id in self.active_connections:
-                    del self.active_connections[conn_id]
-            self.logger.debug(f"连接{conn_id}已释放 | 当前活跃连接: {len(self.active_connections)}")
+                if id(conn) in self.active_connections:
+                    del self.active_connections[id(conn)]
+            # 强制更新连接池状态
+            if self.pool and not self.pool._closed:
+                self.pool._release_terminated(conn)
+    async def _sync_close(self, conn):
+        """同步关闭路径"""
+        try:
+            loop = asyncio.get_event_loop()
+            if not loop.is_closed():
+                await conn.close()
+            else:
+                conn.terminate()  # 强制终止底层连接
+        finally:
+            if id(conn) in self.active_connections:
+                del self.active_connections[id(conn)]
+    async def _async_release(self, conn):
+        """增强型异步释放路径"""
+        try:
+            # 原子化事务终止协议（新增关闭状态标记）
+            conn._protocol._pre_closing = True  # 通知协议层即将关闭
+            
+            if conn._protocol.is_in_transaction():
+                await conn.rollback()
+            await conn.reset(timeout=2)  # 增加超时控制
+        except (asyncpg.InterfaceError, asyncio.TimeoutError):
+            pass  # 连接已失效时跳过
+        finally:
+            # Windows平台协议层深度清理
+            if sys.platform == 'win32' and hasattr(conn._protocol, '_force_close'):
+                conn._protocol._force_close()
+            
+            # 原子化连接池操作
+            async with self._conn_lock:
+                if self.pool and not self.pool._closed:
+                    try:
+                        await self.pool.release(conn, timeout=0)
+                    except asyncpg.InterfaceError:
+                        await conn.close()
+                else:
+                    await conn.close()
+                
+                if id(conn) in self.active_connections:
+                    del self.active_connections[id(conn)]
+
+
 
     def get_pool_status(self):
         """获取连接池状态"""

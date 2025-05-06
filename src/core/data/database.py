@@ -11,7 +11,6 @@ import asyncio
 from contextlib import asynccontextmanager
 import uuid
 import time
-from asyncpg import Connection
 
 
 class DatabaseManager:
@@ -20,7 +19,7 @@ class DatabaseManager:
         self.connection = None
         self._init_logger()
         self.connection_states = {}  # 连接状态跟踪 {conn_id: {status, last_change}}
-        self.connection_config = {
+        self.connection_config = { # 数据库连接配置
             'host': host,
             'port': port,
             'dbname': dbname,
@@ -34,18 +33,18 @@ class DatabaseManager:
             'user': user,
             'password': password
         }
-        self._initialized = False
-        self.pool = None  # 异步连接池
+        self._initialized = False  # 初始化状态  False:没有初始化
+        self.pool = None  # 记录连接池
         self.max_pool_size = 15  # 最大连接数
-        self.query_timeout = 15  # 查询超时时间（秒）
-        self.active_connections = {}
-        self._conn_lock = asyncio.Lock()
+        self.query_timeout = 60  # 查询超时时间（秒）
+        self.active_connections = {}  # 目前活跃的连接
+        self._conn_lock = asyncio.Lock()  
         
     def _init_logger(self):
         """增强日志配置"""
         self.logger = logging.getLogger(__name__)
         self.logger.propagate = False
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         
         # 创建文件处理器
         file_handler = logging.FileHandler('database.log')
@@ -77,6 +76,7 @@ class DatabaseManager:
         await self._create_pool()
         await self._init_db_tables()
         self.initialized = True  # 添加状态标记
+        self.logger.debug(f"当前线程循环状态79: {self.connection_states}")
 
     async def _create_pool(self):
         """创建连接池"""
@@ -89,24 +89,27 @@ class DatabaseManager:
                 "port": self.connection_config.get("port",'5432')
             }
             self.pool = await asyncpg.create_pool(
+                
+                loop=asyncio.get_running_loop(),
                 **valid_config,
                 min_size=3,
                 max_size=self.max_pool_size,
                 command_timeout=self.query_timeout,
-                max_inactive_connection_lifetime= 30, # 30秒不用就终止
+                max_inactive_connection_lifetime= 60, # 30秒不用就终止
                 max_queries=10_000  # 防止单连接过度使用
             )
 
     async def _init_db_tables(self):
         """异步初始化表结构"""
-        async with self.acquire_connection() as conn:
-            async with conn.transaction():
+        async with self._get_connection() as conn:
                 # debug
                 # await conn.execute(
                 #     """
                 #     DROP TABLE StockData;
                 #     """
                 # )
+            async with conn.transaction():  # 添加事务
+                # 建表StockData
                 await conn.execute("""
                     CREATE TABLE IF NOT EXISTS StockData (
                         id SERIAL PRIMARY KEY,
@@ -125,6 +128,7 @@ class DatabaseManager:
                     );
                     """)
 
+                # 建表StockInfo
                 await conn.execute("""              
                 CREATE TABLE IF NOT EXISTS StockInfo (
                     code VARCHAR(20) PRIMARY KEY,
@@ -135,7 +139,7 @@ class DatabaseManager:
                     status VARCHAR(10) 
                 );
                 """)
-
+                # 建表PoliticalEvents
                 await conn.execute("""
                     CREATE TABLE IF NOT EXISTS PoliticalEvents (
                         id SERIAL PRIMARY KEY,
@@ -149,17 +153,38 @@ class DatabaseManager:
                     );
                 """)
                 
-                self.logger.info("数据库表结构初始化完成")
-
+            self.logger.info("数据库表结构初始化完成",
+                extra={'connection_id': id(conn)}
+            )
+        self.logger.debug(f"连接应当已释放")
+        self.logger.debug(f"当前活跃状态: {not asyncio.get_event_loop().is_closed()}")
     
-
+    @asynccontextmanager
+    async def _get_connection(self):
+        """异步获取数据库连接"""
+        if self.pool:  # 正确判断连接池是否存在
+            conn = await self.pool.acquire()
+            try:
+                yield conn
+            finally:
+                await self.pool.release(conn)
+        else:
+            # 没有连接池时直接创建新连接（示例）
+            conn = await asyncpg.connect(
+                loop=asyncio.get_running_loop()
+            )
+            try:
+                yield conn
+            finally:
+                # pass
+                await conn.close()
     
 
     async def save_stock_info(self, code: str, code_name: str, ipo_date: str, 
                       stock_type: str, status: str, out_date: Optional[str] = None) -> bool:
         """异步保存股票基本信息到StockInfo表"""
         try:
-            async with self.acquire_connection() as conn:
+            async with self._get_connection() as conn:
                 await conn.execute("""
                     INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
                     VALUES ($1, $2, $3, $4, $5, $6)
@@ -192,7 +217,7 @@ class DatabaseManager:
             # end_dt = pd.to_datetime(end_date).date()
             
             # 使用上下文管理器获取连接
-            async with self.acquire_connection() as conn:
+            async with self._get_connection() as conn:
                 # 获取数据库中已有日期
                 query = """
                     SELECT DISTINCT date 
@@ -274,7 +299,7 @@ class DatabaseManager:
                 ORDER BY date
             """
             
-            async with self.acquire_connection() as conn:
+            async with self._get_connection() as conn:
                 rows = await conn.fetch(query, symbol, start_dt, end_dt, frequency)
                 
                 
@@ -314,7 +339,7 @@ class DatabaseManager:
         try:
             # 检查数据是否最新
             if await self._is_stock_info_up_to_date():
-                async with self.acquire_connection() as conn:
+                async with self._get_connection() as conn:
                     rows = await conn.fetch("SELECT * FROM StockInfo")
                     return pd.DataFrame(rows, columns=['code', 'code_name', 'ipoDate', 'outDate', 'type', 'status'])
             else:
@@ -332,25 +357,28 @@ class DatabaseManager:
 
     async def _is_stock_info_up_to_date(self) -> bool:
         """异步检查StockInfo表是否最新"""
-        try:
-            async with self.acquire_connection() as conn:
-                # 使用自动提交模式避免事务挂起
-                await conn.set_builtin_type_codec('pg8000', codec_name='auto')
-                latest_ipo = await conn.fetchval("""
-                    SELECT MAX(ipoDate) FROM StockInfo
-                    /* 移除非标准SQL语法 */
-                """)
-                
-                # 添加空事务显式提交
-                async with conn.transaction():
-                    pass  # 确保事务完成
+        async with self._get_connection() as conn:
+            self.logger.debug(f"当前线程循环状态: {self.connection_states}")
+            self.logger.debug(f"当前活跃状态: {not asyncio.get_event_loop().is_closed()}")
+            try:
+                self.logger.debug(f"当前活跃状态: {not asyncio.get_event_loop().is_closed()}")
+                self.logger.debug(f"当前活跃状态: {not asyncio.get_event_loop().is_closed()}")
+                self.logger.debug("检查事务运行情况")
+                # 执行查询并立即获取结果
+                row = await conn.fetchrow("SELECT MAX(ipoDate) FROM StockInfo")
+                self.logger.debug(f"查询结果: {row}")
+                if row:
+                    latest_ipo = row[0]
+                else:
+                    self.logger.error("last_ipo is none")
+                    return False
                 
                 # 如果最新IPO日期在最近30天内，则认为数据是最新的
                 cutoff = pd.Timestamp.now() - pd.Timedelta(days=30)
                 return latest_ipo >= cutoff if latest_ipo else False
-        except Exception as e:
-            self.logger.error(f"检查StockInfo表状态失败: {str(e)}")
-            return False
+            except Exception as e:
+                self.logger.error(f"检查StockInfo表状态失败: {str(e)}")
+        return False
 
     async def _validate_stock_info(self, row: pd.Series) -> tuple:
         """异步验证并转换股票信息格式"""
@@ -411,7 +439,7 @@ class DatabaseManager:
             return 0, len(df)
             
         try:
-            async with self.acquire_connection() as conn:
+            async with self._get_connection() as conn:
                 async with conn.transaction():
                     # 清空现有数据
                     self.logger.debug("Truncating StockInfo table")
@@ -434,7 +462,7 @@ class DatabaseManager:
     async def get_stock_info(self, code: str) -> dict:
         """异步获取股票完整信息"""
         try:
-            async with self.acquire_connection() as conn:
+            async with self._get_connection() as conn:
                 row = await conn.fetchrow("""
                     SELECT code_name, ipoDate, outDate, type, status 
                     FROM StockInfo 
@@ -459,7 +487,7 @@ class DatabaseManager:
     async def get_stock_name(self, code: str) -> str:
         """异步根据股票代码获取名称"""
         try:
-            async with self.acquire_connection() as conn:
+            async with self._get_connection() as conn:
                 row = await conn.fetchrow("""
                     SELECT code_name FROM StockInfo WHERE code = $1
                 """, code)
@@ -499,7 +527,7 @@ class DatabaseManager:
                 for record in records
             ]
 
-            async with self.acquire_connection() as conn:
+            async with self._get_connection() as conn:
                 await conn.executemany("""
                     INSERT INTO StockData (
                         code, date, time, open, high, low, close, 
@@ -522,185 +550,6 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"保存股票数据失败: {str(e)}")
             raise
-
-    @asynccontextmanager
-    async def acquire_connection(self):
-        conn = None
-        try:
-            # 增强型事件循环检测
-            if not (loop_running := self._is_loop_safe()):
-                if loop_running is None:  # Windows特殊状态处理
-                    raise RuntimeError("Event loop in transitional state")
-                raise RuntimeError("Event loop not available")
-
-            # 原子化连接池检查与创建
-            async with self._conn_lock:
-                if not self.pool or self.pool._closed:
-                    await self._create_pool()
-                conn = await self.pool.acquire()
-                conn_id = id(conn)
-                self.connection_states[conn_id] = {
-                    'status': 'active',
-                    'last_change': time.time()
-                }
-                self.logger.info("Connection acquired", extra={
-                    'connection_id': conn_id,
-                    'conn_state': 'active'
-                })
-
-            # 带超时的连接预检
-            try:
-                await conn.execute("SELECT 1")
-            except (asyncio.TimeoutError, asyncpg.InterfaceError):
-                conn = await self._recycle_connection(conn)
-            
-            yield conn
-        except Exception as e:
-            await self._emergency_release(conn)
-            raise
-    async def release_connection(self, conn):
-        conn_id = id(conn)
-        if conn_id in self.connection_states:
-            self.connection_states[conn_id].update({
-                'status': 'idle',
-                'last_change': time.time()
-            })
-            self.logger.info("Connection released", extra={
-                'connection_id': conn_id,
-                'conn_state': 'idle'
-            })
-
-        try:
-            if self._is_loop_safe():
-                async with self._conn_lock:
-                    await self._async_release(conn)
-            else:
-                await self._sync_terminate(conn)
-        except Exception as e:
-            self.logger.error(f"释放异常: {e}", extra={
-                'connection_id': conn_id,
-                'conn_state': 'error'
-            })
-
-    async def _safe_release(self, conn):
-        """异步安全释放路径"""
-        try:
-            if conn._protocol.is_in_transaction():
-                await conn.rollback()
-            await conn.reset()
-        except asyncpg.InterfaceError:
-            pass
-        finally:
-            if self.pool and not self.pool._closed:
-                await self.pool.release(conn)
-            else:
-                await conn.close()
-            del self.active_connections[id(conn)]
-    def _is_loop_safe(self):
-        """九层状态检测体系"""
-        try:
-            loop = asyncio.get_running_loop()
-            # Windows平台深度检测
-            if sys.platform == 'win32' and isinstance(loop, asyncio.ProactorEventLoop):
-                return (not getattr(loop, '_closed', True) 
-                        and not getattr(loop, '_closing', False)
-                        and not getattr(loop, '_stopping', False)  # 新增停止状态检测
-                        and loop.is_running())
-            # 跨平台通用检测
-            return (not loop.is_closed() 
-                    and not getattr(loop, '_closing', False)
-                    and loop.is_running())
-        except (RuntimeError, AttributeError):
-            return False
-    async def _recycle_connection(self, conn):
-        """支持协议层重置的连接回收"""
-        try:
-            await conn.close()
-        except Exception:
-            pass
-        
-        async with self._conn_lock:
-            await self.pool.release(conn)
-            return await self.pool.acquire()
-    async def _emergency_release(self, conn):
-        """增强型紧急释放"""
-        if conn:
-            try:
-                # 强制等待取消操作
-                if hasattr(conn, '_cancel'):
-                    await conn._cancel()  # 显式等待取消协程
-                await conn.close()
-            except Exception:
-                conn.terminate()
-            finally:
-                async with self._conn_lock:
-                    if id(conn) in self.active_connections:
-                        del self.active_connections[id(conn)]
-    async def _sync_terminate(self, conn):
-        """Windows专用强制终止协议v2"""
-        try:
-            # 协议层深度清理
-            if sys.platform == 'win32':
-                if hasattr(conn._protocol, '_force_close'):
-                    conn._protocol._force_close()
-                else:
-                    # 通过反射强制清理缓冲区
-                    transport = conn._protocol._transport
-                    if transport and not transport.is_closing():
-                        transport.abort()
-                    conn._protocol.close()
-            
-            # 跨平台终止
-            conn.terminate()
-        finally:
-            # 原子化状态清理
-            async with self._conn_lock:
-                if id(conn) in self.active_connections:
-                    del self.active_connections[id(conn)]
-            # 强制更新连接池状态
-            if self.pool and not self.pool._closed:
-                self.pool._release_terminated(conn)
-    async def _sync_close(self, conn):
-        """同步关闭路径"""
-        try:
-            loop = asyncio.get_event_loop()
-            if not loop.is_closed():
-                await conn.close()
-            else:
-                conn.terminate()  # 强制终止底层连接
-        finally:
-            if id(conn) in self.active_connections:
-                del self.active_connections[id(conn)]
-    async def _async_release(self, conn):
-        """增强型异步释放路径"""
-        try:
-            # 原子化事务终止协议（新增关闭状态标记）
-            conn._protocol._pre_closing = True  # 通知协议层即将关闭
-            
-            if conn._protocol.is_in_transaction():
-                await conn.rollback()
-            await conn.reset(timeout=2)  # 增加超时控制
-        except (asyncpg.InterfaceError, asyncio.TimeoutError):
-            pass  # 连接已失效时跳过
-        finally:
-            # Windows平台协议层深度清理
-            if sys.platform == 'win32' and hasattr(conn._protocol, '_force_close'):
-                conn._protocol._force_close()
-            
-            # 原子化连接池操作
-            async with self._conn_lock:
-                if self.pool and not self.pool._closed:
-                    try:
-                        await self.pool.release(conn, timeout=0)
-                    except asyncpg.InterfaceError:
-                        await conn.close()
-                else:
-                    await conn.close()
-                
-                if id(conn) in self.active_connections:
-                    del self.active_connections[id(conn)]
-
-
 
     def get_pool_status(self):
         """获取连接池状态"""

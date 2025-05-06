@@ -30,7 +30,6 @@ async def show_backtesting_page():
                 try:
                     stocks = await st.session_state.search_service.get_all_stocks()
                     print(stocks.shape)
-
                     st.session_state.stock_cache = list(zip(stocks['code'], stocks['code_name']))
                 except Exception as e:
                     st.error(f"加载股票列表失败: {str(e)}")

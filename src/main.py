@@ -8,7 +8,12 @@ from frontend.dashboard import show_dashboard
 import streamlit as st
 from core.data.database import DatabaseManager
 from services.stock_search import StockSearchService
-import asyncio
+import asyncio, platform
+
+# Windows 平台策略设置（程序入口）
+if platform.system() == "Windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 
 async def init_global_services():
     """初始化全局服务并存储在session_state"""
@@ -45,6 +50,8 @@ async def main():
         show_settings_page()
     elif page == "仪表盘":
         show_dashboard()
+    await asyncio.Event().wait()
+    print("### main循环结束 ####")
 
 if __name__ == "__main__":
     import asyncio

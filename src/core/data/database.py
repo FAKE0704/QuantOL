@@ -12,12 +12,20 @@ from contextlib import asynccontextmanager
 import uuid
 import time
 
+@st.cache_resource(ttl=3600, show_spinner=False)
+def get_db_manager():
+    """带缓存的数据库管理器工厂函数"""
+    manager = DatabaseManager()
+    return manager
+
 
 class DatabaseManager:
     def __init__(self, host='113.45.40.20', port='8080', dbname='quantdb',
                  user='quant', password='quant123', admin_db='quantdb'):
         self.connection = None
+        # self._loop = asyncio.get_event_loop()  # 全局唯一事件循环
         self._init_logger()
+        self._instance_id = id(self)  # 添加实例ID用于调试
         self.connection_states = {}  # 连接状态跟踪 {conn_id: {status, last_change}}
         self.connection_config = { # 数据库连接配置
             'host': host,
@@ -35,6 +43,7 @@ class DatabaseManager:
         }
         self._initialized = False  # 初始化状态  False:没有初始化
         self.pool = None  # 记录连接池
+        self._loop = None
         self.max_pool_size = 15  # 最大连接数
         self.query_timeout = 60  # 查询超时时间（秒）
         self.active_connections = {}  # 目前活跃的连接
@@ -58,9 +67,10 @@ class DatabaseManager:
             '[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s'
         ))
         
-        # 添加处理器
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
+        # 添加处理器v仅当无 Handler 时添加
+        if not self.logger.handlers:
+            self.logger.addHandler(file_handler)
+            self.logger.addHandler(console_handler)
         
         # 添加追踪ID的过滤器
         class ConnectionFilter(logging.Filter):
@@ -76,7 +86,8 @@ class DatabaseManager:
         await self._create_pool()
         await self._init_db_tables()
         self.initialized = True  # 添加状态标记
-        self.logger.debug(f"当前线程循环状态79: {self.connection_states}")
+        self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
+        self.logger.debug(f"initialize调用结束")
 
     async def _create_pool(self):
         """创建连接池"""
@@ -90,7 +101,7 @@ class DatabaseManager:
             }
             self.pool = await asyncpg.create_pool(
                 
-                loop=asyncio.get_running_loop(),
+                loop=st.session_state._loop,
                 **valid_config,
                 min_size=3,
                 max_size=self.max_pool_size,
@@ -98,93 +109,89 @@ class DatabaseManager:
                 max_inactive_connection_lifetime= 60, # 30秒不用就终止
                 max_queries=10_000  # 防止单连接过度使用
             )
+            self._loop = self.pool._loop
+            self.logger.debug(f"连接池初始化循环ID: {id(self.pool._loop)}")
+            self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
 
     async def _init_db_tables(self):
+
         """异步初始化表结构"""
-        async with self._get_connection() as conn:
+        self.logger.info("开始数据库表结构初始化...")
+        async with self.pool.acquire() as conn:
                 # debug
                 # await conn.execute(
                 #     """
                 #     DROP TABLE StockData;
                 #     """
                 # )
-            async with conn.transaction():  # 添加事务
-                # 建表StockData
-                await conn.execute("""
-                    CREATE TABLE IF NOT EXISTS StockData (
-                        id SERIAL PRIMARY KEY,
-                        code VARCHAR(20) NOT NULL,
-                        date DATE NOT NULL,
-                        time TIME NOT NULL,
-                        open NUMERIC NOT NULL,
-                        high NUMERIC NOT NULL,
-                        low NUMERIC NOT NULL,
-                        close NUMERIC NOT NULL,
-                        volume NUMERIC NOT NULL,
-                        amount NUMERIC,
-                        adjustflag VARCHAR(10),
-                        frequency VARCHAR(10) NOT NULL,
-                        UNIQUE (code, date, time, frequency)
-                    );
-                    """)
-
-                # 建表StockInfo
-                await conn.execute("""              
-                CREATE TABLE IF NOT EXISTS StockInfo (
-                    code VARCHAR(20) PRIMARY KEY,
-                    code_name VARCHAR(50) NOT NULL,
-                    ipoDate DATE NOT NULL,
-                    outDate DATE,
-                    type VARCHAR(20),
-                    status VARCHAR(10) 
+        
+            # 建表StockData
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS StockData (
+                    id SERIAL PRIMARY KEY,
+                    code VARCHAR(20) NOT NULL,
+                    date DATE NOT NULL,
+                    time TIME NOT NULL,
+                    open NUMERIC NOT NULL,
+                    high NUMERIC NOT NULL,
+                    low NUMERIC NOT NULL,
+                    close NUMERIC NOT NULL,
+                    volume NUMERIC NOT NULL,
+                    amount NUMERIC,
+                    adjustflag VARCHAR(10),
+                    frequency VARCHAR(10) NOT NULL,
+                    UNIQUE (code, date, time, frequency)
                 );
                 """)
-                # 建表PoliticalEvents
-                await conn.execute("""
-                    CREATE TABLE IF NOT EXISTS PoliticalEvents (
-                        id SERIAL PRIMARY KEY,
-                        event_date TIMESTAMP NOT NULL,
-                        country VARCHAR(50) NOT NULL,
-                        policy_type VARCHAR(100) NOT NULL,
-                        impact_score NUMERIC(5,2) NOT NULL,
-                        raw_content TEXT NOT NULL,
-                        processed BOOLEAN DEFAULT FALSE,
-                        created_at TIMESTAMP DEFAULT NOW()
-                    );
-                """)
-                
-            self.logger.info("数据库表结构初始化完成",
+
+            # 建表StockInfo
+            await conn.execute("""              
+            CREATE TABLE IF NOT EXISTS StockInfo (
+                code VARCHAR(20) PRIMARY KEY,
+                code_name VARCHAR(50) NOT NULL,
+                ipoDate DATE NOT NULL,
+                outDate DATE,
+                type VARCHAR(20),
+                status VARCHAR(10) 
+            );
+            """)
+            # 建表PoliticalEvents
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS PoliticalEvents (
+                    id SERIAL PRIMARY KEY,
+                    event_date TIMESTAMP NOT NULL,
+                    country VARCHAR(50) NOT NULL,
+                    policy_type VARCHAR(100) NOT NULL,
+                    impact_score NUMERIC(5,2) NOT NULL,
+                    raw_content TEXT NOT NULL,
+                    processed BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+            """)
+            
+        
+        self.logger.info("数据库表结构初始化完成",
                 extra={'connection_id': id(conn)}
             )
-        self.logger.debug(f"连接应当已释放")
-        self.logger.debug(f"当前活跃状态: {not asyncio.get_event_loop().is_closed()}")
+        self.logger.debug(f"连接已释放，当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}")
+        self.logger.debug(f"当前循环活跃状态: {not asyncio.get_event_loop().is_closed()}")
     
-    @asynccontextmanager
     async def _get_connection(self):
         """异步获取数据库连接"""
-        if self.pool:  # 正确判断连接池是否存在
-            conn = await self.pool.acquire()
-            try:
-                yield conn
-            finally:
-                await self.pool.release(conn)
-        else:
-            # 没有连接池时直接创建新连接（示例）
-            conn = await asyncpg.connect(
-                loop=asyncio.get_running_loop()
-            )
-            try:
-                yield conn
-            finally:
-                # pass
-                await conn.close()
-    
+        try:
+            async with self.pool.acquire() as conn:  # ✅ 进入上下文管理器
+                return conn  # 返回 Connection 对象
+        except Exception as e:
+            self.logger.error(f"Failed to get database connection: {str(e)}")
+            raise
+
 
     async def save_stock_info(self, code: str, code_name: str, ipo_date: str, 
                       stock_type: str, status: str, out_date: Optional[str] = None) -> bool:
         """异步保存股票基本信息到StockInfo表"""
         try:
-            async with self._get_connection() as conn:
+            
+            async with self.pool.acquire() as conn:
                 await conn.execute("""
                     INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
                     VALUES ($1, $2, $3, $4, $5, $6)
@@ -202,7 +209,7 @@ class DatabaseManager:
             raise
 
     async def check_data_completeness(self, symbol: str, start_date: str, end_date: str) -> list:
-        """异步检查数据完整性"""
+        self.logger.debug("""异步检查数据完整性""")
         if not self.pool:
             await self._create_pool()
 
@@ -217,7 +224,8 @@ class DatabaseManager:
             # end_dt = pd.to_datetime(end_date).date()
             
             # 使用上下文管理器获取连接
-            async with self._get_connection() as conn:
+            
+            async with self.pool.acquire() as conn:
                 # 获取数据库中已有日期
                 query = """
                     SELECT DISTINCT date 
@@ -299,7 +307,8 @@ class DatabaseManager:
                 ORDER BY date
             """
             
-            async with self._get_connection() as conn:
+            
+            async with self.pool.acquire() as conn:
                 rows = await conn.fetch(query, symbol, start_dt, end_dt, frequency)
                 
                 
@@ -336,10 +345,11 @@ class DatabaseManager:
         Returns:
             包含所有股票信息的DataFrame
         """
+        self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
         try:
-            # 检查数据是否最新
+            self.logger.debug("检查数据是否最新")
             if await self._is_stock_info_up_to_date():
-                async with self._get_connection() as conn:
+                async with self.pool.acquire() as conn:
                     rows = await conn.fetch("SELECT * FROM StockInfo")
                     return pd.DataFrame(rows, columns=['code', 'code_name', 'ipoDate', 'outDate', 'type', 'status'])
             else:
@@ -357,15 +367,32 @@ class DatabaseManager:
 
     async def _is_stock_info_up_to_date(self) -> bool:
         """异步检查StockInfo表是否最新"""
-        async with self._get_connection() as conn:
-            self.logger.debug(f"当前线程循环状态: {self.connection_states}")
-            self.logger.debug(f"当前活跃状态: {not asyncio.get_event_loop().is_closed()}")
+        self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
+        async with self.pool.acquire() as conn:
             try:
-                self.logger.debug(f"当前活跃状态: {not asyncio.get_event_loop().is_closed()}")
-                self.logger.debug(f"当前活跃状态: {not asyncio.get_event_loop().is_closed()}")
-                self.logger.debug("检查事务运行情况")
+                self.logger.debug(f"当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}", extra={'connection_id': id(conn)})
+                self.logger.debug(f"活跃任务数: {len(asyncio.all_tasks())}")
+                self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
+                # 验证表结构
+                # 检查表是否存在
+                table_exists = await conn.fetchval(
+                    "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='stockinfo')"
+                )
+                if not table_exists:
+                    raise ValueError("表StockInfo不存在")
+
+                # 检查字段是否存在及类型
+                field_info = await conn.fetchrow(
+                    "SELECT column_name, data_type FROM information_schema.columns "
+                    "WHERE table_name='stockinfo' AND column_name ILIKE 'ipodate'"
+                )
+                if not field_info:
+                    raise ValueError("字段ipoDate不存在")
+                
+
                 # 执行查询并立即获取结果
                 row = await conn.fetchrow("SELECT MAX(ipoDate) FROM StockInfo")
+                self.logger.debug(f"当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}")
                 self.logger.debug(f"查询结果: {row}")
                 if row:
                     latest_ipo = row[0]
@@ -375,7 +402,8 @@ class DatabaseManager:
                 
                 # 如果最新IPO日期在最近30天内，则认为数据是最新的
                 cutoff = pd.Timestamp.now() - pd.Timedelta(days=30)
-                return latest_ipo >= cutoff if latest_ipo else False
+                latest_ipo_timestamp = pd.Timestamp(latest_ipo)  # 关键转换
+                return latest_ipo_timestamp >= cutoff if latest_ipo else False
             except Exception as e:
                 self.logger.error(f"检查StockInfo表状态失败: {str(e)}")
         return False
@@ -439,19 +467,20 @@ class DatabaseManager:
             return 0, len(df)
             
         try:
-            async with self._get_connection() as conn:
-                async with conn.transaction():
-                    # 清空现有数据
-                    self.logger.debug("Truncating StockInfo table")
-                    await conn.execute("TRUNCATE TABLE StockInfo")
-                    
-                    # 执行批量插入
-                    self.logger.debug(f"Inserting {len(valid_data)} rows into StockInfo")
-                    await conn.executemany("""
-                        INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
-                        VALUES ($1, $2, $3, $4, $5, $6)
-                    """, valid_data)
-                    
+            
+            async with self.pool.acquire() as conn:
+            
+                # 清空现有数据
+                self.logger.debug("Truncating StockInfo table")
+                await conn.execute("TRUNCATE TABLE StockInfo")
+                
+                # 执行批量插入
+                self.logger.debug(f"Inserting {len(valid_data)} rows into StockInfo")
+                await conn.executemany("""
+                    INSERT INTO StockInfo (code, code_name, ipoDate, outDate, type, status)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                """, valid_data)
+                
             self.logger.info(f"成功更新StockInfo表数据，成功插入{len(valid_data)}行，失败{len(invalid_rows)}行")
             return len(valid_data), len(invalid_rows)
             
@@ -462,7 +491,8 @@ class DatabaseManager:
     async def get_stock_info(self, code: str) -> dict:
         """异步获取股票完整信息"""
         try:
-            async with self._get_connection() as conn:
+            
+            async with self.pool.acquire() as conn:
                 row = await conn.fetchrow("""
                     SELECT code_name, ipoDate, outDate, type, status 
                     FROM StockInfo 
@@ -487,7 +517,8 @@ class DatabaseManager:
     async def get_stock_name(self, code: str) -> str:
         """异步根据股票代码获取名称"""
         try:
-            async with self._get_connection() as conn:
+            
+            async with self.pool.acquire() as conn:
                 row = await conn.fetchrow("""
                     SELECT code_name FROM StockInfo WHERE code = $1
                 """, code)
@@ -527,7 +558,8 @@ class DatabaseManager:
                 for record in records
             ]
 
-            async with self._get_connection() as conn:
+            
+            async with self.pool.acquire() as conn:
                 await conn.executemany("""
                     INSERT INTO StockData (
                         code, date, time, open, high, low, close, 

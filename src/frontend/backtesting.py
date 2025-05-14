@@ -29,8 +29,8 @@ async def show_backtesting_page():
             with st.spinner("正在加载股票列表..."):
                 try:
                     stocks = await st.session_state.search_service.get_all_stocks()
-                    print(stocks.shape)
                     st.session_state.stock_cache = list(zip(stocks['code'], stocks['code_name']))
+
                 except Exception as e:
                     st.error(f"加载股票列表失败: {str(e)}")
                     st.session_state.stock_cache = []
@@ -41,7 +41,7 @@ async def show_backtesting_page():
             format_func=lambda x: f"{x[0]} {x[1]}",
             help="输入股票代码或名称进行筛选",
             key="stock_select",
-            index = 6500
+            index = 20
         )
     with col2:
         if st.button("🔄 刷新列表", help="点击手动更新股票列表", key="refresh_button"):

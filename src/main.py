@@ -6,22 +6,21 @@ from frontend.trading import show_trading_page
 from frontend.settings import show_settings_page
 from frontend.dashboard import show_dashboard
 import streamlit as st
-from core.data.database import DatabaseManager
+from core.data.database import get_db_manager
 from services.stock_search import StockSearchService
 import asyncio, platform
-
-# Windows 平台策略设置（程序入口）
-if platform.system() == "Windows":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 async def init_global_services():
     """初始化全局服务并存储在session_state"""
-    
+    if "_loop" not in st.session_state:
+        st.session_state._loop = None  # 初始化为空
+
     if 'db' not in st.session_state:
-        st.session_state.db = DatabaseManager()
-        await st.session_state.db.initialize()  # 假设有连接方法
-        
+        db_manager = get_db_manager()
+        await db_manager.initialize()
+        st.session_state.db = db_manager
+        st.session_state._loop = st.session_state.db._loop
     if 'search_service' not in st.session_state:
         st.session_state.search_service = StockSearchService(st.session_state.db)
         
@@ -50,9 +49,13 @@ async def main():
         show_settings_page()
     elif page == "仪表盘":
         show_dashboard()
-    await asyncio.Event().wait()
+    # await asyncio.Event().wait()
     print("### main循环结束 ####")
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main())
+    if "_loop" not in st.session_state:
+        loop = asyncio.new_event_loop()
+    else:
+        loop = st.session_state._loop
+    loop.run_until_complete(main())

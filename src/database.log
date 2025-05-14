@@ -1,73 +1,40 @@
-[2025-05-06 15:12:11,483] [INFO] [database:156] [conn:1903471429136] 数据库表结构初始化完成
-[2025-05-06 15:12:11,484] [DEBUG] [database:159] [conn:N/A] 连接应当已释放
-[2025-05-06 15:12:11,485] [DEBUG] [database:160] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:12:11,485] [DEBUG] [database:79] [conn:N/A] 当前线程循环状态79: {}
-[2025-05-06 15:12:16,596] [DEBUG] [database:352] [conn:N/A] 当前线程循环状态: {}
-[2025-05-06 15:12:16,597] [DEBUG] [database:353] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:12:16,597] [DEBUG] [database:355] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:12:16,598] [ERROR] [database:372] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
-[2025-05-06 15:12:21,056] [ERROR] [database:451] [conn:N/A] 批量插入失败: Event loop is closed
-[2025-05-06 15:12:21,056] [ERROR] [database:346] [conn:N/A] 获取所有股票信息失败: Event loop is closed
-[2025-05-06 15:14:02,056] [INFO] [database:156] [conn:1815764059472] 数据库表结构初始化完成
-[2025-05-06 15:14:02,056] [DEBUG] [database:159] [conn:N/A] 连接应当已释放
-[2025-05-06 15:14:02,057] [DEBUG] [database:160] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:14:02,057] [DEBUG] [database:79] [conn:N/A] 当前线程循环状态79: {}
-[2025-05-06 15:14:04,911] [DEBUG] [database:352] [conn:N/A] 当前线程循环状态: {}
-[2025-05-06 15:14:04,911] [DEBUG] [database:353] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:14:04,911] [DEBUG] [database:355] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:14:04,912] [DEBUG] [database:356] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:14:04,912] [DEBUG] [database:357] [conn:N/A] 检查事务运行情况
-[2025-05-06 15:14:04,914] [ERROR] [database:371] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
-[2025-05-06 15:14:08,436] [ERROR] [database:450] [conn:N/A] 批量插入失败: Event loop is closed
-[2025-05-06 15:14:08,437] [ERROR] [database:346] [conn:N/A] 获取所有股票信息失败: Event loop is closed
-[2025-05-06 15:26:27,187] [INFO] [database:156] [conn:1285121607520] 数据库表结构初始化完成
-[2025-05-06 15:26:27,188] [DEBUG] [database:159] [conn:N/A] 连接应当已释放
-[2025-05-06 15:26:27,188] [DEBUG] [database:160] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:26:27,189] [DEBUG] [database:79] [conn:N/A] 当前线程循环状态79: {}
-[2025-05-06 15:27:50,988] [DEBUG] [database:352] [conn:N/A] 当前线程循环状态: {}
-[2025-05-06 15:27:50,989] [DEBUG] [database:353] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:27:50,989] [DEBUG] [database:355] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:27:50,989] [DEBUG] [database:356] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:27:50,989] [DEBUG] [database:357] [conn:N/A] 检查事务运行情况
-[2025-05-06 15:27:50,990] [ERROR] [database:371] [conn:N/A] 检查StockInfo表状态失败: Event loop is closed
-[2025-05-06 15:27:54,558] [ERROR] [database:450] [conn:N/A] 批量插入失败: Event loop is closed
-[2025-05-06 15:27:54,564] [ERROR] [database:346] [conn:N/A] 获取所有股票信息失败: Event loop is closed
-[2025-05-06 15:31:05,308] [INFO] [database:156] [conn:2565611095280] 数据库表结构初始化完成
-[2025-05-06 15:31:05,309] [DEBUG] [database:159] [conn:N/A] 连接应当已释放
-[2025-05-06 15:31:05,309] [DEBUG] [database:160] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:31:05,309] [DEBUG] [database:79] [conn:N/A] 当前线程循环状态79: {}
-[2025-05-06 15:32:26,655] [ERROR] [database:346] [conn:N/A] 获取所有股票信息失败: Task <Task pending name='Task-224' coro=<main() running at C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys\src\main.py:41> cb=[_run_until_complete_cb() at C:\Users\Thomas P Gao\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:182]> got Future <Future pending cb=[BaseSelectorEventLoop._sock_write_done()()]> attached to a different loop
-[2025-05-06 15:36:21,257] [INFO] [database:156] [conn:2797722435984] 数据库表结构初始化完成
-[2025-05-06 15:36:21,258] [DEBUG] [database:159] [conn:N/A] 连接应当已释放
-[2025-05-06 15:36:21,258] [DEBUG] [database:160] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:36:21,258] [DEBUG] [database:79] [conn:N/A] 当前线程循环状态79: {}
-[2025-05-06 15:36:28,437] [DEBUG] [database:352] [conn:N/A] 当前线程循环状态: {}
-[2025-05-06 15:36:28,438] [DEBUG] [database:353] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:36:28,438] [DEBUG] [database:355] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:36:28,438] [DEBUG] [database:356] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:36:28,438] [DEBUG] [database:357] [conn:N/A] 检查事务运行情况
-[2025-05-06 15:36:28,440] [ERROR] [database:371] [conn:N/A] 检查StockInfo表状态失败: Task <Task pending name='Task-49' coro=<main() running at C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys\src\main.py:46> cb=[_run_until_complete_cb() at C:\Users\Thomas P Gao\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:182]> got Future <Future pending cb=[BaseProtocol._on_waiter_completed()]> attached to a different loop
-[2025-05-06 15:36:32,539] [ERROR] [database:450] [conn:N/A] 批量插入失败: Task <Task pending name='Task-49' coro=<main() running at C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys\src\main.py:46> cb=[_run_until_complete_cb() at C:\Users\Thomas P Gao\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:182]> got Future <Future pending cb=[BaseProtocol._on_waiter_completed()]> attached to a different loop
-[2025-05-06 15:36:32,539] [ERROR] [database:346] [conn:N/A] 获取所有股票信息失败: Task <Task pending name='Task-49' coro=<main() running at C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys\src\main.py:46> cb=[_run_until_complete_cb() at C:\Users\Thomas P Gao\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:182]> got Future <Future pending cb=[BaseProtocol._on_waiter_completed()]> attached to a different loop
-[2025-05-06 15:48:57,856] [INFO] [database:156] [conn:2557070853216] 数据库表结构初始化完成
-[2025-05-06 15:48:57,866] [DEBUG] [database:159] [conn:N/A] 连接应当已释放
-[2025-05-06 15:48:57,867] [DEBUG] [database:160] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:48:57,867] [DEBUG] [database:79] [conn:N/A] 当前线程循环状态79: {}
-[2025-05-06 15:49:01,102] [DEBUG] [database:359] [conn:N/A] 当前线程循环状态: {}
-[2025-05-06 15:49:01,103] [DEBUG] [database:360] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:49:01,104] [DEBUG] [database:362] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:49:01,104] [DEBUG] [database:363] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:49:01,105] [DEBUG] [database:364] [conn:N/A] 检查事务运行情况
-[2025-05-06 15:49:01,106] [ERROR] [database:378] [conn:N/A] 检查StockInfo表状态失败: Task <Task pending name='Task-52' coro=<main() running at C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys\src\main.py:46> cb=[_run_until_complete_cb() at C:\Users\Thomas P Gao\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:182]> got Future <Future pending cb=[BaseProtocol._on_waiter_completed()]> attached to a different loop
-[2025-05-06 15:49:01,109] [ERROR] [database:353] [conn:N/A] 获取所有股票信息失败: cannot perform operation: another operation is in progress
-[2025-05-06 15:53:15,866] [INFO] [database:156] [conn:2625300972640] 数据库表结构初始化完成
-[2025-05-06 15:53:15,877] [DEBUG] [database:159] [conn:N/A] 连接应当已释放
-[2025-05-06 15:53:15,878] [DEBUG] [database:160] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:53:15,878] [DEBUG] [database:79] [conn:N/A] 当前线程循环状态79: {}
-[2025-05-06 15:53:18,530] [DEBUG] [database:361] [conn:N/A] 当前线程循环状态: {}
-[2025-05-06 15:53:18,531] [DEBUG] [database:362] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:53:18,532] [DEBUG] [database:364] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:53:18,533] [DEBUG] [database:365] [conn:N/A] 当前活跃状态: True
-[2025-05-06 15:53:18,534] [DEBUG] [database:366] [conn:N/A] 检查事务运行情况
-[2025-05-06 15:53:18,536] [ERROR] [database:380] [conn:N/A] 检查StockInfo表状态失败: Task <Task pending name='Task-49' coro=<main() running at C:\Users\Thomas P Gao\Documents\personal\VSC\awesome-Qsys\src\main.py:46> cb=[_run_until_complete_cb() at C:\Users\Thomas P Gao\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:182]> got Future <Future pending cb=[BaseProtocol._on_waiter_completed()]> attached to a different loop
-[2025-05-06 15:53:18,538] [ERROR] [database:355] [conn:N/A] 获取所有股票信息失败: cannot perform operation: another operation is in progress
+[2025-05-14 20:38:08,563] [DEBUG] [database:113] [conn:N/A] 连接池初始化循环ID: 2959437089680
+[2025-05-14 20:38:08,593] [DEBUG] [database:114] [conn:N/A] running_loop_id:2959437089680
+[2025-05-14 20:38:08,593] [INFO] [database:119] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-14 20:38:08,605] [DEBUG] [database:113] [conn:N/A] 连接池初始化循环ID: 2959437088400
+[2025-05-14 20:38:08,605] [DEBUG] [database:114] [conn:N/A] running_loop_id:2959437088400
+[2025-05-14 20:38:08,606] [INFO] [database:119] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-14 20:38:08,635] [INFO] [database:173] [conn:2959453820752] 数据库表结构初始化完成
+[2025-05-14 20:38:08,636] [DEBUG] [database:176] [conn:N/A] 连接已释放，当前活跃连接数: 1
+[2025-05-14 20:38:08,636] [DEBUG] [database:177] [conn:N/A] 当前循环活跃状态: True
+[2025-05-14 20:38:08,636] [DEBUG] [database:89] [conn:N/A] running_loop_id:2959437089680
+[2025-05-14 20:38:08,637] [DEBUG] [database:90] [conn:N/A] initialize调用结束
+[2025-05-14 20:38:08,712] [INFO] [database:173] [conn:2959453817536] 数据库表结构初始化完成
+[2025-05-14 20:38:08,747] [DEBUG] [database:176] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-14 20:38:08,776] [DEBUG] [database:177] [conn:N/A] 当前循环活跃状态: True
+[2025-05-14 20:38:08,777] [DEBUG] [database:89] [conn:N/A] running_loop_id:2959437088400
+[2025-05-14 20:38:08,778] [DEBUG] [database:90] [conn:N/A] initialize调用结束
+[2025-05-14 20:38:08,801] [DEBUG] [database:348] [conn:N/A] running_loop_id:2959437088400
+[2025-05-14 20:38:08,802] [DEBUG] [database:350] [conn:N/A] 检查数据是否最新
+[2025-05-14 20:38:08,805] [DEBUG] [database:370] [conn:N/A] running_loop_id:2959437088400
+[2025-05-14 20:38:08,806] [DEBUG] [database:373] [conn:2959453823104] 当前活跃连接数: 1
+[2025-05-14 20:38:08,810] [DEBUG] [database:374] [conn:N/A] 活跃任务数: 1
+[2025-05-14 20:38:08,811] [DEBUG] [database:375] [conn:N/A] running_loop_id:2959437088400
+[2025-05-14 20:38:08,887] [DEBUG] [database:395] [conn:N/A] 当前活跃连接数: 1
+[2025-05-14 20:38:08,888] [DEBUG] [database:396] [conn:N/A] 查询结果: <Record max=datetime.date(2025, 4, 25)>
+[2025-05-14 20:47:50,302] [DEBUG] [database:113] [conn:N/A] 连接池初始化循环ID: 1739045952144
+[2025-05-14 20:47:50,302] [DEBUG] [database:114] [conn:N/A] running_loop_id:1739045952144
+[2025-05-14 20:47:50,303] [INFO] [database:119] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-14 20:47:50,343] [INFO] [database:173] [conn:1739045706656] 数据库表结构初始化完成
+[2025-05-14 20:47:50,344] [DEBUG] [database:176] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-14 20:47:50,344] [DEBUG] [database:177] [conn:N/A] 当前循环活跃状态: True
+[2025-05-14 20:47:50,345] [DEBUG] [database:89] [conn:N/A] running_loop_id:1739045952144
+[2025-05-14 20:47:50,345] [DEBUG] [database:90] [conn:N/A] initialize调用结束
+[2025-05-14 20:47:53,806] [DEBUG] [database:348] [conn:N/A] running_loop_id:1739045952144
+[2025-05-14 20:47:53,807] [DEBUG] [database:350] [conn:N/A] 检查数据是否最新
+[2025-05-14 20:47:53,807] [DEBUG] [database:370] [conn:N/A] running_loop_id:1739045952144
+[2025-05-14 20:47:53,808] [DEBUG] [database:373] [conn:1739046459168] 当前活跃连接数: 1
+[2025-05-14 20:47:53,808] [DEBUG] [database:374] [conn:N/A] 活跃任务数: 1
+[2025-05-14 20:47:53,809] [DEBUG] [database:375] [conn:N/A] running_loop_id:1739045952144
+[2025-05-14 20:47:53,900] [DEBUG] [database:395] [conn:N/A] 当前活跃连接数: 1
+[2025-05-14 20:47:53,901] [DEBUG] [database:396] [conn:N/A] 查询结果: <Record max=datetime.date(2025, 4, 25)>

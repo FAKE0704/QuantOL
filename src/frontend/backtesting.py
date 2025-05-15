@@ -204,9 +204,6 @@ async def show_backtesting_page():
                     }
                 }
 
-            st.write(f"ChartService实例ID: {st.session_state.chart_instance_id}")
-            print(f"ChartService实例ID: {st.session_state.chart_instance_id}")
-
             chart_service.render_chart_controls()  # 作图配置
             # st.write(chart_service.data_bundle.kline_data)# debug
             # st.write(chart_service.data_bundle.trade_records)# debug

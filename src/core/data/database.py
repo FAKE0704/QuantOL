@@ -8,7 +8,6 @@ from datetime import datetime
 import asyncio
 from support.log import logger
 
-
 @st.cache_resource(ttl=3600, show_spinner=False)
 def get_db_manager():
     """带缓存的数据库管理器工厂函数"""
@@ -46,8 +45,6 @@ class DatabaseManager:
         self.active_connections = {}  # 目前活跃的连接
         self._conn_lock = asyncio.Lock()  
         
-    
-
 
     async def initialize(self):
         """异步初始化整个模块"""
@@ -82,17 +79,12 @@ class DatabaseManager:
             # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
 
     async def _init_db_tables(self):
-
         """异步初始化表结构"""
         self.logger.info("开始数据库表结构初始化...")
+        # 删表（测试用）
+        # await self.del_stock_data("StockData")
+
         async with self.pool.acquire() as conn:
-                # debug
-                # await conn.execute(
-                #     """
-                #     DROP TABLE StockData;
-                #     """
-                # )
-        
             # 建表StockData
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS StockData (
@@ -239,6 +231,7 @@ class DatabaseManager:
             self.logger.error(f"检查数据完整性失败: {str(e)}")
             raise
 
+# 数据操作
     async def load_stock_data(self, symbol: str, start_date: str, end_date: str, frequency: str) -> pd.DataFrame:
         """Load stock data from database, fetch missing data from Baostock and save in database if needed"""
         try:
@@ -252,7 +245,7 @@ class DatabaseManager:
 
             # Fetch missing data ranges from Baostock
             if missing_ranges:
-                self.logger.info(f"Fetching missing data ranges for {symbol}")  #bug:获取数据但没有存入数据库
+                self.logger.info(f"Fetching missing data ranges for {symbol}")  
                 from .baostock_source import BaostockDataSource
                 data_source = BaostockDataSource(frequency)
                 data = pd.DataFrame()
@@ -260,6 +253,7 @@ class DatabaseManager:
                     self.logger.info(f"Fetching data from {range_start} to {range_end}")
                     # st.write(symbol, range_start, range_end, frequency) # debug 
                     new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
+                    print(new_data.head(2))
                     await self.save_stock_data(symbol, new_data, frequency)  # save stock data into table Stockdata
                     data = pd.concat([data, new_data])
 
@@ -279,13 +273,12 @@ class DatabaseManager:
             async with self.pool.acquire() as conn:
                 rows = await conn.fetch(query, symbol, start_dt, end_dt, frequency)
                 
-                
                 if not rows:
                     self.logger.warning(f"No data found for {symbol} in specified date range")
                     return pd.DataFrame()
                 data = [dict(row) for row in rows]
                 df = pd.DataFrame(data, columns=['date', 'time', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount', 'adjustflag'])
-                df['date'] = pd.to_datetime(df['date'])
+                df = self._transform_data(df)
                 
                 self.logger.info(f"Successfully loaded {len(df)} rows for {symbol}")
                 return df
@@ -293,6 +286,25 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Failed to load stock data: {str(e)}")
             raise
+
+    def _transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        """标准化数据格式"""
+        if 'date' in data.columns:
+            data['date'] = pd.to_datetime(data['date'])
+        # if 'time' in data.columns:
+        #     # 截取前14位字符并转换为datetime
+        #     data['time'] = data['time'].astype(str)
+        #     data['time'] = pd.to_datetime(
+        #         data['time'].str[9:14], 
+        #         format="%H%M%S"
+        #     )
+        
+        # Convert numpy datetime64 to Python datetime
+        data['date'] = data['date'].dt.strftime('%Y-%m-%d')
+        # if 'time' in data.columns:
+        #     data['time'] = data['time'].dt.time
+
+        return data
 
     def get_technical_indicators(self):
         pass
@@ -360,8 +372,7 @@ class DatabaseManager:
 
                 # 执行查询并立即获取结果
                 row = await conn.fetchrow("SELECT MAX(ipoDate) FROM StockInfo")
-                self.logger.debug(f"当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}")
-                self.logger.debug(f"查询结果: {row}")
+                # self.logger.debug(f"当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}")
                 if row:
                     latest_ipo = row[0]
                 else:
@@ -506,9 +517,11 @@ class DatabaseManager:
         Returns:
             bool: 是否成功保存
         """
+        data_tmp = data.copy()
+        data_tmp['date'] = pd.to_datetime(data_tmp['date'], format="%Y-%m-%d").dt.date
         try:
             # 将DataFrame转换为适合插入的格式
-            records = data.to_dict('records')
+            records = data_tmp.to_dict('records')
             insert_data = [
                 (
                     symbol,
@@ -550,6 +563,30 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"保存股票数据失败: {str(e)}")
             raise
+
+    async def del_stock_data(self, name):
+        self.logger.info(f"开始删除数据库表{name}...")
+        self.logger.debug(f"调用了del方法")
+        async with self.pool.acquire() as conn:
+                # debug
+            await conn.execute(
+                f"""
+                DROP TABLE {name};
+                """
+            )
+
+            # 检查表是否存在
+            exists = await conn.fetchval(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM pg_tables
+                    WHERE tablename = $1
+                );
+                """, name
+            )
+            if not exists:
+                self.logger.info(f"表 {name}已删除")
 
     def get_pool_status(self):
         """获取连接池状态"""

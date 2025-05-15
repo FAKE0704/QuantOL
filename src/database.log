@@ -1,0 +1,90 @@
+[2025-05-15 18:02:41,293] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 2001999427408
+[2025-05-15 18:02:41,294] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-15 18:02:41,335] [INFO] [database:133] [conn:2002000003472] 数据库表结构初始化完成
+[2025-05-15 18:02:41,336] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-15 18:02:41,336] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-15 18:02:41,336] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-15 18:04:37,466] [DEBUG] [database:330] [conn:N/A] 检查数据是否最新
+[2025-05-15 18:04:37,467] [DEBUG] [database:353] [conn:2002000012592] 当前活跃连接数: 1
+[2025-05-15 18:04:37,468] [DEBUG] [database:354] [conn:N/A] 活跃任务数: 1
+[2025-05-15 18:04:42,985] [INFO] [database:238] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250515
+[2025-05-15 18:04:42,985] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-15 18:04:42,986] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250515
+[2025-05-15 18:04:43,019] [INFO] [database:227] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-15 18:04:43,138] [INFO] [database:283] [conn:N/A] Successfully loaded 1385 rows for sh.688603
+[2025-05-15 18:04:43,274] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 7b9f20ca-cffa-47ca-9787-e4a5d40559fc | 名称: 月定投策略
+[2025-05-15 18:04:53,893] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-15 18:04:53,899] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-15
+[2025-05-15 18:04:53,899] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1385
+[2025-05-15 18:04:53,926] [DEBUG] [backtesting:520] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.85 | Strategy: 7b9f20ca-cffa-47ca-9787-e4a5d40559fc
+[2025-05-15 18:04:53,927] [DEBUG] [backtesting:543] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 978.40 | 新金额: 99021.60
+[2025-05-15 18:04:53,928] [INFO] [backtesting:589] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.85 | Cost: 949.90 | Commission: 28.50 | Capital: 99021.60 | Position: 14@67.85 | Strategy: 7b9f20ca-cffa-47ca-9787-e4a5d40559fc
+[2025-05-15 18:04:53,929] [WARNING] [backtesting:379] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-15 18:04:53,930] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.85
+[2025-05-15 18:04:53,930] [INFO] [backtesting:691] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.85 | 交易金额: 949.90 | 手续费: 28.50 | 现金变化: 100000.00 -> 99021.60 | 持仓变化: 0@0.00 -> 14@67.85
+[2025-05-15 18:04:53,932] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.85
+[2025-05-15 18:05:02,187] [DEBUG] [backtesting:520] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.85 | Strategy: 7b9f20ca-cffa-47ca-9787-e4a5d40559fc
+[2025-05-15 18:05:02,188] [DEBUG] [backtesting:543] [conn:N/A] 资金扣除验证 | 原金额: 99021.60 | 扣除: 978.40 | 新金额: 98043.21
+[2025-05-15 18:05:02,188] [INFO] [backtesting:589] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.85 | Cost: 949.90 | Commission: 28.50 | Capital: 98043.21 | Position: 28@67.85 | Strategy: 7b9f20ca-cffa-47ca-9787-e4a5d40559fc
+[2025-05-15 18:05:02,194] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.85
+[2025-05-15 18:05:02,195] [INFO] [backtesting:691] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.85 | 交易金额: 949.90 | 手续费: 28.50 | 现金变化: 99021.60 -> 98043.21 | 持仓变化: 14@67.85 -> 28@67.85
+[2025-05-15 18:05:02,195] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.85
+[2025-05-15 18:06:42,068] [DEBUG] [chart_service:504] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['close'], 'components': {}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'components': {}}}
+[2025-05-15 18:06:43,370] [DEBUG] [chart_service:694] [conn:N/A] 作图参数{'main_chart': {'type': 'K线图', 'fields': ['close'], 'components': {}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'components': {}}}
+[2025-05-15 18:06:44,286] [DEBUG] [chart_service:706] [conn:N/A] 开始作图...
+[2025-05-15 18:22:29,382] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 2382111094928
+[2025-05-15 18:22:29,382] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-15 18:22:29,436] [INFO] [database:133] [conn:2382111670576] 数据库表结构初始化完成
+[2025-05-15 18:22:29,436] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-15 18:22:29,437] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-15 18:22:29,437] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-15 18:23:19,797] [DEBUG] [database:330] [conn:N/A] 检查数据是否最新
+[2025-05-15 18:23:19,798] [DEBUG] [database:353] [conn:2382111682288] 当前活跃连接数: 1
+[2025-05-15 18:23:19,798] [DEBUG] [database:354] [conn:N/A] 活跃任务数: 1
+[2025-05-15 18:23:24,676] [INFO] [database:238] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250515
+[2025-05-15 18:23:24,677] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-15 18:23:24,677] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250515
+[2025-05-15 18:23:24,708] [INFO] [database:227] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-15 18:23:24,801] [INFO] [database:283] [conn:N/A] Successfully loaded 1385 rows for sh.688603
+[2025-05-15 18:23:24,876] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 7f813d28-90ed-4789-b6c9-834c5d1d57b2 | 名称: 月定投策略
+[2025-05-15 18:23:34,978] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-15 18:23:34,981] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-15
+[2025-05-15 18:23:34,981] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1385
+[2025-05-15 18:23:35,000] [DEBUG] [backtesting:520] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.85 | Strategy: 7f813d28-90ed-4789-b6c9-834c5d1d57b2
+[2025-05-15 18:23:35,001] [DEBUG] [backtesting:543] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 978.40 | 新金额: 99021.60
+[2025-05-15 18:23:35,001] [INFO] [backtesting:589] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.85 | Cost: 949.90 | Commission: 28.50 | Capital: 99021.60 | Position: 14@67.85 | Strategy: 7f813d28-90ed-4789-b6c9-834c5d1d57b2
+[2025-05-15 18:23:35,001] [WARNING] [backtesting:379] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-15 18:23:35,002] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.85
+[2025-05-15 18:23:35,002] [INFO] [backtesting:691] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.85 | 交易金额: 949.90 | 手续费: 28.50 | 现金变化: 100000.00 -> 99021.60 | 持仓变化: 0@0.00 -> 14@67.85
+[2025-05-15 18:23:35,002] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.85
+[2025-05-15 18:23:41,760] [DEBUG] [backtesting:520] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.85 | Strategy: 7f813d28-90ed-4789-b6c9-834c5d1d57b2
+[2025-05-15 18:23:41,761] [DEBUG] [backtesting:543] [conn:N/A] 资金扣除验证 | 原金额: 99021.60 | 扣除: 978.40 | 新金额: 98043.21
+[2025-05-15 18:23:41,761] [INFO] [backtesting:589] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.85 | Cost: 949.90 | Commission: 28.50 | Capital: 98043.21 | Position: 28@67.85 | Strategy: 7f813d28-90ed-4789-b6c9-834c5d1d57b2
+[2025-05-15 18:23:41,765] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.85
+[2025-05-15 18:23:41,766] [INFO] [backtesting:691] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.85 | 交易金额: 949.90 | 手续费: 28.50 | 现金变化: 99021.60 -> 98043.21 | 持仓变化: 14@67.85 -> 28@67.85
+[2025-05-15 18:23:41,767] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.85
+[2025-05-15 18:33:14,031] [INFO] [database:238] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250515
+[2025-05-15 18:33:14,032] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-15 18:33:14,032] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250515
+[2025-05-15 18:33:14,201] [INFO] [database:227] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-15 18:33:14,303] [INFO] [database:283] [conn:N/A] Successfully loaded 1385 rows for sh.688603
+[2025-05-15 18:33:14,360] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: ddf2aeb3-97c1-42de-8de5-176f1c1a4192 | 名称: 月定投策略
+[2025-05-15 18:33:24,406] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-15 18:33:24,409] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-15
+[2025-05-15 18:33:24,409] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1385
+[2025-05-15 18:33:24,421] [DEBUG] [backtesting:520] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.85 | Strategy: ddf2aeb3-97c1-42de-8de5-176f1c1a4192
+[2025-05-15 18:33:24,422] [DEBUG] [backtesting:543] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 978.40 | 新金额: 99021.60
+[2025-05-15 18:33:24,422] [INFO] [backtesting:589] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.85 | Cost: 949.90 | Commission: 28.50 | Capital: 99021.60 | Position: 14@67.85 | Strategy: ddf2aeb3-97c1-42de-8de5-176f1c1a4192
+[2025-05-15 18:33:24,423] [WARNING] [backtesting:379] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-15 18:33:24,423] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.85
+[2025-05-15 18:33:24,424] [INFO] [backtesting:691] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.85 | 交易金额: 949.90 | 手续费: 28.50 | 现金变化: 100000.00 -> 99021.60 | 持仓变化: 0@0.00 -> 14@67.85
+[2025-05-15 18:33:24,424] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.85
+[2025-05-15 18:33:28,641] [DEBUG] [backtesting:520] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.85 | Strategy: ddf2aeb3-97c1-42de-8de5-176f1c1a4192
+[2025-05-15 18:33:28,641] [DEBUG] [backtesting:543] [conn:N/A] 资金扣除验证 | 原金额: 99021.60 | 扣除: 978.40 | 新金额: 98043.21
+[2025-05-15 18:33:28,642] [INFO] [backtesting:589] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.85 | Cost: 949.90 | Commission: 28.50 | Capital: 98043.21 | Position: 28@67.85 | Strategy: ddf2aeb3-97c1-42de-8de5-176f1c1a4192
+[2025-05-15 18:33:28,645] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.85
+[2025-05-15 18:33:28,645] [INFO] [backtesting:691] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.85 | 交易金额: 949.90 | 手续费: 28.50 | 现金变化: 99021.60 -> 98043.21 | 持仓变化: 14@67.85 -> 28@67.85
+[2025-05-15 18:33:28,645] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.85
+[2025-05-15 18:37:21,282] [DEBUG] [chart_service:504] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['close'], 'components': {}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'components': {}}}
+[2025-05-15 18:37:21,940] [DEBUG] [chart_service:694] [conn:N/A] 作图参数{'main_chart': {'type': 'K线图', 'fields': ['close'], 'components': {}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'components': {}}}
+[2025-05-15 18:37:22,376] [DEBUG] [chart_service:706] [conn:N/A] 开始作图...

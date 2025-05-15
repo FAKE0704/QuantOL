@@ -10,6 +10,7 @@ import os
 from core.strategy.events import ScheduleEvent, SignalEvent
 import pandas as pd
 import streamlit as st
+from support.log import logger
 
 @dataclass
 class BacktestConfig:
@@ -96,8 +97,8 @@ class BacktestConfig:
 class BacktestEngine:
     """回测引擎，负责执行回测流程"""
     
-    def __init__(self, config: BacktestConfig, data):\
-        slef.
+    def __init__(self, config: BacktestConfig, data):
+        logger._init_logger(self)
         self.config = config
         self.event_queue = []
         self.current_price = None  # 添加当前价格属性
@@ -127,8 +128,6 @@ class BacktestEngine:
         self.strategy_holdings = {}  # 策略持仓状态 {strategy_id: holdings}
         self.position_records = {}  # 记录持仓时间 {strategy_id: {'entry_time': datetime, 'quantity': int}}
 
-        # 初始化日志配置
-        self._init_logging()
 
     
 
@@ -180,8 +179,8 @@ class BacktestEngine:
         """执行事件循环"""
         
         # 调试日志：输出数据时间范围
-        self.logger.info(f"[DEBUG] 回测数据时间范围: {self.data['date'].min()} 至 {self.data['date'].max()}")
-        self.logger.info(f"[DEBUG] 数据记录总数: {len(self.data)}")
+        self.logger.info(f"回测数据时间范围: {self.data['date'].min()} 至 {self.data['date'].max()}")
+        self.logger.info(f"数据记录总数: {len(self.data)}")
         
         # 明确指定日期时间格式
         self.data['combined_time'] = pd.to_datetime(
@@ -219,7 +218,7 @@ class BacktestEngine:
             print(f"[WARNING] 使用调整后的结束日期: {closest_date.date()} (原请求: {end_date.date()})")
             
         # Get the last time of day for the closest date
-        last_time = self.data[self.data['date']==closest_date.date()]['time'].iloc[-1]
+        last_time = self.data[self.data['date']==closest_date.date().strftime("%Y-%m-%d")]['time'].iloc[-1]
         # Combine date and time properly
         end_date = datetime.combine(closest_date.date(), last_time)
 

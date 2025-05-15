@@ -72,7 +72,8 @@ class BaostockDataSource(DataSource):
             raise DataSourceError(f"未获取到数据, symbol: {symbol},start_date:{start_date}, end_date:{end_date}, frequency: {freq}")
             
         df = pd.DataFrame(data_list, columns=rs.fields)
-
+        print("#"*10)
+        print(df.head(2))
         # 将获取到的数据_时间数据标准化
         df = self._transform_data(df)
             
@@ -107,12 +108,12 @@ class BaostockDataSource(DataSource):
         if 'time' in data.columns:
             # 截取前14位字符并转换为datetime
             data['time'] = pd.to_datetime(
-                data['time'].str[9:14], 
+                data['time'].str[8:13], 
                 format="%H%M%S"
             )
         
         # Convert numpy datetime64 to Python datetime
-        data['date'] = data['date'].dt.date
+        data['date'] = data['date'].dt.strftime('%Y-%m-%d')
         if 'time' in data.columns:
             data['time'] = data['time'].dt.time
 

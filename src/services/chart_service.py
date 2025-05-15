@@ -429,7 +429,7 @@ class ChartService:
 
         # 渲染主图配置
         @st.fragment
-        def render_main_chart_config():
+        def render_main_chart_config(self):
             """渲染主图配置选项"""
             col1, col2 = st.columns(2)
             with col1:
@@ -445,14 +445,36 @@ class ChartService:
                 )
             with col2:
                 available_fields = self.data_bundle.get_all_columns()
-                new_fields = st.multiselect(
-                    "主图字段",
-                    options=available_fields,
-                    default=active_config["main_chart"]["fields"],
-                    key=f"{st.session_state.strategy_id}_main_fields",
-                    on_change=self._handle_config_change,
-                    args=(config_key, "main_fields"),
-                )
+                # For line charts, default to OHLC fields and prevent deselection
+                if new_type == "折线图":
+                    required_fields = {"open", "low", "high", "close"} # 必须字段
+                    current_fields = set(active_config["main_chart"]["fields"]) # 当前字段
+                    # Ensure required fields are included
+                    final_fields = list(current_fields.union(required_fields))
+                    self.logger.debug(f"final_fields = {final_fields}")
+                    new_fields = st.multiselect(
+                        "主图字段",
+                        options=available_fields,
+                        default=final_fields,
+                        key=f"{st.session_state.strategy_id}_main_fields",
+                        on_change=self._handle_config_change,
+                        args=(config_key, "main_fields"),
+                    )   
+                    
+                    # Check if user tried to deselect required fields
+                    if not required_fields.issubset(set(new_fields)):
+                        st.toast("警告: 折线图必须包含open, low, high, close字段", icon="⚠️")
+                        # Reset to include required fields
+                        st.session_state[f"{st.session_state.strategy_id}_main_fields"] = final_fields
+                else:
+                    new_fields = st.multiselect(
+                        "主图字段",
+                        options=available_fields,
+                        default=active_config["main_chart"]["fields"],
+                        key=f"{st.session_state.strategy_id}_main_fields",
+                        on_change=self._handle_config_change,
+                        args=(config_key, "main_fields"),
+                    )
 
         # 渲染副图配置
         @st.fragment
@@ -526,36 +548,6 @@ class ChartService:
         with st.expander("会话状态监控"):
             st.write(st.session_state)
 
-        # 防抖回调
-        def _safe_config_change(config_key: str, field_type: str):
-            # 获取当前时间
-            current_time = time.time()
-
-            # 防抖检查：如果距离上次变更时间小于300ms则忽略
-            if current_time - st.session_state.get("last_change", 0) < 0.3:
-                return
-            st.session_state["last_change"] = current_time
-
-            # 更新pending配置
-            new_value = st.session_state[f"{st.session_state.strategy_id}_{field_type}"]
-            pending_config[field_type.split("_")[0]].update(
-                {field_type.split("_")[1]: new_value}
-            )
-
-            # 版本递增
-            pending_config["version"] += 1
-
-            # 标记需要更新
-            st.session_state["need_redraw"] = True
-
-            # 异步应用配置变更
-            if not st.session_state.get("is_applying_changes", False):
-                st.session_state["is_applying_changes"] = True
-                time.sleep(0.3)  # 等待防抖时间
-
-                # 应用pending配置到active配置
-                active_config.update(pending_config)
-                st.session_state["is_applying_changes"] = False
 
         # 版本驱动更新
         if st.session_state.get("config_version") != active_config["version"]:
@@ -640,6 +632,41 @@ class ChartService:
 
         return capital_chart.render(self.data_bundle.capital_flow)
 
+
+    def create_traces(self, config, data_source, is_secondary=False):
+        """动态生成trace的工厂函数"""
+        trace_type_map = {
+            'K线图': go.Candlestick,
+            '折线图': go.Scatter,
+            '柱状图': go.Bar
+        }
+        
+        traces = []
+        graph_type = trace_type_map[config.get('type', '折线图')]
+        style = config.get('style', {})
+        
+        count = 0
+        for field in config['fields']:
+            count = count + 1
+            self.logger.debug(f"正在作图trace_{count},graph_type = {graph_type}, fields = {config['fields']}")
+            trace = graph_type(
+                x=data_source.index,
+                y=data_source[field],
+                name=f"{config['type']}-{field}",
+                line=dict(
+                    width=style.get('line_width', 1.2),
+                    color=style.get('color', '#1f77b4')
+                ) if graph_type == go.Scatter else None,
+                marker=dict(
+                    opacity=style.get('opacity', 0.6),
+                    color=style.get('color', '#ff7f0e')
+                ) if graph_type in [go.Bar, go.Candlestick] else None
+            )
+            traces.append((trace, is_secondary))
+        
+        return traces
+
+
     def create_combined_chart(
         self,
         config: dict
@@ -690,84 +717,33 @@ class ChartService:
         >>> # 双Y轴调用
         >>> fig = create_combined_chart(df, ['close'], ['volume'], "成交量")
         """
-        
-
-
         from plotly.subplots import make_subplots
-        self.logger.debug(f"作图参数{config}")
-        sub_cfg = config.get('sub_chart', {})  # 安全获取子配置
 
-        if sub_cfg.get('show', True):
-            # 双轴模式（参考网页1的make_subplots实现）
-            fig = make_subplots(specs=[[{"secondary_y": True}]])
-            yaxis2_config = dict(showgrid=True, title=sub_cfg.get('yaxis_name', 'Secondary Y'))
-        else:
-            # 单轴模式（不创建次轴）
-            fig = make_subplots(specs=[[{"secondary_y": False}]])
-            yaxis2_config = dict(visible=False)  # 完全隐藏次轴
+        fig = make_subplots(specs=[[{"secondary_y": config['sub_chart'].get('show', True)}]])
         
-        self.logger.debug(f"开始作图...")
-
-        # 主图绘制逻辑
-        main_cfg =config.get('main_chart', {})
-
-        if main_cfg.get("type", {}) == "K线图":
-            for trace in self.drawCandlestick().data:
-                fig.add_trace(trace)
-        elif main_cfg.get("type", {}) == "折线图":
-            for field in main_cfg['fields']:
-                fig.add_trace(
-                    go.Scatter(
-                        x=self.data_bundle.kline_data['combined_time'].index,
-                        y=self.data_bundle.kline_data[field],
-                        name=f"{main_cfg.get('style', {})}-{field}",
-                        line=dict(
-                            width=main_cfg.get('style', {}).get('line_width', 1.2),
-                            color=main_cfg.get('style', {}).get('color', '#1f77b4')
-                        )
-                    ),
-                    secondary_y=False
-                )
+        # 动态处理主副图配置
+        chart_configs = [
+            (config['main_chart'], self.data_bundle.kline_data, False),
+            (config['sub_chart'], self.data_bundle.kline_data, True)
+            if config['sub_chart'].get('show') else (None, None, None)
+        ]
         
-        # 副图绘制逻辑
-        if sub_cfg.get('show', True): # 如果要显示第二个轴
-            # 动态选择图形类型
-            graph_type = go.Bar if sub_cfg.get('style', {}) == '柱状图' else go.Scatter
-            self.logger.debug(f"双轴作图,副图采用{graph_type}")
-           
-            for field in sub_cfg['fields']:
-                # print(field) # debug
-                fig.add_trace(
-                    graph_type(
-                        x=self.data_bundle.trade_records['timestamp'].index,
-                        y=self.data_bundle.kline_data[field], # data_bundle可选范围不对，y选用数据不对
-                        name=f"{sub_cfg['type']}-{field}",
-                        marker=dict(
-                            opacity=sub_cfg.get('style', {}).get('opacity', 0.6),
-                            color=sub_cfg.get('style', {}).get('color', '#ff7f0e')
-                        )
-                    ),
-                    secondary_y=True
-                )
-                
-            # 设置次Y轴标签（参考网页4的布局配置）
-            fig.update_layout(
-                yaxis2=yaxis2_config
-            )
+        for cfg, data, secondary in chart_configs:
+            if cfg and data is not None: # 有参数，有数据
+                for trace, is_secondary in self.create_traces(cfg, data, secondary):
+                    fig.add_trace(trace, secondary_y=is_secondary)
         
-        # 统一样式配置（参考网页4的交互设计）
+        # 统一样式配置（参考网页3/5）
         fig.update_layout(
-            hovermode='x unified',  # 联动悬浮提示
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="right",
-                x=1
-            )
+            hovermode='x unified',
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            yaxis2=dict(
+                showgrid=config['sub_chart'].get('show', True),
+                title=config['sub_chart'].get('yaxis_name', 'Secondary Y'),
+                visible=config['sub_chart'].get('show', True)
+            ) if config['sub_chart'].get('show') else {}
         )
         
-        self.figure = fig
         return fig
 
     def draw_equity(self) -> go.Figure:

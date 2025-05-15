@@ -96,13 +96,14 @@ class BacktestConfig:
 class BacktestEngine:
     """回测引擎，负责执行回测流程"""
     
-    def __init__(self, config: BacktestConfig):
+    def __init__(self, config: BacktestConfig, data):\
+        slef.
         self.config = config
         self.event_queue = []
         self.current_price = None  # 添加当前价格属性
         self.handlers = {}
         self.strategies = []  # 改为支持多个策略
-        self.data = None
+        self.data = data  # 回测数据
         self.trades = [] # 交易记录
         self.results = {}
         self.current_capital = config.initial_capital
@@ -129,34 +130,7 @@ class BacktestEngine:
         # 初始化日志配置
         self._init_logging()
 
-    def _init_logging(self):
-        """初始化日志配置"""
-        log_dir = Path(__file__).parent.parent / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-
-        log_handler = TimedRotatingFileHandler(
-            str(log_dir / "backtest.log"),
-            when='midnight',
-            interval=1,
-            backupCount=3,
-            encoding='utf-8',
-            utc=True
-        )
-        log_formatter = logging.Formatter(
-            '%(asctime)s.%(msecs)03dZ | %(levelname)s | %(message)s',
-            datefmt='%Y-%m-%dT%H:%M:%S'
-        )
-        log_handler.setFormatter(log_formatter)
-        log_handler.suffix = "%Y-%m-%d.log"
-        log_handler.setLevel(logging.INFO)  # 设置处理器级别为INFO
-
-        self.logger = logging.getLogger(f'backtester_{id(self)}')
-        self.logger.addHandler(log_handler)
-        self.logger.setLevel(logging.INFO)  # 设置记录器级别为INFO
-        self.logger.propagate = False  # 防止日志重复记录
-        
-        # 确保日志立即写入
-        log_handler.flush = lambda: log_handler.stream.flush()
+    
 
     def log_error(self, message: str):
         """记录错误信息"""
@@ -206,8 +180,8 @@ class BacktestEngine:
         """执行事件循环"""
         
         # 调试日志：输出数据时间范围
-        print(f"[DEBUG] 回测数据时间范围: {self.data['date'].min()} 至 {self.data['date'].max()}")
-        print(f"[DEBUG] 数据记录总数: {len(self.data)}")
+        self.logger.info(f"[DEBUG] 回测数据时间范围: {self.data['date'].min()} 至 {self.data['date'].max()}")
+        self.logger.info(f"[DEBUG] 数据记录总数: {len(self.data)}")
         
         # 明确指定日期时间格式
         self.data['combined_time'] = pd.to_datetime(
@@ -518,7 +492,7 @@ class BacktestEngine:
         pass
 
     async def load_data(self, symbol: str):
-        """从数据源加载数据"""
+        """从数据源加载数据，不存数据库？"""
         from core.data.baostock_source import BaostockDataSource
         ds = BaostockDataSource()
         self.data = await ds.load_data(
@@ -528,9 +502,8 @@ class BacktestEngine:
             frequency=self.config.frequency
         )
         # 调试日志：验证加载的数据
-        print(f"[DEBUG] 数据加载完成，记录数: {len(self.data)}")
         print(f"[DEBUG] 数据列: {self.data.columns.tolist()}")
-        print(f"[DEBUG] 示例数据:\n{self.data.head(2)}")
+
         
         # 添加数据校验
         if 'close' not in self.data.columns:

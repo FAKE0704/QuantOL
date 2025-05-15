@@ -19,7 +19,7 @@ async def init_global_services():
     if 'db' not in st.session_state:
         db_manager = get_db_manager()
         await db_manager.initialize()
-        st.session_state.db = db_manager
+        st.session_state.db  = db_manager
         st.session_state._loop = st.session_state.db._loop
     if 'search_service' not in st.session_state:
         st.session_state.search_service = StockSearchService(st.session_state.db)

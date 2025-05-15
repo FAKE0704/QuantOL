@@ -10,6 +10,7 @@ from core.strategy.events import ScheduleEvent, SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from core.strategy.strategy import FixedInvestmentStrategy
 from services.progress_service import progress_service
+from typing import cast
 import time
 
 
@@ -19,6 +20,8 @@ async def show_backtesting_page():
     if 'strategy_id' not in st.session_state:
         import uuid
         st.session_state.strategy_id = str(uuid.uuid4())
+
+
     st.title("策略回测")
 
     # 股票搜索（带筛选的下拉框）
@@ -110,9 +113,14 @@ async def show_backtesting_page():
         )
         
         # 初始化事件引擎BacktestEngine
-        engine = BacktestEngine(config=backtest_config)
-        data = await engine.load_data(symbol)
+        db = cast(DatabaseManager, st.session_state.db)
+        data = db.load_stock_data(symbol, start_date, end_date, frequency)
+        engine = BacktestEngine(config=backtest_config, data=data)
+        
+        
+        st.write("回测使用的数据") 
         st.write(data) 
+
         # 注册事件处理器
         engine.register_handler(ScheduleEvent, handle_schedule)
         engine.register_handler(SignalEvent, handle_signal)

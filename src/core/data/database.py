@@ -86,7 +86,7 @@ class DatabaseManager:
         await self._create_pool()
         await self._init_db_tables()
         self.initialized = True  # 添加状态标记
-        self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
+        # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
         self.logger.debug(f"initialize调用结束")
 
     async def _create_pool(self):
@@ -111,20 +111,15 @@ class DatabaseManager:
             )
             self._loop = self.pool._loop
             self.logger.debug(f"连接池初始化循环ID: {id(self.pool._loop)}")
-            self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
+            # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
 
     async def _init_db_tables(self):
-
         """异步初始化表结构"""
         self.logger.info("开始数据库表结构初始化...")
+        # 删表（测试用）
+        # await self.del_stock_data("StockData")
+
         async with self.pool.acquire() as conn:
-                # debug
-                # await conn.execute(
-                #     """
-                #     DROP TABLE StockData;
-                #     """
-                # )
-        
             # 建表StockData
             await conn.execute("""
                 CREATE TABLE IF NOT EXISTS StockData (
@@ -345,7 +340,7 @@ class DatabaseManager:
         Returns:
             包含所有股票信息的DataFrame
         """
-        self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
+        # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
         try:
             self.logger.debug("检查数据是否最新")
             if await self._is_stock_info_up_to_date():
@@ -582,6 +577,30 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"保存股票数据失败: {str(e)}")
             raise
+
+    async def del_stock_data(self, name):
+        self.logger.info(f"开始删除数据库表{name}...")
+        self.logger.debug(f"调用了del方法")
+        async with self.pool.acquire() as conn:
+                # debug
+            await conn.execute(
+                f"""
+                DROP TABLE {name};
+                """
+            )
+
+            # 检查表是否存在
+            exists = await conn.fetchval(
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM pg_tables
+                    WHERE tablename = $1
+                );
+                """, name
+            )
+            if not exists:
+                self.logger.info(f"表 {name}已删除")
 
     def get_pool_status(self):
         """获取连接池状态"""

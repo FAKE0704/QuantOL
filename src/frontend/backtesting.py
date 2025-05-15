@@ -1,11 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
 from core.strategy.backtesting import  BacktestEngine
 from core.strategy.backtesting import  BacktestConfig
 from services.chart_service import  ChartService, DataBundle
-from core.data.database import DatabaseManager
 from core.strategy.events import ScheduleEvent, SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from core.strategy.strategy import FixedInvestmentStrategy
@@ -163,7 +161,9 @@ async def show_backtesting_page():
 
             st.subheader("净值曲线")
             
-            # 创建净值曲线和K线图的组合图表
+            # 时间排序
+            data = data.sort_index(level='combined_time') 
+            equity_data = equity_data.sort_values(by = 'timestamp')
 
             # 会话级缓存ChartService实例
             @st.cache_resource(ttl=3600, show_spinner=False)
@@ -204,6 +204,8 @@ async def show_backtesting_page():
             print(f"ChartService实例ID: {st.session_state.chart_instance_id}")
 
             chart_service.render_chart_controls()  # 作图配置
+            # st.write(chart_service.data_bundle.kline_data)# debug
+            # st.write(chart_service.data_bundle.trade_records)# debug
             chart_service.render_chart_button(st.session_state[config_key]) # 作图按钮
 
             

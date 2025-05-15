@@ -1,6 +1,4 @@
-import sys
 import asyncpg
-import logging
 from typing import Optional
 import pandas as pd
 import chinese_calendar as calendar
@@ -8,9 +6,8 @@ from .stock import Stock
 import streamlit as st
 from datetime import datetime
 import asyncio
-from contextlib import asynccontextmanager
-import uuid
-import time
+from support.log import logger
+
 
 @st.cache_resource(ttl=3600, show_spinner=False)
 def get_db_manager():
@@ -24,7 +21,7 @@ class DatabaseManager:
                  user='quant', password='quant123', admin_db='quantdb'):
         self.connection = None
         # self._loop = asyncio.get_event_loop()  # 全局唯一事件循环
-        self._init_logger()
+        logger._init_logger(self)
         self._instance_id = id(self)  # 添加实例ID用于调试
         self.connection_states = {}  # 连接状态跟踪 {conn_id: {status, last_change}}
         self.connection_config = { # 数据库连接配置
@@ -49,36 +46,7 @@ class DatabaseManager:
         self.active_connections = {}  # 目前活跃的连接
         self._conn_lock = asyncio.Lock()  
         
-    def _init_logger(self):
-        """增强日志配置"""
-        self.logger = logging.getLogger(__name__)
-        self.logger.propagate = False
-        self.logger.setLevel(logging.DEBUG)
-        
-        # 创建文件处理器
-        file_handler = logging.FileHandler('database.log')
-        file_handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] [%(levelname)s] [%(module)s:%(lineno)d] [conn:%(connection_id)s] %(message)s'
-        ))
-        
-        # 创建控制台处理器
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s'
-        ))
-        
-        # 添加处理器v仅当无 Handler 时添加
-        if not self.logger.handlers:
-            self.logger.addHandler(file_handler)
-            self.logger.addHandler(console_handler)
-        
-        # 添加追踪ID的过滤器
-        class ConnectionFilter(logging.Filter):
-            def filter(self, record):
-                record.connection_id = getattr(record, 'connection_id', 'N/A')
-                return True
-                
-        self.logger.addFilter(ConnectionFilter())
+    
 
 
     async def initialize(self):
@@ -362,12 +330,12 @@ class DatabaseManager:
 
     async def _is_stock_info_up_to_date(self) -> bool:
         """异步检查StockInfo表是否最新"""
-        self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
+        # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
         async with self.pool.acquire() as conn:
             try:
                 self.logger.debug(f"当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}", extra={'connection_id': id(conn)})
                 self.logger.debug(f"活跃任务数: {len(asyncio.all_tasks())}")
-                self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
+                # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
                 # 验证表结构
                 # 检查表是否存在
                 table_exists = await conn.fetchval(

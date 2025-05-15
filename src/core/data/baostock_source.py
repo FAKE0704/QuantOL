@@ -3,7 +3,7 @@ import baostock as bs
 from .data_source import DataSource, DataSourceError
 from typing import Optional
 
-from core.data.database import DatabaseManager
+# from core.data.database import
 import os
 from datetime import datetime
 
@@ -21,7 +21,7 @@ class BaostockDataSource(DataSource):
             os.makedirs(cache_dir)
 
     async def load_data(self, symbol: str, start_date: str, end_date: str, frequency: Optional[str] = None) -> pd.DataFrame:
-        """从baostock获取数据"""
+        """从baostock获取股票symbol从start_date到end_date的频率frequency数据"""
         start_date = datetime.strptime(start_date, "%Y%m%d").strftime("%Y-%m-%d")
         end_date = datetime.strptime(end_date, "%Y%m%d").strftime("%Y-%m-%d")
 
@@ -41,8 +41,7 @@ class BaostockDataSource(DataSource):
         else:
             fields = "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST"
         
-        # print(start_date) # debug
-        # print(end_date) # debug
+        
         rs = bs.query_history_k_data_plus(
             symbol,
             fields,
@@ -50,15 +49,16 @@ class BaostockDataSource(DataSource):
             end_date=end_date,
             frequency=freq,
             adjustflag="3"
-        ) # 日期格式需要为 2025-02-02
+        ) # 日期格式需要为 20250202
         
+
         if rs.error_code != '0':
             bs.logout()
             progress_service.end_task(task_id)
             raise DataSourceError(f"获取历史数据失败: {rs.error_msg}")
         
         data_list = []
-        total = len(rs.data)
+        total = len(rs.get_row_data())
         processed = 0
         while rs.next():
             data_list.append(rs.get_row_data())
@@ -157,5 +157,4 @@ class BaostockDataSource(DataSource):
             raise
         finally:
             bs.logout()
-            print()
             progress_service.end_task(task_id)

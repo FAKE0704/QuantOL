@@ -12,6 +12,7 @@ from pathlib import Path
 import json
 import uuid
 import time
+from support.log import logger
 
 
 class ThemeConfig:
@@ -121,7 +122,33 @@ class ChartConfigManager:
                 "secondary_fields": raw_data.get("secondary_fields", []),
             },
         }
+    @staticmethod
+    def _get_default_config():
 
+        default_config = {
+            "main_chart": {
+                "type": "K线图",       # 主图类型标识
+                "fields": ["close"],  # 显示字段
+                "data_source": "kline_data",  # 数据源标识
+                "style": {            # 样式配置（参考网页4）
+                    "line_width": 1.5,
+                    "color": "#2c7be5"
+                }
+            },
+            "sub_chart": {
+                "show": True,         # 是否显示副图
+                "type": "成交量",      # 副图类型标识  
+                "fields": ["volume"], # 显示字段
+                "data_source": "trade_records", # 数据源标识
+                "yaxis_name": "成交量", # Y轴标签
+                "style": {
+                    "type": "bar",    # 图形类型（bar/line）
+                    "opacity": 0.6
+                }
+            }
+        }
+        return default_config
+                    
 
 class ChartBase(ABC):
     """图表基类"""
@@ -325,6 +352,7 @@ class ChartService:
         self._selected_primary_fields = []
         self._selected_secondary_fields = []
         self._chart_types = {"primary": "K线图", "secondary": "K线图"}
+        logger._init_logger(self)
 
     @st.cache_resource(show_spinner=False)
     def get_chart_service(_strategy_id: str, data_bundle: DataBundle):
@@ -396,6 +424,7 @@ class ChartService:
         # 双缓冲配置
         active_config = fragment_state.copy()
         pending_config = fragment_state.copy()
+
 
         # 渲染主图配置
         @st.fragment
@@ -469,20 +498,10 @@ class ChartService:
                 if st.button("💾 保存配置", key=f"save_{config_key}"):
 
                     # 直接使用session_state的最新值
-                    current_config = st.session_state[config_key]
-                    new_config = {
-                        "main_chart": {
-                            "type": current_config["main_chart"]["type"],
-                            "fields": current_config["main_chart"]["fields"],
-                        },
-                        "sub_chart": {
-                            "show": current_config["sub_chart"]["show"],
-                            "type": current_config["sub_chart"]["type"],
-                            "fields": current_config["sub_chart"]["fields"],
-                        },
-                    }
+                    new_config = st.session_state[config_key]
 
                     st.session_state[config_key].update(new_config)  # 更新保存的配置
+                    self.logger.debug(f"作图配置已保存：{new_config}")
                     st.session_state["need_redraw"] = True
 
                     # 使用更轻量的通知方式
@@ -491,22 +510,10 @@ class ChartService:
 
             with col6:
                 if st.button("🔄 重置", key=f"reset_{config_key}"):
-
-                    default_config = ChartConfigManager._get_default_config()
-                    active_config.update(
-                        {
-                            "main_chart": {
-                                "type": default_config["primary_type"],
-                                "fields": default_config["primary_fields"],
-                            },
-                            "sub_chart": {
-                                "show": default_config["show_secondary"],
-                                "type": default_config["secondary_type"],
-                                "fields": default_config["secondary_fields"],
-                            },
-                        }
-                    )
-
+                    st.session_state[config_key].update(ChartConfigManager._get_default_config())
+                    
+                    st.toast("⚡ 配置已重置", icon="🔄")
+                    self.logger.debug(f"作图配置已重置：{st.session_state[config_key]}")
                     st.session_state.need_redraw = True
 
         # 执行渲染
@@ -559,9 +566,9 @@ class ChartService:
     @st.fragment
     def render_chart_button(self, config: dict):
         if st.button("显示回测曲线", key="draw_backtest"):
-            # # 确保配置已固化到会话状态
-            # if "config_key" not in st.session_state:
-            #     st.session_state.config_key = default_config  # 初始化默认配置
+            # 确保配置已固化到会话状态
+            if "config_key" not in st.session_state:
+                st.session_state.config_key = ChartConfigManager._get_default_config()  # 初始化默认配置
             
             # 生成图表
             # st.write(config)
@@ -664,6 +671,9 @@ class ChartService:
                 }
             }
 
+        sub_chart.style.type = 'bar'  --- 柱状图            
+        'scatter'  --- 折线图
+        
         Returns:
         --------
         go.Figure
@@ -677,8 +687,11 @@ class ChartService:
         >>> # 双Y轴调用
         >>> fig = create_combined_chart(df, ['close'], ['volume'], "成交量")
         """
-        from plotly.subplots import make_subplots
         
+
+
+        from plotly.subplots import make_subplots
+        self.logger.debug(f"作图参数{config}")
         sub_cfg = config.get('sub_chart', {})  # 安全获取子配置
 
         if sub_cfg.get('show', True):
@@ -711,21 +724,23 @@ class ChartService:
                     secondary_y=False
                 )
         
-        # 副图绘制逻辑（参考网页8的条件渲染）
+        # 副图绘制逻辑
         if sub_cfg.get('show', True): # 如果要显示第二个轴
             # 动态选择图形类型
-            graph_type = go.Bar if sub_cfg.get('style', {}) == 'bar' else go.Scatter
+            graph_type = go.Bar if sub_cfg.get('style', {}) == '柱状图' else go.Scatter
             
+            st.write('#'*20) # debug
+            st.write(self.data_bundle.trade_records.columns) # debug
             for field in sub_cfg['fields']:
-                print(field)
+                # print(field) # debug
                 fig.add_trace(
                     graph_type(
                         x=self.data_bundle.trade_records['timestamp'],
-                        y=self.data_bundle.trade_records[field],
+                        y=self.data_bundle.kline_data[field], # data_bundle可选范围不对，y选用数据不对
                         name=f"{sub_cfg['type']}-{field}",
                         marker=dict(
-                            opacity=sub_cfg['style'].get('opacity', 0.6),
-                            color=sub_cfg['style'].get('color', '#ff7f0e')
+                            opacity=sub_cfg.get('style', {}).get('opacity', 0.6),
+                            color=sub_cfg.get('style', {}).get('color', '#ff7f0e')
                         )
                     ),
                     secondary_y=True
@@ -884,7 +899,7 @@ class ChartService:
         ma_periods = st.multiselect(
             "均线周期", options=[5, 10, 20, 30, 60], default=[5, 10, 20]
         )
-        print(self.data_bundle.kline_data.dtypes)#debug
+        # print(self.data_bundle.kline_data.dtypes)#debug
         # 初始化画布
         fig = go.Figure()
         fig.add_trace(

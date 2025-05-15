@@ -1,16 +1,18 @@
-import logging
 import streamlit as st
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Any
 from core.strategy.events import ScheduleEvent
 from core.strategy.backtesting import BacktestEngine
+from support.log import logger
+
 
 class BaseEvent:
     """事件基类"""
     def __init__(self, timestamp: datetime, event_type: str):
         self.timestamp = timestamp
         self.event_type = event_type
+        self.logger._init_logger()
 
     def to_dict(self) -> Dict[str, Any]:
         """将事件转换为字典"""
@@ -33,8 +35,6 @@ class BaseEvent:
 
 
 
-
-from queue import PriorityQueue
 from typing import Type, Callable, Dict
 
 
@@ -42,6 +42,7 @@ from typing import Type, Callable, Dict
 class BaseStrategy():
     def __init__(self, Data, name, buySignal, sellSignal):
         import uuid
+        logger._init_logger(self)
         self.Data = Data
         self.name : str = name
         self.buySignal = buySignal
@@ -83,7 +84,7 @@ class BaseStrategy():
             self.position_cost = total_cost / abs(quantity) if quantity !=0 else 0
             self.position_size = remaining_qty
             
-        print(f"策略仓位更新 | 数量: {self.position_size} | 成本: {self.position_cost}") #debug
+        self.logger.debug(f"策略仓位更新 | 数量: {self.position_size} | 成本: {self.position_cost}") #debug
         # 返回更新后的仓位信息
         return {
             'position_size': self.position_size,

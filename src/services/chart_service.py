@@ -409,6 +409,7 @@ class ChartService:
         self._selected_secondary_fields = config["sub_chart"]["fields"]
 
     def render_chart_controls(self) -> go.Figure:
+        """渲染作图配置"""
         # 生成配置key
         config_key = f"chart_config_{st.session_state.chart_instance_id}"
 
@@ -565,6 +566,7 @@ class ChartService:
 
     @st.fragment
     def render_chart_button(self, config: dict):
+        """渲染作图按钮"""
         if st.button("显示回测曲线", key="draw_backtest"):
             # 确保配置已固化到会话状态
             if "config_key" not in st.session_state:
@@ -576,6 +578,7 @@ class ChartService:
             st.write(fig)
 
     def create_interactive_chart(self) -> go.Figure:
+        
         """生成交互式配置的图表"""
         # 参数有效性检查
         if not self._selected_primary_fields:
@@ -703,6 +706,8 @@ class ChartService:
             fig = make_subplots(specs=[[{"secondary_y": False}]])
             yaxis2_config = dict(visible=False)  # 完全隐藏次轴
         
+        self.logger.debug(f"开始作图...")
+
         # 主图绘制逻辑
         main_cfg =config.get('main_chart', {})
 
@@ -713,7 +718,7 @@ class ChartService:
             for field in main_cfg['fields']:
                 fig.add_trace(
                     go.Scatter(
-                        x=self.data_bundle.kline_data['combined_time'],
+                        x=self.data_bundle.kline_data['combined_time'].index,
                         y=self.data_bundle.kline_data[field],
                         name=f"{main_cfg.get('style', {})}-{field}",
                         line=dict(
@@ -728,14 +733,13 @@ class ChartService:
         if sub_cfg.get('show', True): # 如果要显示第二个轴
             # 动态选择图形类型
             graph_type = go.Bar if sub_cfg.get('style', {}) == '柱状图' else go.Scatter
-            
-            st.write('#'*20) # debug
-            st.write(self.data_bundle.trade_records.columns) # debug
+            self.logger.debug(f"双轴作图,副图采用{graph_type}")
+           
             for field in sub_cfg['fields']:
                 # print(field) # debug
                 fig.add_trace(
                     graph_type(
-                        x=self.data_bundle.trade_records['timestamp'],
+                        x=self.data_bundle.trade_records['timestamp'].index,
                         y=self.data_bundle.kline_data[field], # data_bundle可选范围不对，y选用数据不对
                         name=f"{sub_cfg['type']}-{field}",
                         marker=dict(

@@ -7,6 +7,7 @@ from services.chart_service import  ChartService, DataBundle
 from core.strategy.events import ScheduleEvent, SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from core.strategy.strategy import FixedInvestmentStrategy
+from core.data.database import DatabaseManager
 from services.progress_service import progress_service
 from typing import cast
 import time
@@ -112,7 +113,7 @@ async def show_backtesting_page():
         
         # 初始化事件引擎BacktestEngine
         db = cast(DatabaseManager, st.session_state.db)
-        data = db.load_stock_data(symbol, start_date, end_date, frequency)
+        data = await db.load_stock_data(symbol, start_date, end_date, frequency)
         engine = BacktestEngine(config=backtest_config, data=data)
         
         
@@ -143,6 +144,8 @@ async def show_backtesting_page():
             time.sleep(0.1)  # 模拟回测过程
             progress_service.update_progress(task_id, (i + 1) / 100)
         
+        engine.logger.debug("开始回测...")
+
         engine.run(pd.to_datetime(start_date), pd.to_datetime(end_date))
         progress_service.end_task(task_id)
         
@@ -161,9 +164,7 @@ async def show_backtesting_page():
 
             st.subheader("净值曲线")
             
-            # 时间排序
-            data = data.sort_index(level='combined_time') 
-            equity_data = equity_data.sort_values(by = 'timestamp')
+            
 
             # 会话级缓存ChartService实例
             @st.cache_resource(ttl=3600, show_spinner=False)
@@ -173,6 +174,9 @@ async def show_backtesting_page():
                 raw_data['low'] = raw_data['low'].astype(float)
                 raw_data['close'] = raw_data['close'].astype(float)
                 raw_data['combined_time'] = pd.to_datetime(raw_data['combined_time'])
+                # 作图前时间排序
+                raw_data = raw_data.sort_index(level = 'combined_time') 
+                transaction_data = transaction_data.sort_values(by = 'timestamp')
                 databundle = DataBundle(raw_data,transaction_data, capital_flow_data=None)
                 return ChartService(databundle)
             

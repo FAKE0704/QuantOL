@@ -21,7 +21,7 @@ class BaostockDataSource(DataSource):
             os.makedirs(cache_dir)
 
     async def load_data(self, symbol: str, start_date: str, end_date: str, frequency: Optional[str] = None) -> pd.DataFrame:
-        """从baostock获取"""
+        """从baostock获取数据"""
         start_date = datetime.strptime(start_date, "%Y%m%d").strftime("%Y-%m-%d")
         end_date = datetime.strptime(end_date, "%Y%m%d").strftime("%Y-%m-%d")
 

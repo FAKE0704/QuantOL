@@ -2,28 +2,32 @@ from datetime import datetime
 from .TradeDatabaseManager import TradeDatabaseManager
 from typing import Dict, Optional
 import pandas as pd
+from THS.THSTrader import THSTrader
 
 class OrderManager:
     """订单管理类，负责订单的创建、修改、取消"""
     
-    def __init__(self, db_manager: TradeDatabaseManager, commission_rate=0.0003):
-        self.db_manager = db_manager
+    def __init__(self, software_dir, commission_rate=0.0003):
+        self.trader = THSTrader(software_dir) # 换成程序地址
         self.commission_rate = commission_rate
         self.pending_orders = []
         self.executed_trades = []
-        
-    def create_order(self, symbol, order_type, quantity, price=None):
-        """创建新订单"""
-        order = {
-            'symbol': symbol,
-            'order_type': order_type,
-            'quantity': quantity,
-            'price': price,
-            'status': 'new'
-        }
-        order_id = self.db_manager.save_order(order)
-        self.pending_orders.append(order)
-        return self.get_order(order_id)
+
+    def buy_order(self):
+        self.trader.buy(stock_no="162411", amount=100, price=0.541)  # 买入操作
+
+    # def create_order(self, symbol, order_type, quantity, price=None):
+    #     """创建新订单"""
+    #     order = {
+    #         'symbol': symbol,
+    #         'order_type': order_type,
+    #         'quantity': quantity,
+    #         'price': price,
+    #         'status': 'new'
+    #     }
+    #     order_id = self.db_manager.save_order(order)
+    #     self.pending_orders.append(order)
+    #     return self.get_order(order_id)
 
     def process_orders(self, market_data: pd.DataFrame):
         """处理等待中的订单"""

@@ -1,10 +1,17 @@
 import streamlit as st
 import pandas as pd
-from core.execution import Trader
+from core.execution import OrderManager
 
 def show_trading_page():
     st.title("交易管理")
     
+    dir = r"C:\同花顺\xiadan.exe"
+    trader = OrderManager(dir)
+    if st.button("🔄 buy", help="点击下单购买", key="buy_button"):
+        trader.buy_order()
+
+
+
     # 创建选项卡
     tab1, tab2, tab3 = st.tabs(["订单管理", "持仓管理", "交易记录"])
     

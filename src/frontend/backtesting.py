@@ -151,8 +151,9 @@ async def show_backtesting_page():
         
         # 获取回测结果
         results = engine.get_results()
+        data = engine.data
         equity_data = engine.equity_records
-        
+
         if results:
             st.success("回测完成！")
             
@@ -175,7 +176,7 @@ async def show_backtesting_page():
                 raw_data['close'] = raw_data['close'].astype(float)
                 raw_data['combined_time'] = pd.to_datetime(raw_data['combined_time'])
                 # 作图前时间排序
-                raw_data = raw_data.sort_index(level = 'combined_time') 
+                raw_data = raw_data.sort_values(by = 'combined_time') 
                 transaction_data = transaction_data.sort_values(by = 'timestamp')
                 databundle = DataBundle(raw_data,transaction_data, capital_flow_data=None)
                 return ChartService(databundle)
@@ -183,6 +184,8 @@ async def show_backtesting_page():
             
             if 'chart_service' not in st.session_state: # 如果缓存没有chart_service，就新建个
                 st.session_state.chart_service = init_chart_service(data,equity_data)
+                # debug
+                # st.write(st.session_state.chart_service.data_bundle.kline_data.index)
                 st.session_state.chart_instance_id = id(st.session_state.chart_service)
 
             chart_service = st.session_state.chart_service

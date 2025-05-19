@@ -294,12 +294,16 @@ class BacktestEngine:
             next_dates = self.data[self.data['combined_time'] > current_date]['combined_time']
             self.current_date = next_dates.iloc[0] if len(next_dates) > 0 else current_date + timedelta(days=1)
             current_date = self.current_date
+            
         
         # 确保最后一天净值被记录
         self._update_equity({
             'datetime': end_date,
             'close': self.data[self.data['combined_time'] == end_date].iloc[0]['close']
         })
+        # 重置索引
+        self.data = self.data.reset_index(drop=True)
+        st.write(self.data)
 
     def get_first_trading_day_of_month(self, date):
         """获取某个月份的第一个交易日"""

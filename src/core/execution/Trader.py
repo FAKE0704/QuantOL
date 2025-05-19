@@ -2,7 +2,7 @@ from datetime import datetime
 from .TradeDatabaseManager import TradeDatabaseManager
 from typing import Dict, Optional
 import pandas as pd
-from THS.THSTrader import THSTrader
+# from THS.THSTrader import THSTrader
 
 class OrderManager:
     """订单管理类，负责订单的创建、修改、取消"""

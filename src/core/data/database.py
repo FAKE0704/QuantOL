@@ -179,11 +179,7 @@ class DatabaseManager:
             
             # 转换输入日期
             start_dt = datetime.strptime(start_date, "%Y%m%d") # datetime.date()
-            end_dt = datetime.strptime(end_date, "%Y%m%d")
-            # start_dt = pd.to_datetime(start_date).date() # datetime.date()
-            # end_dt = pd.to_datetime(end_date).date()
-            
-            # 使用上下文管理器获取连接
+            end_dt = datetime.strptime(end_date, "%Y%m%d") # datetime.date()
             
             async with self.pool.acquire() as conn:
                 # 获取数据库中已有日期
@@ -195,16 +191,27 @@ class DatabaseManager:
                 """
                 rows = await conn.fetch(query, symbol, start_dt, end_dt)
                 existing_dates = {pd.to_datetime(row["date"]).date() for row in rows}
-                    
+                
                 # 生成理论交易日集合（排除节假日）
                 all_dates = pd.date_range(start_dt, end_dt, freq='B')  # 工作日
                 trading_dates = set(
                     date.date() for date in all_dates 
                     if not calendar.is_holiday(date.date())
                 )
+                from datetime import date
+                today = date.today() 
+                trading_dates = set(
+                    d for d in trading_dates
+                    if (
+                        (d != today) if isinstance(d, date)
+                        else (date.fromisoformat(d) != today)
+                    )
+                )# 若今日查询，则排除今日
+                    
                 
                 # 计算缺失日期
                 missing_dates = trading_dates - existing_dates
+                self.logger.info(f"Missing_dates {missing_dates} for {symbol}")
                 
                 # 将连续缺失日期合并为区间
                 missing_ranges = []
@@ -238,6 +245,7 @@ class DatabaseManager:
             self.logger.info(f"Loading stock data for {symbol} from {start_date} to {end_date}")
             
             # Check data completeness
+
             missing_ranges = await self.check_data_completeness(symbol, start_date, end_date)
             
             start_dt = datetime.strptime(start_date, "%Y%m%d") # datetime.date()
@@ -251,7 +259,6 @@ class DatabaseManager:
                 data = pd.DataFrame()
                 for range_start, range_end in missing_ranges:
                     self.logger.info(f"Fetching data from {range_start} to {range_end}")
-                    # st.write(symbol, range_start, range_end, frequency) # debug 
                     new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
                     print(new_data.head(2))
                     await self.save_stock_data(symbol, new_data, frequency)  # save stock data into table Stockdata
@@ -338,7 +345,6 @@ class DatabaseManager:
                 data_source = BaostockDataSource()
                 df = await data_source._get_all_stocks()
                 # 将数据保存到数据库
-                st.write(df) # debug
                 await self._update_stock_info(df)
                 return df
         except Exception as e:

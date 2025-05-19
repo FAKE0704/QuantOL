@@ -137,7 +137,7 @@ class ChartConfigManager:
             },
             "sub_chart": {
                 "show": True,         # 是否显示副图
-                "type": "成交量",      # 副图类型标识  
+                "type": "柱状图",      # 副图类型标识  
                 "fields": ["volume"], # 显示字段
                 "data_source": "trade_records", # 数据源标识
                 "yaxis_name": "成交量", # Y轴标签
@@ -145,7 +145,8 @@ class ChartConfigManager:
                     "type": "bar",    # 图形类型（bar/line）
                     "opacity": 0.6
                 }
-            }
+            },
+            "version": "1.0"
         }
         return default_config
                     
@@ -413,23 +414,29 @@ class ChartService:
         # 生成配置key
         config_key = f"chart_config_{st.session_state.chart_instance_id}"
 
-        # 片段级状态初始化
-        fragment_id = f"chart_fragment_{uuid.uuid4().hex[:8]}"
-        fragment_state = {
-            "main_chart": {"type": "K线图", "fields": ["close"]},
-            "sub_chart": {"show": True, "type": "柱状图", "fields": ["volume"]},
-            "expander_expanded": True,
-            "version": 1,
-        }
 
-        # 双缓冲配置
-        active_config = fragment_state.copy()
-        pending_config = fragment_state.copy()
+        # 新配置new_config初始化
+        if "new_config" not in st.session_state:
+            st.session_state.new_config = ChartConfigManager._get_default_config()  # 初始化默认配置
+        if "config_key" not in st.session_state:
+            st.session_state.config_key = ChartConfigManager._get_default_config()  # 初始化默认配置
+             
+
+        # # 片段级状态初始化
+        # fragment_id = f"chart_fragment_{uuid.uuid4().hex[:8]}"
+        # fragment_state = {
+        #     "main_chart": {"type": "K线图", "fields": ["close"]},
+        #     "sub_chart": {"show": True, "type": "柱状图", "fields": ["volume"]},
+        #     "expander_expanded": True,
+        #     "version": 1,
+        # }
+
+
 
 
         # 渲染主图配置
         @st.fragment
-        def render_main_chart_config(self):
+        def render_main_chart_config():
             """渲染主图配置选项"""
             col1, col2 = st.columns(2)
             with col1:
@@ -438,43 +445,44 @@ class ChartService:
                     options=["折线图", "K线图", "面积图"],
                     key=f"{st.session_state.strategy_id}_main_type",
                     index=["折线图", "K线图", "面积图"].index(
-                        active_config["main_chart"]["type"]
+                        st.session_state.config_key["main_chart"]["type"]
                     ),
                     on_change=self._handle_config_change,
-                    args=(active_config, "main_type"),
+                    args=(config_key, "main_type"),
                 )
             with col2:
                 available_fields = self.data_bundle.get_all_columns()
-                # For line charts, default to OHLC fields and prevent deselection
-                if new_type == "折线图":
-                    required_fields = {"open", "low", "high", "close"} # 必须字段
-                    current_fields = set(active_config["main_chart"]["fields"]) # 当前字段
-                    # Ensure required fields are included
+                if new_type == "K线图":
+                    required_fields = {"open", "low", "high", "close"}
+                    current_fields = set(st.session_state.config_key["main_chart"]["fields"])
+
+                    # 强制合并必选字段（不允许用户删除）
                     final_fields = list(current_fields.union(required_fields))
-                    self.logger.debug(f"final_fields = {final_fields}")
+
+                    # 渲染多选框（自动选中必选字段）
                     new_fields = st.multiselect(
                         "主图字段",
                         options=available_fields,
                         default=final_fields,
                         key=f"{st.session_state.strategy_id}_main_fields",
                         on_change=self._handle_config_change,
-                        args=(config_key, "main_fields"),
-                    )   
-                    
-                    # Check if user tried to deselect required fields
-                    if not required_fields.issubset(set(new_fields)):
-                        st.toast("警告: 折线图必须包含open, low, high, close字段", icon="⚠️")
-                        # Reset to include required fields
-                        st.session_state[f"{st.session_state.strategy_id}_main_fields"] = final_fields
+                        args=(st.session_state.config_key, "main_fields"),
+                    )
+
+                    # 关键：强制回写必选字段，防止用户删除
+                    st.session_state.config_key["main_chart"]["fields"] = list(set(new_fields).union(required_fields))
                 else:
                     new_fields = st.multiselect(
                         "主图字段",
                         options=available_fields,
-                        default=active_config["main_chart"]["fields"],
+                        default=st.session_state.config_key["main_chart"]["fields"],
                         key=f"{st.session_state.strategy_id}_main_fields",
                         on_change=self._handle_config_change,
-                        args=(config_key, "main_fields"),
+                        args=(st.session_state.config_key, "main_fields"),
                     )
+            
+            st.session_state.new_config["main_chart"]["type"] = new_type
+            st.session_state.new_config["main_chart"]["fields"] = new_fields
 
         # 渲染副图配置
         @st.fragment
@@ -482,13 +490,13 @@ class ChartService:
             """渲染副图配置选项"""
             show_sub = st.checkbox(
                 "显示副图",
-                value=active_config["sub_chart"]["show"],
+                value=st.session_state.config_key["sub_chart"]["show"],
                 key=f"{st.session_state.strategy_id}_show_sub",
                 on_change=self._handle_config_change,
-                args=(config_key, "show_sub"),
+                args=(st.session_state.config_key, "show_sub"),
             )
 
-            if active_config["sub_chart"]["show"]:
+            if st.session_state.config_key["sub_chart"]["show"]:
                 col3, col4 = st.columns(2)
                 with col3:
                     new_sub_type = st.selectbox(
@@ -496,21 +504,23 @@ class ChartService:
                         options=["柱状图", "折线图", "MACD"],
                         key=f"{st.session_state.strategy_id}_sub_type",
                         index=["柱状图", "折线图", "MACD"].index(
-                            active_config["sub_chart"]["type"]
+                            st.session_state.config_key["sub_chart"]["type"]
                         ),
                         on_change=self._handle_config_change,
-                        args=(config_key, "sub_type"),
+                        args=(st.session_state.config_key, "sub_type"),
                     )
                 with col4:
                     available_fields = self.data_bundle.get_all_columns()
                     new_sub_fields = st.multiselect(
                         "副图字段",
                         options=available_fields,
-                        default=active_config["sub_chart"]["fields"],
+                        default=st.session_state.config_key["sub_chart"]["fields"],
                         key=f"{st.session_state.strategy_id}_sub_fields",
                         on_change=self._handle_config_change,
-                        args=(config_key, "sub_fields"),
+                        args=(st.session_state.config_key, "sub_fields"),
                     )
+            st.session_state.new_config["sub_chart"]["type"] = new_sub_type
+            st.session_state.new_config["sub_chart"]["fields"] = new_sub_fields
 
         # 渲染保存和重置按钮，作图
         @st.fragment
@@ -521,10 +531,8 @@ class ChartService:
                 if st.button("💾 保存配置", key=f"save_{config_key}"):
 
                     # 直接使用session_state的最新值
-                    new_config = st.session_state[config_key]
-
-                    st.session_state[config_key].update(new_config)  # 更新保存的配置
-                    self.logger.debug(f"作图配置已保存：{new_config}")
+                    st.session_state[config_key].update(st.session_state.new_config)  # 更新保存的配置
+                    self.logger.debug(f"作图配置已保存：{st.session_state.config_key}")
                     st.session_state["need_redraw"] = True
 
                     # 使用更轻量的通知方式
@@ -550,24 +558,37 @@ class ChartService:
 
 
         # 版本驱动更新
-        if st.session_state.get("config_version") != active_config["version"]:
-            self._refresh_chart(active_config)
-            st.session_state.config_version = active_config["version"]
+        if st.session_state.get("config_version") != st.session_state.config_key["version"]:
+            self._refresh_chart(st.session_state.config_key)
+            st.session_state.config_version = st.session_state.config_key["version"]
 
         return self.figure
 
     @st.fragment
     def render_chart_button(self, config: dict):
         """渲染作图按钮"""
+
+           
+        
+        self.logger.debug(set(config["main_chart"]["fields"]))
+        
         if st.button("显示回测曲线", key="draw_backtest"):
-            # 确保配置已固化到会话状态
-            if "config_key" not in st.session_state:
-                st.session_state.config_key = ChartConfigManager._get_default_config()  # 初始化默认配置
-            
-            # 生成图表
-            # st.write(config)
-            fig = self.create_combined_chart(config)
-            st.write(fig)
+            REQUIRED_KLINE_FIELDS = {"open", "low", "high", "close"}
+            if (
+                config["main_chart"]["type"] == "K线图"
+                and not REQUIRED_KLINE_FIELDS.issubset(set(config["main_chart"]["fields"]))
+            ):
+                # 显示错误提示（支持 3 种方式）
+                st.toast(":red[错误] K线图必须包含 open/low/high/close 字段", icon="🔥")  # 轻量提示
+            else:
+                # 确保配置已固化到会话状态
+                if "config_key" not in st.session_state:
+                    st.session_state.config_key = ChartConfigManager._get_default_config()  # 初始化默认配置
+                
+                # 生成图表
+                # st.write(config)
+                fig = self.create_combined_chart(config)
+                st.write(fig)
 
     def create_interactive_chart(self) -> go.Figure:
         
@@ -642,29 +663,42 @@ class ChartService:
         }
         
         traces = []
-        graph_type = trace_type_map[config.get('type', '折线图')]
+        # graph_type = trace_type_map[config.get('type', '折线图')]
         style = config.get('style', {})
         
         count = 0
-        for field in config['fields']:
+        if config.get('type', '折线图') == 'K线图':
             count = count + 1
-            self.logger.debug(f"正在作图trace_{count},graph_type = {graph_type}, fields = {config['fields']}")
-            trace = graph_type(
-                x=data_source.index,
-                y=data_source[field],
-                name=f"{config['type']}-{field}",
-                line=dict(
-                    width=style.get('line_width', 1.2),
-                    color=style.get('color', '#1f77b4')
-                ) if graph_type == go.Scatter else None,
-                marker=dict(
-                    opacity=style.get('opacity', 0.6),
-                    color=style.get('color', '#ff7f0e')
-                ) if graph_type in [go.Bar, go.Candlestick] else None
-            )
+            # self.logger.debug(f"正在作图trace_{count},graph_type = {graph_type}, fields = {config['fields']}")
+            trace = self.draw_candle(data_source)
             traces.append((trace, is_secondary))
-        
+            self.logger.debug(f"my_trace is {trace}, my is_sec is {is_secondary}")
+        else:
+            for field in config['fields']: # 
+                count = count + 1
+                # self.logger.debug(f"正在作图trace_{count},graph_type = {graph_type}, fields = {config['fields']}")
+                
+                trace = go.Bar(
+                    x=data_source.index,
+                    y=data_source[field],
+                    name=f"{config['type']}-{field}",
+                    marker=dict(
+                        opacity=style.get('opacity', 0.6),
+                        color=style.get('color', '#ff7f0e')
+                    )
+                )
+                traces.append((trace, is_secondary))
+                self.logger.debug(f"my_trace is {trace}, my is_sec is {is_secondary}")
         return traces
+
+    def draw_candle(self, data):
+        return go.Candlestick(
+            x=data['date'].index,
+            open=data["open"],
+            high=data["high"],
+            low=data['low'],
+            close=data['close']
+        )
 
 
     def create_combined_chart(
@@ -719,8 +753,9 @@ class ChartService:
         """
         from plotly.subplots import make_subplots
 
-        fig = make_subplots(specs=[[{"secondary_y": config['sub_chart'].get('show', True)}]])
+        fig = make_subplots(shared_xaxes=True, specs=[[{"secondary_y": config['sub_chart'].get('show', True)}]])
         
+        # st.write(self.data_bundle.kline_data.index) # debug
         # 动态处理主副图配置
         chart_configs = [
             (config['main_chart'], self.data_bundle.kline_data, False),
@@ -732,11 +767,17 @@ class ChartService:
             if cfg and data is not None: # 有参数，有数据
                 for trace, is_secondary in self.create_traces(cfg, data, secondary):
                     fig.add_trace(trace, secondary_y=is_secondary)
+                    self.logger.debug(f"已添加{trace}")
         
-        # 统一样式配置（参考网页3/5）
         fig.update_layout(
             hovermode='x unified',
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            xaxis=dict(
+                title="时间",
+                tickvals=self.data_bundle.kline_data.index[::33],
+                ticktext=self.data_bundle.kline_data["date"][::33],
+                tickangle=45,
+            ),
             yaxis2=dict(
                 showgrid=config['sub_chart'].get('show', True),
                 title=config['sub_chart'].get('yaxis_name', 'Secondary Y'),

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>量化平台任务管理系统</title>
+    <style>
+        /* 保持原有折叠面板样式 */
+        .task-manager { max-width: 1000px; margin: 20px auto; }
+        .task-item { border-left: 3px solid #e0e0e0; margin: 5px 0 5px 15px; }
+        .task-header { padding: 12px; background: #f8f9fa; cursor: pointer; }
+        .task-content { max-height: 0; overflow: hidden; transition: max-height 0.3s; }
+        .expanded .task-content { max-height: 2000px; }
+
+        /* 新增导入按钮样式 */
+        .import-btn {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+    <div class="task-manager">
+        <button class="import-btn" onclick="document.getElementById('fileInput').click()">导入MD文件</button>
+        <input type="file" id="fileInput" accept=".md" onchange="handleFileSelect(event)">
+        <button id="global-control">全部展开</button>
+        <div id="taskContainer"></div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// Markdown渲染器配置[6,8](@ref)
+const renderer = new marked.Renderer();
+
+renderer.heading = (text, level) => {
+    const indent = level * 15;
+    return `
+    <div class="task-item" style="margin-left: ${indent}px">
+        <div class="task-header" onclick="toggleTask(this)">
+            <span class="task-title">${text}</span>
+            <span class="status-indicator">▶ 折叠</span>
+        </div>
+        <div class="task-content"></div>
+    </div>`;
+};
+
+renderer.listitem = (text) => {
+    return `<div class="subtask">${text}</div>`;
+};
+
+// 文件处理函数[9](@ref)
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const mdContent = e.target.result;
+        const htmlOutput = marked.parse(mdContent, { renderer });
+        
+        document.getElementById('taskContainer').innerHTML = htmlOutput;
+        bindToggleEvents();
+    };
+    reader.readAsText(file);
+}
+
+// 事件绑定
+function bindToggleEvents() {
+    document.querySelectorAll('.task-header').forEach(header => {
+        header.onclick = function() {
+            const taskItem = this.parentElement;
+            const isExpanded = taskItem.classList.toggle('expanded');
+            this.querySelector('.status-indicator').textContent = 
+                isExpanded ? "▼ 已展开" : "▶ 折叠";
+        };
+    });
+}
+
+// 全局展开控制（保持原有逻辑）
+let isAllExpanded = false;
+document.getElementById('global-control').addEventListener('click', () => {
+    const tasks = document.querySelectorAll('.task-item');
+    isAllExpanded = !isAllExpanded;
+    tasks.forEach(task => {
+        task.classList.toggle('expanded', isAllExpanded);
+        task.querySelector('.status-indicator').textContent = 
+            isAllExpanded ? "▼ 已展开" : "▶ 折叠";
+    });
+    document.getElementById('global-control').textContent = 
+        isAllExpanded ? '全部折叠' : '全部展开';
+});
+</script>
+</body>
+</html>

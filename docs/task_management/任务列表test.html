@@ -22,6 +22,9 @@
         }
         #fileInput { display: none; }
     </style>
+    <script src="marked.min.js"></script> <!-- 确保路径正确 -->
+    <script src="purify.min.js"></script> <!-- 确保路径正确 -->
+    
 </head>
 <body>
     <div class="task-manager">
@@ -31,43 +34,121 @@
         <div id="taskContainer"></div>
     </div>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-// Markdown渲染器配置[6,8](@ref)
+// 配置增强型Markdown渲染器
 const renderer = new marked.Renderer();
+let currentParent = null; // 确保全局变量已声明
+let lastLevel = 0;
 
+// 修复标题层级关系的逻辑
 renderer.heading = (text, level) => {
-    const indent = level * 15;
-    return `
-    <div class="task-item" style="margin-left: ${indent}px">
+    // 如果 text 是对象类型，提取其 text 属性
+    if (typeof text === 'object' && text.text) {
+        text = text.text;
+    }
+
+    const taskItem = document.createElement('div');
+    taskItem.className = 'task-item';
+    taskItem.innerHTML = `
         <div class="task-header" onclick="toggleTask(this)">
             <span class="task-title">${text}</span>
             <span class="status-indicator">▶ 折叠</span>
         </div>
         <div class="task-content"></div>
-    </div>`;
+    `;
+
+    // 动态调整层级关系
+    if (level > lastLevel && currentParent) {
+        const contentDiv = currentParent.querySelector('.task-content');
+        contentDiv.appendChild(taskItem);
+    } else if (level <= lastLevel) {
+        let parent = currentParent;
+        for (let i = 0; i < lastLevel - level + 1; i++) {
+            parent = parent?.parentElement?.closest('.task-item') || null;
+        }
+        if (parent) {
+            const contentDiv = parent.querySelector('.task-content');
+            contentDiv.appendChild(taskItem);
+        } else {
+            document.getElementById('taskContainer').appendChild(taskItem);
+        }
+    } else {
+        document.getElementById('taskContainer').appendChild(taskItem);
+    }
+    currentParent = taskItem;
+    lastLevel = level;
+    return ''; // 返回空字符串，避免重复插入 HTML
 };
 
-renderer.listitem = (text) => {
-    return `<div class="subtask">${text}</div>`;
+// 修复列表项解析逻辑
+renderer.listitem = (text, task, checked) => {
+    // 如果 text 是对象类型，提取其 text 属性
+    if (typeof text === 'object' && text.text) {
+        text = text.text;
+    }
+
+    const li = document.createElement('div');
+    li.className = 'subtask-item';
+
+    // 根据传入的 task 和 checked 参数设置复选框状态
+    li.innerHTML = `
+        <label class="task-checkbox">
+            <input type="checkbox" ${task && checked ? 'checked' : ''}>
+            <span>${text}</span>
+        </label>
+    `;
+
+    // 确保正确的父子关系
+    if (currentParent) {
+        const contentDiv = currentParent.querySelector('.task-content');
+        contentDiv.appendChild(li);
+    }
+    return ''; // 返回空字符串，避免重复插入 HTML
 };
 
-// 文件处理函数[9](@ref)
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-        const mdContent = e.target.result;
-        const htmlOutput = marked.parse(mdContent, { renderer });
-        
-        document.getElementById('taskContainer').innerHTML = htmlOutput;
-        bindToggleEvents();
-    };
-    reader.readAsText(file);
+// 修复文件上传逻辑
+async function handleFileSelect(event) {
+    try {
+        const file = event.target.files[0];
+        if (!file || !file.name.endsWith('.md')) {
+            throw new Error('请选择有效的 .md 文件');
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const mdContent = e.target.result;
+
+            // 初始化解析状态
+            currentParent = null; // 确保每次解析前初始化
+            lastLevel = 0;
+
+            // 检查 DOMPurify 是否正确加载
+            if (typeof DOMPurify === 'undefined') {
+                throw new Error('DOMPurify 未正确加载，请检查依赖');
+            }
+
+            // 安全解析 Markdown 内容
+            const sanitizedContent = DOMPurify.sanitize(mdContent);
+
+            // 使用 marked 解析 Markdown 内容
+            marked.parse(sanitizedContent, {
+                renderer,
+                gfm: true,
+                breaks: true,
+                smartLists: true
+            });
+
+            // 绑定交互事件
+            bindToggleEvents();
+        };
+        reader.readAsText(file);
+    } catch (error) {
+        console.error('文件处理失败:', error);
+        alert(`上传失败: ${error.message}`);
+    }
 }
 
-// 事件绑定
+// 修复事件绑定逻辑
 function bindToggleEvents() {
     document.querySelectorAll('.task-header').forEach(header => {
         header.onclick = function() {

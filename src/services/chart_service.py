@@ -573,6 +573,7 @@ class ChartService:
         self.logger.debug(set(config["main_chart"]["fields"]))
         
         if st.button("显示回测曲线", key="draw_backtest"):
+            ma_traces = self.render_ma()
             REQUIRED_KLINE_FIELDS = {"open", "low", "high", "close"}
             if (
                 config["main_chart"]["type"] == "K线图"
@@ -586,8 +587,9 @@ class ChartService:
                     st.session_state.config_key = ChartConfigManager._get_default_config()  # 初始化默认配置
                 
                 # 生成图表
-                # st.write(config)
                 fig = self.create_combined_chart(config)
+                for trace in ma_traces:
+                  fig.add_trace(trace)
                 st.write(fig)
 
     def create_interactive_chart(self) -> go.Figure:
@@ -670,7 +672,7 @@ class ChartService:
         if config.get('type', '折线图') == 'K线图':
             count = count + 1
             # self.logger.debug(f"正在作图trace_{count},graph_type = {graph_type}, fields = {config['fields']}")
-            trace = self.draw_candle(data_source)
+            trace = self.drawCandlestick(data_source)
             traces.append((trace, is_secondary))
             self.logger.debug(f"my_trace is {trace}, my is_sec is {is_secondary}")
         else:
@@ -690,15 +692,6 @@ class ChartService:
                 traces.append((trace, is_secondary))
                 self.logger.debug(f"my_trace is {trace}, my is_sec is {is_secondary}")
         return traces
-
-    def draw_candle(self, data):
-        return go.Candlestick(
-            x=data['date'].index,
-            open=data["open"],
-            high=data["high"],
-            low=data['low'],
-            close=data['close']
-        )
 
 
     def create_combined_chart(
@@ -778,7 +771,13 @@ class ChartService:
                 ticktext=self.data_bundle.kline_data["date"][::33],
                 tickangle=45,
             ),
+            yaxis1=dict(
+                fixedrange=False, # 不固定Y轴范围
+                
+                title="price"), # bug:需要调整
+            
             yaxis2=dict(
+                fixedrange=False, # 不固定Y轴范围
                 showgrid=config['sub_chart'].get('show', True),
                 title=config['sub_chart'].get('yaxis_name', 'Secondary Y'),
                 visible=config['sub_chart'].get('show', True)
@@ -802,6 +801,24 @@ class ChartService:
         )
 
         return self.figure
+
+    def drawMA(self, data: DataFrame, periods: List[int]):
+        """绘制均线
+        input: data , periods
+        output: [trace]
+        """
+        traces = []
+        for period in periods:
+            ma = data["close"].rolling(window=period).mean()
+            traces.append(
+                go.Scatter(
+                    x=data.index,
+                    y=ma,
+                    name=f"MA{period}",
+                    line=dict(width=1), # bug: 线宽
+                )
+            )
+        return traces
 
     def drawMACD(self, fast=12, slow=26, signal=9):
         """绘制MACD指标"""
@@ -909,47 +926,68 @@ class ChartService:
         )
         st.plotly_chart(fig)
 
-    def drawCandlestick(self):
+    def drawCandlestick(self, data):
         """绘制K线图"""
         # 初始化主题
+        current_theme = self._select_theme()
+
+        
+        trace = go.Candlestick(
+            x=data['date'].index,
+            open=data["open"],
+            high=data["high"],
+            low=data["low"],
+            close=data["close"],
+            name="K线",
+        )
+
+        return trace
+
+    def _select_theme(self):
+        """主题选择组件"""
+
         theme_manager = ThemeManager()
-        current_theme = st.selectbox(
+        return st.selectbox(
             "主题模式", options=list(theme_manager.themes.keys()), index=0
         )
-        show_ma = st.checkbox("显示均线", value=True)
-        ma_periods = st.multiselect(
-            "均线周期", options=[5, 10, 20, 30, 60], default=[5, 10, 20]
+
+    def render_ma(self):
+        """均线组件"""
+        # 初始化会话状态
+        if "show_ma" not in st.session_state:
+            st.session_state.show_ma = True
+        if "ma_periods" not in st.session_state:
+            st.session_state.ma_periods = [5, 10, 20]
+
+        # 回调函数避免不必要的 rerun  # bug:未解决rerun
+        def update_ma_state():
+            st.session_state.show_ma = st.session_state["show_ma_checkbox"]
+            st.session_state.ma_periods = st.session_state["ma_periods_select"]
+
+        # 均线组件
+        st.checkbox(
+            "显示均线",
+            value=st.session_state.show_ma,
+            key="show_ma_checkbox",
+            on_change=update_ma_state,
         )
-        # print(self.data_bundle.kline_data.dtypes)#debug
-        # 初始化画布
-        fig = go.Figure()
-        fig.add_trace(
-            go.Candlestick(
-                x=self.data_bundle.kline_data['combined_time'],
-                open=self.data_bundle.kline_data["open"],
-                high=self.data_bundle.kline_data["high"],
-                low=self.data_bundle.kline_data["low"],
-                close=self.data_bundle.kline_data["close"],
-                name="K线",
-            )
+
+        st.multiselect(
+            "均线周期",
+            options=[5, 10, 20, 30, 60],
+            default=st.session_state.ma_periods,
+            key="ma_periods_select",
+            on_change=update_ma_state,
         )
-        fig = theme_manager.apply_theme(fig, current_theme)
-        if show_ma and ma_periods:
-            pass  # 后续补充MA作图
-            # for period in ma_periods:
-            #     ma = self.data_bundle.kline_data["close"].rolling(period).mean()
-            #     fig.add_trace(
-            #         go.Scatter(
-            #             x=self.data_bundle.kline_data['combined_time'],
-            #             y=ma,
-            #             name=f"MA{period}",
-            #             line=dict(width=1),
-            #             opacity=0.7,
-            #         )
-            #     )
-        fig.update_layout(title="K线图", xaxis_title="时间", yaxis_title="价格")
-        
-        return fig
+
+        ma_traces = []
+        if st.session_state.show_ma:
+            ma_traces = self.drawMA(self.data_bundle.kline_data, st.session_state.ma_periods)
+
+        if not ma_traces and st.session_state.show_ma:
+            st.warning("请至少选择一个均线周期")
+        return ma_traces
+
 
     def drawRSI(self, data, window=14):
         """绘制相对强弱指数(RSI)"""

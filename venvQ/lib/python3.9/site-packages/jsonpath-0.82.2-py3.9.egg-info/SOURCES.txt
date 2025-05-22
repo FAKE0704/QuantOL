@@ -1,0 +1,16 @@
+CHANGELOG
+MANIFEST.in
+README
+jsonpath.py
+setup.cfg
+setup.py
+jsonpath.egg-info/PKG-INFO
+jsonpath.egg-info/SOURCES.txt
+jsonpath.egg-info/dependency_links.txt
+jsonpath.egg-info/top_level.txt
+test/jsonmatch.py
+test/jsonpath.py
+test/test1.py
+test/test2.py
+test/test3.py
+test/test4.py

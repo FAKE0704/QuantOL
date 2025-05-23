@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>量化平台任务管理系统</title>
+    <style>
+        .task-manager { max-width: 1000px; margin: 20px auto; }
+        .task-item { 
+            border-left: 3px solid #e0e0e0; 
+            margin: 5px 0 5px 15px; 
+        }
+        .task-item .task-item { 
+            border-left-color: #a5d6a7;
+            margin-left: 30px;
+        }
+        .task-item .task-item .task-item { 
+            border-left-color: #81c784;
+            margin-left: 45px;
+        }
+        .task-header { 
+            padding: 12px; 
+            background: #f8f9fa; 
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        /* 确保子任务默认隐藏 */
+        .task-content {
+            display: none;
+            overflow: hidden;
+        }
+        .task-item.expanded > .task-content {
+            display: block;
+        }
+
+        .import-btn {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #fileInput { display: none; }
+    </style>
+    <script src="marked.min.js"></script>
+    <script src="purify.min.js"></script>
+</head>
+<body>
+    <div class="task-manager">
+        <button class="import-btn" onclick="document.getElementById('fileInput').click()">导入MD文件</button>
+        <input type="file" id="fileInput" accept=".md" onchange="handleFileSelect(event)">
+        <button id="globalToggle">全部展开</button>
+        <div id="taskContainer"></div>
+    </div>
+
+<script>
+const renderer = new marked.Renderer();
+let parentStack = [];
+let currentLevelCounters = [0, 0, 0, 0, 0, 0]; // 当前标题的计数器
+let globalLevelCounters = [0, 0, 0, 0, 0, 0]; // 全局计数器
+
+renderer.heading = function(text) {
+    // 参数处理
+    let level = 1;
+    try {
+        // 处理marked.js v15+对象格式
+        if (text && typeof text === 'object' && 'depth' in text) {
+            level = text.depth;
+            console.log('使用对象depth属性:', level, '标题:', text.text);
+        } 
+        // 处理字符串格式
+        else {
+            const str = (text || '').toString();
+            const match = str.match(/^#+/);
+            level = match ? match[0].length : 1;
+            console.log('从文本提取层级:', level, '标题:', str);
+        }
+    } catch (e) {
+        console.error('解析heading参数出错:', e);
+    }
+
+    // 确保text是字符串
+    const titleText = typeof text === 'string' ? text.trim() : 
+                     (text.text || JSON.stringify(text)).trim();
+    
+    // 处理层级变化
+    level = Math.max(1, Math.min(level, 6)); // 限制1-6范围
+    
+    // 一级标题重置计数器
+    if (level === 1) {
+        console.log('遇到一级标题，重置parentStack和计数器');
+        parentStack = [];
+        globalLevelCounters[0]++; // 递增全局一级标题计数器
+        currentLevelCounters = [globalLevelCounters[0], 0, 0, 0, 0, 0]; // 使用全局计数器值
+    } else {
+        // 更新当前层级计数器
+        currentLevelCounters[level - 1]++;
+        // 重置子级计数器
+        for (let i = level; i < 6; i++) {
+            currentLevelCounters[i] = 0;
+        }
+    }
+    
+    // 生成序号
+    let prefix = '';
+    for (let i = 0; i < level; i++) {
+        if (currentLevelCounters[i] > 0) {
+            prefix += currentLevelCounters[i] + '.';
+        }
+    }
+    prefix = prefix.slice(0, -1); // 去除末尾的点
+    
+    // 创建标题容器
+    const taskItem = document.createElement('div');
+    taskItem.className = 'task-item';
+    taskItem.innerHTML = `
+        <div class="task-header" onclick="toggleTask(this)">
+            <span class="task-title">${prefix} ${titleText.replace(/^#+\s*/, '')}</span>
+            <span class="status-indicator">▶ 折叠</span>
+        </div>
+        <div class="task-content"></div>
+    `;
+    
+    console.log('最终层级:', level, '序号:', prefix, '标题:', titleText);
+    
+    // 其他层级标题处理
+    if (level !== 1) {
+        // 清除同级或更高层级
+        while (parentStack.length >= level) {
+            const popped = parentStack.pop();
+            console.log(`弹出层级${parentStack.length + 1}: ${popped?.querySelector('.task-title')?.textContent}`);
+        }
+        
+        // 确保有有效的父级
+        if (parentStack.length < level - 1) {
+            console.warn(`层级跳转: 当前${level}, 需要父级${level-1}, 实际只有${parentStack.length}`);
+            level = parentStack.length + 1; // 自动修正层级
+        }
+    }
+    
+    console.log(`当前层级: ${level}, parentStack长度: ${parentStack.length}`);
+    
+    // 获取父级容器
+    let parent;
+    if (parentStack.length > 0) {
+        parent = parentStack[parentStack.length-1].querySelector('.task-content');
+    } else {
+        parent = document.getElementById('taskContainer');
+    }
+    
+    if (!parent) {
+        console.error('无法找到父级容器');
+        return '';
+    }
+    
+    parent.appendChild(taskItem);
+    parentStack.push(taskItem);
+    
+    return '';
+};
+
+renderer.listitem = (text) => {
+    // 确保text是字符串
+    const itemText = typeof text === 'string' ? text : 
+                    (text.text || JSON.stringify(text));
+    
+    // 只处理任务项（包含[ ]的项）
+    if (!itemText.includes('[ ]')) return '';
+
+    const taskItem = document.createElement('div');
+    taskItem.className = 'task-item';
+    taskItem.innerHTML = `
+        <div class="task-header" onclick="toggleTask(this)">
+            <span class="task-title">${itemText.replace('[ ]', '')}</span>
+            <span class="status-indicator">▶ 折叠</span>
+        </div>
+        <div class="task-content"></div>
+    `;
+
+    // 从栈中获取当前父级
+    const parent = parentStack.length > 0 ? 
+        parentStack[parentStack.length-1].querySelector('.task-content') : 
+        document.getElementById('taskContainer');
+    
+    if (parent) {
+        parent.appendChild(taskItem);
+    } else {
+        console.error('找不到父级容器');
+    }
+    
+    return '';
+};
+
+async function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('taskContainer').innerHTML = '';
+        parentStack = [];
+
+        const mdContent = DOMPurify.sanitize(e.target.result);
+        marked.parse(mdContent, {
+            renderer,
+            gfm: true,
+            breaks: true
+        });
+
+        // 初始化所有任务为折叠状态
+        document.querySelectorAll('.task-item').forEach(item => {
+            item.classList.remove('expanded');
+        });
+    };
+    reader.readAsText(file);
+}
+
+function toggleTask(header) {
+    console.log('触发点击事件，目标:', header);
+    const taskItem = header.parentElement;
+    const wasExpanded = taskItem.classList.contains('expanded');
+    console.log('当前状态:', wasExpanded ? '已展开' : '已折叠');
+    
+    // 调试DOM结构
+    const contentDiv = taskItem.querySelector('.task-content');
+    const childTasks = contentDiv.querySelectorAll(':scope > .task-item');
+    console.log('子元素数量:', childTasks.length);
+    console.log('计算样式:', window.getComputedStyle(contentDiv).display);
+
+    // 先收起所有子项
+    if(wasExpanded) {
+        childTasks.forEach(child => {
+            child.classList.remove('expanded');
+            const indicator = child.querySelector('.status-indicator');
+            if(indicator) indicator.textContent = "▶ 折叠";
+        });
+    }
+    
+    // 切换当前项状态
+    taskItem.classList.toggle('expanded');
+    const newState = taskItem.classList.contains('expanded');
+    console.log('切换后状态:', newState ? '已展开' : '已折叠');
+    
+    const indicator = header.querySelector('.status-indicator');
+    if(indicator) {
+        indicator.textContent = newState ? "▼ 已展开" : "▶ 折叠";
+    }
+
+    // 强制重绘
+    contentDiv.style.display = 'none';
+    setTimeout(() => {
+        contentDiv.style.display = newState ? 'block' : 'none';
+    }, 10);
+}
+
+// 递归展开/折叠所有子项
+function setAllExpanded(expanded) {
+    const tasks = document.querySelectorAll('.task-item');
+    tasks.forEach(task => {
+        // 展开/折叠当前项
+        task.classList.toggle('expanded', expanded);
+        
+        // 更新状态指示器
+        const indicator = task.querySelector('.status-indicator');
+        if (indicator) {
+            indicator.textContent = expanded ? "▼ 已展开" : "▶ 折叠";
+        }
+        
+        // 强制显示/隐藏内容区域
+        const content = task.querySelector('.task-content');
+        if (content) {
+            content.style.display = expanded ? 'block' : 'none';
+        }
+    });
+}
+
+// 全局展开/折叠控制
+let isAllExpanded = false;
+document.getElementById('globalToggle').addEventListener('click', () => {
+    isAllExpanded = !isAllExpanded;
+    setAllExpanded(isAllExpanded);
+    document.getElementById('globalToggle').textContent = 
+        isAllExpanded ? '全部折叠' : '全部展开';
+});
+</script>
+</body>
+</html>

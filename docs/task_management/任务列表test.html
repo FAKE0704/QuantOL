@@ -4,14 +4,36 @@
     <meta charset="UTF-8">
     <title>量化平台任务管理系统</title>
     <style>
-        /* 保持原有折叠面板样式 */
         .task-manager { max-width: 1000px; margin: 20px auto; }
-        .task-item { border-left: 3px solid #e0e0e0; margin: 5px 0 5px 15px; }
-        .task-header { padding: 12px; background: #f8f9fa; cursor: pointer; }
-        .task-content { max-height: 0; overflow: hidden; transition: max-height 0.3s; }
-        .expanded .task-content { max-height: 2000px; }
+        .task-item { 
+            border-left: 3px solid #e0e0e0; 
+            margin: 5px 0 5px 15px; 
+        }
+        .task-item .task-item { 
+            border-left-color: #a5d6a7;
+            margin-left: 30px;
+        }
+        .task-item .task-item .task-item { 
+            border-left-color: #81c784;
+            margin-left: 45px;
+        }
+        .task-header { 
+            padding: 12px; 
+            background: #f8f9fa; 
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        /* 确保子任务默认隐藏 */
+        .task-content {
+            display: none;
+            overflow: hidden;
+        }
+        .task-item.expanded > .task-content {
+            display: block;
+        }
 
-        /* 新增导入按钮样式 */
         .import-btn {
             padding: 10px 20px;
             background: #4CAF50;
@@ -22,147 +44,134 @@
         }
         #fileInput { display: none; }
     </style>
-    <script src="marked.min.js"></script> <!-- 确保路径正确 -->
-    <script src="purify.min.js"></script> <!-- 确保路径正确 -->
-    
+    <script src="marked.min.js"></script>
+    <script src="purify.min.js"></script>
 </head>
 <body>
     <div class="task-manager">
         <button class="import-btn" onclick="document.getElementById('fileInput').click()">导入MD文件</button>
         <input type="file" id="fileInput" accept=".md" onchange="handleFileSelect(event)">
-        <button id="global-control">全部展开</button>
+        <button id="globalToggle">全部展开</button>
         <div id="taskContainer"></div>
     </div>
 
 <script>
-// 配置增强型Markdown渲染器
 const renderer = new marked.Renderer();
-let currentParent = null; // 确保全局变量已声明
+let currentParent = null;
 let lastLevel = 0;
 
-// 修复标题层级关系的逻辑
 renderer.heading = (text, level) => {
-    // 如果 text 是对象类型，提取其 text 属性
-    if (typeof text === 'object' && text.text) {
-        text = text.text;
-    }
-
+    // 确保text是字符串
+    const titleText = typeof text === 'string' ? text : 
+                     (text.text || JSON.stringify(text));
+    
     const taskItem = document.createElement('div');
     taskItem.className = 'task-item';
     taskItem.innerHTML = `
         <div class="task-header" onclick="toggleTask(this)">
-            <span class="task-title">${text}</span>
+            <span class="task-title">${titleText}</span>
             <span class="status-indicator">▶ 折叠</span>
         </div>
         <div class="task-content"></div>
     `;
 
-    // 动态调整层级关系
-    if (level > lastLevel && currentParent) {
-        const contentDiv = currentParent.querySelector('.task-content');
-        contentDiv.appendChild(taskItem);
-    } else if (level <= lastLevel) {
-        let parent = currentParent;
-        for (let i = 0; i < lastLevel - level + 1; i++) {
-            parent = parent?.parentElement?.closest('.task-item') || null;
-        }
-        if (parent) {
-            const contentDiv = parent.querySelector('.task-content');
-            contentDiv.appendChild(taskItem);
-        } else {
-            document.getElementById('taskContainer').appendChild(taskItem);
-        }
-    } else {
+    // 处理层级关系
+    if (!currentParent) {
+        // 第一个任务项
         document.getElementById('taskContainer').appendChild(taskItem);
+    } else if (level > lastLevel) {
+        // 子级任务 - 确保添加到content容器
+        const contentDiv = currentParent.querySelector('.task-content');
+        if (!contentDiv) {
+            console.error('找不到.task-content容器');
+            document.getElementById('taskContainer').appendChild(taskItem);
+        } else {
+            contentDiv.appendChild(taskItem);
+        }
+    } else if (level <= lastLevel) {
+        // 同级或更高级任务
+        let parent = currentParent;
+        const levelDiff = lastLevel - level;
+        
+        // 向上查找合适的父级
+        for (let i = 0; i <= levelDiff; i++) {
+            parent = parent.parentElement.closest('.task-item') || 
+                    document.getElementById('taskContainer');
+        }
+        parent.appendChild(taskItem);
     }
+    
     currentParent = taskItem;
     lastLevel = level;
-    return ''; // 返回空字符串，避免重复插入 HTML
+    return '';
 };
 
-// 修复列表项解析逻辑
-renderer.listitem = (text, task, checked) => {
-    // 如果 text 是对象类型，提取其 text 属性
-    if (typeof text === 'object' && text.text) {
-        text = text.text;
-    }
-
-    const li = document.createElement('div');
-    li.className = 'subtask-item';
-
-    // 根据传入的 task 和 checked 参数设置复选框状态
-    li.innerHTML = `
-        <label class="task-checkbox">
-            <input type="checkbox" ${task && checked ? 'checked' : ''}>
-            <span>${text}</span>
-        </label>
-    `;
-
-    // 确保正确的父子关系
-    if (currentParent) {
-        const contentDiv = currentParent.querySelector('.task-content');
-        contentDiv.appendChild(li);
-    }
-    return ''; // 返回空字符串，避免重复插入 HTML
-};
-
-// 修复文件上传逻辑
 async function handleFileSelect(event) {
-    try {
-        const file = event.target.files[0];
-        if (!file || !file.name.endsWith('.md')) {
-            throw new Error('请选择有效的 .md 文件');
-        }
+    const file = event.target.files[0];
+    if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const mdContent = e.target.result;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        document.getElementById('taskContainer').innerHTML = '';
+        currentParent = null;
+        lastLevel = 0;
 
-            // 初始化解析状态
-            currentParent = null; // 确保每次解析前初始化
-            lastLevel = 0;
+        const mdContent = DOMPurify.sanitize(e.target.result);
+        marked.parse(mdContent, {
+            renderer,
+            gfm: true,
+            breaks: true
+        });
 
-            // 检查 DOMPurify 是否正确加载
-            if (typeof DOMPurify === 'undefined') {
-                throw new Error('DOMPurify 未正确加载，请检查依赖');
-            }
+        // 初始化所有任务为折叠状态
+        document.querySelectorAll('.task-item').forEach(item => {
+            item.classList.remove('expanded');
+        });
+    };
+    reader.readAsText(file);
+}
 
-            // 安全解析 Markdown 内容
-            const sanitizedContent = DOMPurify.sanitize(mdContent);
+function toggleTask(header) {
+    console.log('触发点击事件，目标:', header);
+    const taskItem = header.parentElement;
+    const wasExpanded = taskItem.classList.contains('expanded');
+    console.log('当前状态:', wasExpanded ? '已展开' : '已折叠');
+    
+    // 调试DOM结构
+    const contentDiv = taskItem.querySelector('.task-content');
+    const childTasks = contentDiv.querySelectorAll(':scope > .task-item');
+    console.log('子元素数量:', childTasks.length);
+    console.log('计算样式:', window.getComputedStyle(contentDiv).display);
 
-            // 使用 marked 解析 Markdown 内容
-            marked.parse(sanitizedContent, {
-                renderer,
-                gfm: true,
-                breaks: true,
-                smartLists: true
-            });
-
-            // 绑定交互事件
-            bindToggleEvents();
-        };
-        reader.readAsText(file);
-    } catch (error) {
-        console.error('文件处理失败:', error);
-        alert(`上传失败: ${error.message}`);
+    // 先收起所有子项
+    if(wasExpanded) {
+        childTasks.forEach(child => {
+            child.classList.remove('expanded');
+            const indicator = child.querySelector('.status-indicator');
+            if(indicator) indicator.textContent = "▶ 折叠";
+        });
     }
+    
+    // 切换当前项状态
+    taskItem.classList.toggle('expanded');
+    const newState = taskItem.classList.contains('expanded');
+    console.log('切换后状态:', newState ? '已展开' : '已折叠');
+    
+    const indicator = header.querySelector('.status-indicator');
+    if(indicator) {
+        indicator.textContent = newState ? "▼ 已展开" : "▶ 折叠";
+    }
+
+    // 强制重绘
+    contentDiv.style.display = 'none';
+    setTimeout(() => {
+        contentDiv.style.display = newState ? 'block' : 'none';
+    }, 10);
 }
 
-// 修复事件绑定逻辑
-function bindToggleEvents() {
-    document.querySelectorAll('.task-header').forEach(header => {
-        header.onclick = function() {
-            const taskItem = this.parentElement;
-            const isExpanded = taskItem.classList.toggle('expanded');
-            this.querySelector('.status-indicator').textContent = 
-                isExpanded ? "▼ 已展开" : "▶ 折叠";
-        };
-    });
-}
-
-// 全局展开控制（保持原有逻辑）
+// 全局展开/折叠控制
 let isAllExpanded = false;
-document.getElementById('global-control').addEventListener('click', () => {
+document.getElementById('globalToggle').addEventListener('click', () => {
     const tasks = document.querySelectorAll('.task-item');
     isAllExpanded = !isAllExpanded;
     tasks.forEach(task => {
@@ -170,7 +179,7 @@ document.getElementById('global-control').addEventListener('click', () => {
         task.querySelector('.status-indicator').textContent = 
             isAllExpanded ? "▼ 已展开" : "▶ 折叠";
     });
-    document.getElementById('global-control').textContent = 
+    document.getElementById('globalToggle').textContent = 
         isAllExpanded ? '全部折叠' : '全部展开';
 });
 </script>

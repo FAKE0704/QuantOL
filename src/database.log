@@ -714,3 +714,838 @@
                 Decimal('16757'), Decimal('19195'), Decimal('5420')],
                shape=(1432,), dtype=object)
 })
+[2025-05-21 18:43:05,314] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4389685472
+[2025-05-21 18:43:05,315] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-21 18:43:05,441] [INFO] [database:133] [conn:5646538400] 数据库表结构初始化完成
+[2025-05-21 18:43:05,442] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-21 18:43:05,442] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-21 18:43:05,442] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-21 18:43:08,383] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-21 18:43:08,384] [DEBUG] [database:359] [conn:5647843232] 当前活跃连接数: 1
+[2025-05-21 18:43:08,384] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-21 18:44:11,232] [INFO] [database:245] [conn:N/A] Loading stock data for sh.000002 from 20250423 to 20250521
+[2025-05-21 18:44:11,233] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-21 18:44:11,233] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.000002 from 20250423 to 20250521
+[2025-05-21 18:44:11,519] [INFO] [database:214] [conn:N/A] Missing_dates {datetime.date(2025, 5, 13), datetime.date(2025, 5, 20), datetime.date(2025, 4, 25), datetime.date(2025, 5, 6), datetime.date(2025, 4, 24), datetime.date(2025, 5, 19), datetime.date(2025, 5, 15), datetime.date(2025, 5, 7), datetime.date(2025, 4, 29), datetime.date(2025, 4, 23), datetime.date(2025, 5, 16), datetime.date(2025, 4, 30), datetime.date(2025, 4, 28), datetime.date(2025, 5, 8), datetime.date(2025, 5, 9), datetime.date(2025, 5, 14), datetime.date(2025, 5, 12)} for sh.000002
+[2025-05-21 18:44:11,520] [INFO] [database:234] [conn:N/A] Found 5 missing data ranges for sh.000002
+[2025-05-21 18:44:11,552] [INFO] [database:256] [conn:N/A] Fetching missing data ranges for sh.000002
+[2025-05-21 18:44:11,556] [ERROR] [database:294] [conn:N/A] Failed to load stock data: No module named 'baostock'
+[2025-05-22 16:23:44,314] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4408930896
+[2025-05-22 16:23:44,315] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 16:23:44,365] [INFO] [database:133] [conn:4689825360] 数据库表结构初始化完成
+[2025-05-22 16:23:44,365] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 16:23:44,365] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 16:23:44,365] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 16:23:46,649] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 16:23:46,649] [DEBUG] [database:359] [conn:4696587232] 当前活跃连接数: 1
+[2025-05-22 16:23:46,649] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 16:23:52,860] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 16:23:52,860] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 16:23:52,860] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 16:23:52,893] [INFO] [database:214] [conn:N/A] Missing_dates {datetime.date(2025, 5, 21), datetime.date(2025, 5, 20), datetime.date(2025, 5, 19)} for sh.688603
+[2025-05-22 16:23:52,893] [INFO] [database:234] [conn:N/A] Found 1 missing data ranges for sh.688603
+[2025-05-22 16:23:52,905] [INFO] [database:256] [conn:N/A] Fetching missing data ranges for sh.688603
+[2025-05-22 16:23:52,905] [ERROR] [database:294] [conn:N/A] Failed to load stock data: No module named 'baostock'
+[2025-05-22 16:24:14,938] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4369430416
+[2025-05-22 16:24:14,938] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 16:24:14,982] [INFO] [database:133] [conn:4788949344] 数据库表结构初始化完成
+[2025-05-22 16:24:14,982] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 16:24:14,982] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 16:24:14,982] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 16:24:16,200] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 16:24:16,205] [DEBUG] [database:359] [conn:4706211344] 当前活跃连接数: 1
+[2025-05-22 16:24:16,205] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 16:24:20,129] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 16:24:20,129] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 16:24:20,129] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 16:24:20,159] [INFO] [database:214] [conn:N/A] Missing_dates {datetime.date(2025, 5, 19), datetime.date(2025, 5, 21), datetime.date(2025, 5, 20)} for sh.688603
+[2025-05-22 16:24:20,159] [INFO] [database:234] [conn:N/A] Found 1 missing data ranges for sh.688603
+[2025-05-22 16:24:20,170] [INFO] [database:256] [conn:N/A] Fetching missing data ranges for sh.688603
+[2025-05-22 16:24:20,176] [INFO] [database:261] [conn:N/A] Fetching data from 20250519 to 20250521
+[2025-05-22 16:24:20,446] [INFO] [database:566] [conn:N/A] 成功保存sh.688603的5频率数据，共143条记录
+[2025-05-22 16:24:20,542] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 16:24:20,580] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 1073edc7-3ea1-4d23-a473-a17a58b55c86 | 名称: 月定投策略
+[2025-05-22 16:24:30,858] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 16:24:30,861] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 16:24:30,861] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 16:24:30,873] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 1073edc7-3ea1-4d23-a473-a17a58b55c86
+[2025-05-22 16:24:30,874] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 16:24:30,874] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 1073edc7-3ea1-4d23-a473-a17a58b55c86
+[2025-05-22 16:24:30,874] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 16:24:30,874] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 16:24:30,874] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 16:24:30,874] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 16:24:31,844] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 1073edc7-3ea1-4d23-a473-a17a58b55c86
+[2025-05-22 16:24:31,844] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 16:24:31,844] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 1073edc7-3ea1-4d23-a473-a17a58b55c86
+[2025-05-22 16:24:31,845] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 16:24:31,845] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 16:24:31,845] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 16:24:32,407] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 16:30:55,019] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['open', 'low', 'high', 'close'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 16:30:56,177] [DEBUG] [chart_service:573] [conn:N/A] {'high', 'open', 'low', 'close'}
+[2025-05-22 16:30:56,229] [DEBUG] [chart_service:675] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 16:30:56,231] [DEBUG] [chart_service:770] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 16:30:56,238] [DEBUG] [chart_service:691] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 16:30:56,239] [DEBUG] [chart_service:770] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 16:31:10,765] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['open', 'low', 'high', 'close'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 16:31:12,253] [DEBUG] [chart_service:573] [conn:N/A] {'high', 'open', 'low', 'close'}
+[2025-05-22 16:31:12,270] [DEBUG] [chart_service:675] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 16:31:12,271] [DEBUG] [chart_service:770] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 16:31:12,272] [DEBUG] [chart_service:691] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 16:31:12,274] [DEBUG] [chart_service:691] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-high',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57])
+}), my is_sec is True
+[2025-05-22 16:31:12,276] [DEBUG] [chart_service:770] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 16:31:12,278] [DEBUG] [chart_service:770] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-high',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57])
+})
+[2025-05-22 16:56:51,515] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 16:56:51,517] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 16:56:51,517] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 16:56:51,636] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 16:56:51,636] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 16:56:51,783] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 16:56:51,815] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 6be5cecf-aa5d-442a-aed5-5c4849f96e3c | 名称: 月定投策略
+[2025-05-22 16:57:02,206] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 16:57:02,210] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 16:57:02,210] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 16:57:02,220] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 6be5cecf-aa5d-442a-aed5-5c4849f96e3c
+[2025-05-22 16:57:02,221] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 16:57:02,221] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 6be5cecf-aa5d-442a-aed5-5c4849f96e3c
+[2025-05-22 16:57:02,221] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 16:57:02,223] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 16:57:02,223] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 16:57:02,223] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 16:57:03,097] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 6be5cecf-aa5d-442a-aed5-5c4849f96e3c
+[2025-05-22 16:57:03,098] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 16:57:03,098] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 6be5cecf-aa5d-442a-aed5-5c4849f96e3c
+[2025-05-22 16:57:03,098] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 16:57:03,098] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 16:57:03,098] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 16:57:03,589] [DEBUG] [chart_service:573] [conn:N/A] {'high', 'open', 'low', 'close'}
+[2025-05-22 16:57:10,654] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['open', 'low', 'high', 'close'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 16:57:11,936] [DEBUG] [chart_service:573] [conn:N/A] {'high', 'open', 'low', 'close'}
+[2025-05-22 16:57:11,957] [DEBUG] [chart_service:675] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 16:57:11,961] [DEBUG] [chart_service:770] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 16:57:11,963] [DEBUG] [chart_service:691] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 16:57:11,966] [DEBUG] [chart_service:770] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 16:59:33,885] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4338272672
+[2025-05-22 16:59:33,886] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 16:59:33,926] [INFO] [database:133] [conn:4672157200] 数据库表结构初始化完成
+[2025-05-22 16:59:33,926] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 16:59:33,926] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 16:59:33,926] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 16:59:35,659] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 16:59:35,659] [DEBUG] [database:359] [conn:4654299840] 当前活跃连接数: 1
+[2025-05-22 16:59:35,659] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 16:59:40,350] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 16:59:40,351] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 16:59:40,351] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 16:59:40,380] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 16:59:40,380] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 16:59:40,468] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 16:59:40,502] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 4f064f58-b30b-47e7-88d5-38fe924e877c | 名称: 月定投策略
+[2025-05-22 16:59:50,865] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 16:59:50,871] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 16:59:50,872] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 16:59:50,885] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 4f064f58-b30b-47e7-88d5-38fe924e877c
+[2025-05-22 16:59:50,885] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 16:59:50,885] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 4f064f58-b30b-47e7-88d5-38fe924e877c
+[2025-05-22 16:59:50,885] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 16:59:50,885] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 16:59:50,885] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 16:59:50,885] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 16:59:51,756] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 4f064f58-b30b-47e7-88d5-38fe924e877c
+[2025-05-22 16:59:51,756] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 16:59:51,756] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 4f064f58-b30b-47e7-88d5-38fe924e877c
+[2025-05-22 16:59:51,757] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 16:59:51,757] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 16:59:51,757] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 16:59:52,264] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 16:59:55,071] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['close', 'high', 'open', 'low'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 16:59:55,951] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'high', 'open', 'low'}
+[2025-05-22 16:59:56,018] [DEBUG] [chart_service:675] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 16:59:56,019] [DEBUG] [chart_service:770] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 16:59:56,024] [DEBUG] [chart_service:691] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 16:59:56,026] [DEBUG] [chart_service:770] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 17:24:08,508] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4331736992
+[2025-05-22 17:24:08,508] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 17:24:08,550] [INFO] [database:133] [conn:4874490832] 数据库表结构初始化完成
+[2025-05-22 17:24:08,551] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 17:24:08,551] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 17:24:08,551] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 17:24:09,878] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 17:24:09,879] [DEBUG] [database:359] [conn:4877520128] 当前活跃连接数: 1
+[2025-05-22 17:24:09,880] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 17:24:15,636] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 17:24:15,636] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 17:24:15,636] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 17:24:15,662] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 17:24:15,662] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 17:24:15,768] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 17:24:15,803] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 8ab04eee-77ef-44dc-8f48-66a26e461891 | 名称: 月定投策略
+[2025-05-22 17:24:26,141] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 17:24:26,144] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 17:24:26,144] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 17:24:26,154] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 8ab04eee-77ef-44dc-8f48-66a26e461891
+[2025-05-22 17:24:26,154] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 17:24:26,154] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 8ab04eee-77ef-44dc-8f48-66a26e461891
+[2025-05-22 17:24:26,154] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 17:24:26,154] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 17:24:26,155] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 17:24:26,155] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 17:24:27,126] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 8ab04eee-77ef-44dc-8f48-66a26e461891
+[2025-05-22 17:24:27,126] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 17:24:27,126] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 8ab04eee-77ef-44dc-8f48-66a26e461891
+[2025-05-22 17:24:27,127] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 17:24:27,127] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 17:24:27,127] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 17:24:27,693] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 17:29:34,713] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['high', 'close', 'open', 'low'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 17:29:35,541] [DEBUG] [chart_service:573] [conn:N/A] {'low', 'close', 'open', 'high'}
+[2025-05-22 17:31:06,889] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4405987744
+[2025-05-22 17:31:06,889] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 17:31:06,938] [INFO] [database:133] [conn:5332656960] 数据库表结构初始化完成
+[2025-05-22 17:31:06,938] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 17:31:06,938] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 17:31:06,938] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 17:31:08,720] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 17:31:08,720] [DEBUG] [database:359] [conn:5350150352] 当前活跃连接数: 1
+[2025-05-22 17:31:08,720] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 17:31:13,706] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 17:31:13,707] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 17:31:13,707] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 17:31:13,733] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 17:31:13,733] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 17:31:13,821] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 17:31:13,856] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 2c4db2f8-b07f-4570-8d29-adfe620bf296 | 名称: 月定投策略
+[2025-05-22 17:31:24,177] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 17:31:24,180] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 17:31:24,180] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 17:31:24,189] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 2c4db2f8-b07f-4570-8d29-adfe620bf296
+[2025-05-22 17:31:24,189] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 17:31:24,189] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 2c4db2f8-b07f-4570-8d29-adfe620bf296
+[2025-05-22 17:31:24,190] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 17:31:24,190] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 17:31:24,190] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 17:31:24,190] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 17:31:25,155] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 2c4db2f8-b07f-4570-8d29-adfe620bf296
+[2025-05-22 17:31:25,155] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 17:31:25,155] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 2c4db2f8-b07f-4570-8d29-adfe620bf296
+[2025-05-22 17:31:25,156] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 17:31:25,156] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 17:31:25,156] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 17:31:25,718] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 17:32:25,127] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['high', 'low', 'open', 'close'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 17:32:26,156] [DEBUG] [chart_service:573] [conn:N/A] {'high', 'open', 'low', 'close'}
+[2025-05-22 17:32:26,200] [DEBUG] [chart_service:675] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array(['2025-04-01T09:40:00.000000000', '2025-04-01T09:45:00.000000000',
+                '2025-04-01T09:50:00.000000000', ..., '2025-05-21T14:50:00.000000000',
+                '2025-05-21T14:55:00.000000000', '2025-05-21T15:00:00.000000000'],
+               dtype='datetime64[ns]')
+}), my is_sec is False
+[2025-05-22 17:32:26,202] [DEBUG] [chart_service:770] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array(['2025-04-01T09:40:00.000000000', '2025-04-01T09:45:00.000000000',
+                '2025-04-01T09:50:00.000000000', ..., '2025-05-21T14:50:00.000000000',
+                '2025-05-21T14:55:00.000000000', '2025-05-21T15:00:00.000000000'],
+               dtype='datetime64[ns]')
+})
+[2025-05-22 17:32:26,209] [DEBUG] [chart_service:691] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 17:32:26,210] [DEBUG] [chart_service:770] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 18:19:05,592] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4393110304
+[2025-05-22 18:19:05,592] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 18:19:05,634] [INFO] [database:133] [conn:4913912944] 数据库表结构初始化完成
+[2025-05-22 18:19:05,634] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 18:19:05,635] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 18:19:05,635] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 18:19:07,905] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 18:19:07,905] [DEBUG] [database:359] [conn:4916585376] 当前活跃连接数: 1
+[2025-05-22 18:19:07,905] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 18:19:11,890] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:19:11,890] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 18:19:11,890] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:19:11,923] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 18:19:11,924] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 18:19:12,014] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 18:19:12,043] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: dfecb2b6-376c-4721-9cc1-6287e581861b | 名称: 月定投策略
+[2025-05-22 18:19:22,476] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 18:19:22,478] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 18:19:22,478] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 18:19:22,482] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: dfecb2b6-376c-4721-9cc1-6287e581861b
+[2025-05-22 18:19:22,482] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 18:19:22,482] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: dfecb2b6-376c-4721-9cc1-6287e581861b
+[2025-05-22 18:19:22,482] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 18:19:22,483] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 18:19:22,483] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 18:19:22,483] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 18:19:23,673] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: dfecb2b6-376c-4721-9cc1-6287e581861b
+[2025-05-22 18:19:23,673] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 18:19:23,673] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: dfecb2b6-376c-4721-9cc1-6287e581861b
+[2025-05-22 18:19:23,674] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 18:19:23,674] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 18:19:23,674] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 18:19:24,388] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 18:19:28,684] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['close', 'high', 'open', 'low'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 18:19:37,319] [DEBUG] [chart_service:573] [conn:N/A] {'high', 'open', 'close', 'low'}
+[2025-05-22 18:23:02,657] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4438117152
+[2025-05-22 18:23:02,657] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 18:23:02,699] [INFO] [database:133] [conn:4795949744] 数据库表结构初始化完成
+[2025-05-22 18:23:02,699] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 18:23:02,699] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 18:23:02,699] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 18:23:32,312] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 18:23:32,312] [DEBUG] [database:359] [conn:4556456000] 当前活跃连接数: 1
+[2025-05-22 18:23:32,312] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 18:23:36,660] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:23:36,660] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 18:23:36,661] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:23:36,693] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 18:23:36,694] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 18:23:36,783] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 18:23:36,812] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: facd171e-77f3-4a52-b9d0-c0182b521a41 | 名称: 月定投策略
+[2025-05-22 18:23:47,255] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 18:23:47,256] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 18:23:47,257] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 18:23:47,261] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: facd171e-77f3-4a52-b9d0-c0182b521a41
+[2025-05-22 18:23:47,261] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 18:23:47,261] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: facd171e-77f3-4a52-b9d0-c0182b521a41
+[2025-05-22 18:23:47,261] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 18:23:47,261] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 18:23:47,261] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 18:23:47,262] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 18:23:48,558] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: facd171e-77f3-4a52-b9d0-c0182b521a41
+[2025-05-22 18:23:48,558] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 18:23:48,558] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: facd171e-77f3-4a52-b9d0-c0182b521a41
+[2025-05-22 18:23:48,560] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 18:23:48,560] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 18:23:48,560] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 18:23:49,326] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 18:24:02,502] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['low', 'high', 'open', 'close'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 18:24:03,433] [DEBUG] [chart_service:573] [conn:N/A] {'low', 'high', 'open', 'close'}
+[2025-05-22 18:24:03,498] [DEBUG] [chart_service:677] [conn:N/A] my_trace is [Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})], my is_sec is False
+[2025-05-22 18:37:02,209] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4393976640
+[2025-05-22 18:37:02,209] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 18:37:02,251] [INFO] [database:133] [conn:4855270704] 数据库表结构初始化完成
+[2025-05-22 18:37:02,251] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 18:37:02,251] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 18:37:02,251] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 18:37:04,114] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 18:37:04,114] [DEBUG] [database:359] [conn:4940584224] 当前活跃连接数: 1
+[2025-05-22 18:37:04,115] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 18:37:12,982] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:37:12,982] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 18:37:12,982] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:37:13,013] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 18:37:13,013] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 18:37:13,097] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 18:37:13,119] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 3bf18223-d88d-4bb4-872e-898d8cd9063f | 名称: 月定投策略
+[2025-05-22 18:37:23,563] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 18:37:23,564] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 18:37:23,564] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 18:37:23,568] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 3bf18223-d88d-4bb4-872e-898d8cd9063f
+[2025-05-22 18:37:23,568] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 18:37:23,568] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 3bf18223-d88d-4bb4-872e-898d8cd9063f
+[2025-05-22 18:37:23,568] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 18:37:23,569] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 18:37:23,569] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 18:37:23,569] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 18:37:24,679] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 3bf18223-d88d-4bb4-872e-898d8cd9063f
+[2025-05-22 18:37:24,679] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 18:37:24,679] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 3bf18223-d88d-4bb4-872e-898d8cd9063f
+[2025-05-22 18:37:24,680] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 18:37:24,680] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 18:37:24,680] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 18:37:25,333] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 18:37:29,340] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['open', 'low', 'close', 'high'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 18:37:30,221] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'open', 'high', 'low'}
+[2025-05-22 18:37:30,286] [DEBUG] [chart_service:677] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 18:37:30,292] [DEBUG] [chart_service:763] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 18:37:30,303] [DEBUG] [chart_service:693] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 18:37:30,305] [DEBUG] [chart_service:763] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 18:37:36,975] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'open', 'high', 'low'}
+[2025-05-22 18:39:09,832] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4401407984
+[2025-05-22 18:39:09,832] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 18:39:09,878] [INFO] [database:133] [conn:4962472432] 数据库表结构初始化完成
+[2025-05-22 18:39:09,878] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 18:39:09,878] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 18:39:09,878] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 18:39:11,415] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 18:39:11,416] [DEBUG] [database:359] [conn:5102745104] 当前活跃连接数: 1
+[2025-05-22 18:39:11,416] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 18:39:14,780] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:39:14,781] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 18:39:14,781] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:39:14,811] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 18:39:14,812] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 18:39:14,911] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 18:39:14,938] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 473fbb99-4789-48e3-9d6e-584181e5266e | 名称: 月定投策略
+[2025-05-22 18:39:25,413] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 18:39:25,414] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 18:39:25,414] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 18:39:25,420] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 473fbb99-4789-48e3-9d6e-584181e5266e
+[2025-05-22 18:39:25,420] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 18:39:25,421] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 473fbb99-4789-48e3-9d6e-584181e5266e
+[2025-05-22 18:39:25,421] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 18:39:25,421] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 18:39:25,421] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 18:39:25,421] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 18:39:26,719] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 473fbb99-4789-48e3-9d6e-584181e5266e
+[2025-05-22 18:39:26,719] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 18:39:26,719] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 473fbb99-4789-48e3-9d6e-584181e5266e
+[2025-05-22 18:39:26,721] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 18:39:26,721] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 18:39:26,721] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 18:39:27,585] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 18:39:30,757] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['close', 'low', 'high', 'open'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 18:39:31,725] [DEBUG] [chart_service:573] [conn:N/A] {'open', 'close', 'low', 'high'}
+[2025-05-22 18:39:31,768] [DEBUG] [chart_service:677] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 18:39:31,770] [DEBUG] [chart_service:763] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 18:39:31,773] [DEBUG] [chart_service:693] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 18:39:31,778] [DEBUG] [chart_service:763] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 18:39:41,924] [DEBUG] [chart_service:573] [conn:N/A] {'open', 'close', 'low', 'high'}
+[2025-05-22 18:39:45,139] [DEBUG] [chart_service:573] [conn:N/A] {'open', 'close', 'low', 'high'}
+[2025-05-22 18:39:45,151] [DEBUG] [chart_service:677] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 18:39:45,152] [DEBUG] [chart_service:763] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 18:39:45,153] [DEBUG] [chart_service:693] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 18:39:45,155] [DEBUG] [chart_service:763] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 18:39:49,493] [DEBUG] [chart_service:573] [conn:N/A] {'open', 'close', 'low', 'high'}
+[2025-05-22 18:42:17,441] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4370320160
+[2025-05-22 18:42:17,442] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 18:42:17,487] [INFO] [database:133] [conn:4761711664] 数据库表结构初始化完成
+[2025-05-22 18:42:17,487] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 18:42:17,487] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 18:42:17,488] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 18:42:19,028] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 18:42:19,029] [DEBUG] [database:359] [conn:4803354000] 当前活跃连接数: 1
+[2025-05-22 18:42:19,029] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 18:42:23,045] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:42:23,045] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 18:42:23,045] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:42:23,076] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 18:42:23,077] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 18:42:23,166] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 18:42:23,197] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 31ba69b6-3b7b-4c75-b097-077d2d568d1d | 名称: 月定投策略
+[2025-05-22 18:42:33,648] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 18:42:33,650] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 18:42:33,650] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 18:42:33,654] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 31ba69b6-3b7b-4c75-b097-077d2d568d1d
+[2025-05-22 18:42:33,654] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 18:42:33,654] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 31ba69b6-3b7b-4c75-b097-077d2d568d1d
+[2025-05-22 18:42:33,654] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 18:42:33,654] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 18:42:33,655] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 18:42:33,655] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 18:42:34,878] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 31ba69b6-3b7b-4c75-b097-077d2d568d1d
+[2025-05-22 18:42:34,878] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 18:42:34,878] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 31ba69b6-3b7b-4c75-b097-077d2d568d1d
+[2025-05-22 18:42:34,879] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 18:42:34,879] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 18:42:34,879] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 18:42:35,613] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 18:42:38,925] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['high', 'close', 'low', 'open'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 18:42:39,855] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'high', 'low', 'open'}
+[2025-05-22 18:42:39,902] [DEBUG] [chart_service:677] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 18:42:39,904] [DEBUG] [chart_service:763] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 18:42:39,907] [DEBUG] [chart_service:693] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 18:42:39,910] [DEBUG] [chart_service:763] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 18:43:11,910] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'high', 'low', 'open'}
+[2025-05-22 18:43:14,988] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'high', 'low', 'open'}
+[2025-05-22 18:43:15,001] [DEBUG] [chart_service:677] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 18:43:15,003] [DEBUG] [chart_service:763] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 18:43:15,004] [DEBUG] [chart_service:693] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 18:43:15,010] [DEBUG] [chart_service:763] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 18:43:17,465] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'high', 'low', 'open'}
+[2025-05-22 18:48:23,966] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4407970592
+[2025-05-22 18:48:23,966] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 18:48:24,006] [INFO] [database:133] [conn:4684437152] 数据库表结构初始化完成
+[2025-05-22 18:48:24,006] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 18:48:24,006] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 18:48:24,006] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 18:48:25,310] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 18:48:25,310] [DEBUG] [database:359] [conn:4847725584] 当前活跃连接数: 1
+[2025-05-22 18:48:25,310] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 18:48:29,995] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:48:29,996] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 18:48:29,996] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:48:30,025] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 18:48:30,025] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 18:48:30,109] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 18:48:30,139] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: 69f7c468-f115-4b22-b6da-006395bf170d | 名称: 月定投策略
+[2025-05-22 18:48:40,569] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 18:48:40,570] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 18:48:40,570] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 18:48:40,574] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 69f7c468-f115-4b22-b6da-006395bf170d
+[2025-05-22 18:48:40,574] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 18:48:40,575] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: 69f7c468-f115-4b22-b6da-006395bf170d
+[2025-05-22 18:48:40,575] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 18:48:40,575] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 18:48:40,575] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 18:48:40,575] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 18:48:41,787] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: 69f7c468-f115-4b22-b6da-006395bf170d
+[2025-05-22 18:48:41,788] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 18:48:41,788] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: 69f7c468-f115-4b22-b6da-006395bf170d
+[2025-05-22 18:48:41,789] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 18:48:41,789] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 18:48:41,789] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 18:48:42,529] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 18:48:45,958] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['close', 'open', 'low', 'high'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 18:48:46,756] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'open', 'low', 'high'}
+[2025-05-22 18:48:46,823] [DEBUG] [chart_service:677] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 18:48:46,826] [DEBUG] [chart_service:763] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 18:48:46,837] [DEBUG] [chart_service:693] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 18:48:46,839] [DEBUG] [chart_service:763] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 18:48:50,307] [DEBUG] [chart_service:573] [conn:N/A] {'close', 'open', 'low', 'high'}
+[2025-05-22 18:49:15,459] [DEBUG] [database:78] [conn:N/A] 连接池初始化循环ID: 4370893216
+[2025-05-22 18:49:15,459] [INFO] [database:83] [conn:N/A] 开始数据库表结构初始化...
+[2025-05-22 18:49:15,505] [INFO] [database:133] [conn:5185663328] 数据库表结构初始化完成
+[2025-05-22 18:49:15,505] [DEBUG] [database:136] [conn:N/A] 连接已释放，当前活跃连接数: 0
+[2025-05-22 18:49:15,506] [DEBUG] [database:137] [conn:N/A] 当前循环活跃状态: True
+[2025-05-22 18:49:15,508] [DEBUG] [database:55] [conn:N/A] initialize调用结束
+[2025-05-22 18:49:18,080] [DEBUG] [database:337] [conn:N/A] 检查数据是否最新
+[2025-05-22 18:49:18,081] [DEBUG] [database:359] [conn:5190073936] 当前活跃连接数: 1
+[2025-05-22 18:49:18,097] [DEBUG] [database:360] [conn:N/A] 活跃任务数: 1
+[2025-05-22 18:49:22,419] [INFO] [database:245] [conn:N/A] Loading stock data for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:49:22,419] [DEBUG] [database:172] [conn:N/A] 异步检查数据完整性
+[2025-05-22 18:49:22,420] [INFO] [database:178] [conn:N/A] Checking data completeness for sh.688603 from 20250401 to 20250522
+[2025-05-22 18:49:22,562] [INFO] [database:214] [conn:N/A] Missing_dates set() for sh.688603
+[2025-05-22 18:49:22,563] [INFO] [database:234] [conn:N/A] Found 0 missing data ranges for sh.688603
+[2025-05-22 18:49:22,731] [INFO] [database:290] [conn:N/A] Successfully loaded 1575 rows for sh.688603
+[2025-05-22 18:49:22,843] [INFO] [backtesting:172] [conn:N/A] 策略注册成功 | ID: d2f55618-6a26-4f51-94ff-5f921f1709fa | 名称: 月定投策略
+[2025-05-22 18:49:33,273] [DEBUG] [backtesting:147] [conn:N/A] 开始回测...
+[2025-05-22 18:49:33,287] [INFO] [backtesting:182] [conn:N/A] 回测数据时间范围: 2025-04-01 至 2025-05-21
+[2025-05-22 18:49:33,288] [INFO] [backtesting:183] [conn:N/A] 数据记录总数: 1575
+[2025-05-22 18:49:33,348] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: d2f55618-6a26-4f51-94ff-5f921f1709fa
+[2025-05-22 18:49:33,348] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 100000.00 | 扣除: 970.32 | 新金额: 99029.68
+[2025-05-22 18:49:33,348] [INFO] [backtesting:593] [conn:N/A] [2025-04-01 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 99029.68 | Position: 14@67.29 | Strategy: d2f55618-6a26-4f51-94ff-5f921f1709fa
+[2025-05-22 18:49:33,348] [WARNING] [backtesting:383] [conn:N/A] 跳过净值更新: 收盘价为None | 时间: 2025-04-01 09:40:00
+[2025-05-22 18:49:33,348] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 14.0 | 成本: 67.29
+[2025-05-22 18:49:33,348] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 100000.00 -> 99029.68 | 持仓变化: 0@0.00 -> 14@67.29
+[2025-05-22 18:49:33,348] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 28.0 | 成本: 67.29
+[2025-05-22 18:49:44,293] [DEBUG] [backtesting:524] [conn:N/A] Creating order | Symbol: sh.688603 | Side: BUY | Qty: 14 | Price: 67.29 | Strategy: d2f55618-6a26-4f51-94ff-5f921f1709fa
+[2025-05-22 18:49:44,294] [DEBUG] [backtesting:547] [conn:N/A] 资金扣除验证 | 原金额: 99029.68 | 扣除: 970.32 | 新金额: 98059.36
+[2025-05-22 18:49:44,294] [INFO] [backtesting:593] [conn:N/A] [2025-05-06 09:40:00] BUY | sh.688603 | Qty: 14 | Price: 67.29 | Cost: 942.06 | Commission: 28.26 | Capital: 98059.36 | Position: 28@67.29 | Strategy: d2f55618-6a26-4f51-94ff-5f921f1709fa
+[2025-05-22 18:49:44,298] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 56.0 | 成本: 67.29
+[2025-05-22 18:49:44,306] [INFO] [backtesting:695] [conn:N/A] 交易影响 | 类型: BUY | 数量: 14 | 价格: 67.29 | 交易金额: 942.06 | 手续费: 28.26 | 现金变化: 99029.68 -> 98059.36 | 持仓变化: 14@67.29 -> 28@67.29
+[2025-05-22 18:49:44,306] [DEBUG] [strategy:87] [conn:N/A] 策略仓位更新 | 数量: 84.0 | 成本: 67.29
+[2025-05-22 18:49:49,898] [DEBUG] [chart_service:573] [conn:N/A] {'close'}
+[2025-05-22 18:49:56,950] [DEBUG] [chart_service:535] [conn:N/A] 作图配置已保存：{'main_chart': {'type': 'K线图', 'fields': ['open', 'high', 'close', 'low'], 'data_source': 'kline_data', 'style': {'line_width': 1.5, 'color': '#2c7be5'}}, 'sub_chart': {'show': True, 'type': '柱状图', 'fields': ['volume'], 'data_source': 'trade_records', 'yaxis_name': '成交量', 'style': {'type': 'bar', 'opacity': 0.6}}, 'version': '1.0'}
+[2025-05-22 18:49:58,051] [DEBUG] [chart_service:573] [conn:N/A] {'open', 'close', 'high', 'low'}
+[2025-05-22 18:49:58,286] [DEBUG] [chart_service:677] [conn:N/A] my_trace is Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+}), my is_sec is False
+[2025-05-22 18:49:58,344] [DEBUG] [chart_service:763] [conn:N/A] 已添加Candlestick({
+    'close': array([69.31, 69.12, 69.95, ..., 67.38, 67.56, 67.29]),
+    'high': array([69.31, 69.58, 69.97, ..., 67.75, 67.69, 67.57]),
+    'low': array([69.01, 69.01, 69.01, ..., 67.38, 67.29, 67.29]),
+    'name': 'K线',
+    'open': array([69.27, 69.3 , 69.01, ..., 67.54, 67.6 , 67.56]),
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574])
+})
+[2025-05-22 18:49:58,436] [DEBUG] [chart_service:693] [conn:N/A] my_trace is Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+}), my is_sec is True
+[2025-05-22 18:49:58,517] [DEBUG] [chart_service:763] [conn:N/A] 已添加Bar({
+    'marker': {'color': '#ff7f0e', 'opacity': 0.6},
+    'name': '柱状图-volume',
+    'x': array([   0,    1,    2, ..., 1572, 1573, 1574]),
+    'y': array([Decimal('19296'), Decimal('41679'), Decimal('41711'), ...,
+                Decimal('11911'), Decimal('34597'), Decimal('13818')], dtype=object)
+})
+[2025-05-22 18:50:04,964] [DEBUG] [chart_service:573] [conn:N/A] {'open', 'close', 'high', 'low'}

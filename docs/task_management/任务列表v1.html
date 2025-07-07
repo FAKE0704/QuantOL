@@ -3,47 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>量化平台任务管理系统</title>
-    <style>
-        .task-manager { max-width: 1000px; margin: 20px auto; }
-        .task-item { 
-            border-left: 3px solid #e0e0e0; 
-            margin: 5px 0 5px 15px; 
-        }
-        .task-item .task-item { 
-            border-left-color: #a5d6a7;
-            margin-left: 30px;
-        }
-        .task-item .task-item .task-item { 
-            border-left-color: #81c784;
-            margin-left: 45px;
-        }
-        .task-header { 
-            padding: 12px; 
-            background: #f8f9fa; 
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        /* 确保子任务默认隐藏 */
-        .task-content {
-            display: none;
-            overflow: hidden;
-        }
-        .task-item.expanded > .task-content {
-            display: block;
-        }
-
-        .import-btn {
-            padding: 10px 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        #fileInput { display: none; }
-    </style>
+    <link rel="stylesheet" href="body.css">
     <script src="marked.min.js"></script>
     <script src="purify.min.js"></script>
 </head>
@@ -117,7 +77,16 @@ renderer.heading = function(text) {
     taskItem.className = 'task-item';
     taskItem.innerHTML = `
         <div class="task-header" onclick="toggleTask(this)">
-            <span class="task-title">${prefix} ${titleText.replace(/^#+\s*/, '')}</span>
+            <div class="task-markers">
+                <div class="progress-indicator">
+                    <div class="progress-bar" style="width: ${getProgressValue(titleText)}%"></div>
+                </div>
+                <div class="status-indicator ${getStatusClass(titleText)}"></div>
+                <div class="priority-indicator">
+                    ${getPriorityStars(titleText)}
+                </div>
+            </div>
+            <span class="task-title">${prefix} ${titleText.replace(/^#+\s*/, '').replace(/#progress=\d+/g, '').replace(/#status=\w+/g, '').replace(/#priority=\d/g, '').trim()}</span>
             <span class="status-indicator">▶ 折叠</span>
         </div>
         <div class="task-content"></div>
@@ -162,18 +131,25 @@ renderer.heading = function(text) {
 };
 
 renderer.listitem = (text) => {
-    // 确保text是字符串
-    const itemText = typeof text === 'string' ? text : 
-                    (text.text || JSON.stringify(text));
+    // 确保text是字符串并处理Markdown
+    let itemText = typeof text === 'string' ? text : 
+                  (text.text || JSON.stringify(text));
     
     // 只处理任务项（包含[ ]的项）
     if (!itemText.includes('[ ]')) return '';
+
+    // 使用marked解析Markdown内容
+    const parsedHtml = marked.parse(itemText.replace('[ ]', ''), {
+        gfm: true,
+        breaks: true,
+        pedantic: false
+    });
 
     const taskItem = document.createElement('div');
     taskItem.className = 'task-item';
     taskItem.innerHTML = `
         <div class="task-header" onclick="toggleTask(this)">
-            <span class="task-title">${itemText.replace('[ ]', '')}</span>
+            <span class="task-title">${DOMPurify.sanitize(parsedHtml)}</span>
             <span class="status-indicator">▶ 折叠</span>
         </div>
         <div class="task-content"></div>
@@ -202,11 +178,14 @@ async function handleFileSelect(event) {
         document.getElementById('taskContainer').innerHTML = '';
         parentStack = [];
 
-        const mdContent = DOMPurify.sanitize(e.target.result);
-        marked.parse(mdContent, {
+        const mdContent = e.target.result;
+        marked.parse(DOMPurify.sanitize(mdContent), {
             renderer,
             gfm: true,
-            breaks: true
+            breaks: true,
+            pedantic: false,
+            smartLists: true,
+            smartypants: true
         });
 
         // 初始化所有任务为折叠状态
@@ -248,11 +227,22 @@ function toggleTask(header) {
         indicator.textContent = newState ? "▼ 已展开" : "▶ 折叠";
     }
 
-    // 强制重绘
-    contentDiv.style.display = 'none';
-    setTimeout(() => {
-        contentDiv.style.display = newState ? 'block' : 'none';
-    }, 10);
+    // 切换展开状态
+    if (newState) {
+        // 计算实际高度
+        const scrollHeight = contentDiv.scrollHeight;
+        contentDiv.style.maxHeight = scrollHeight + 'px';
+        
+        // 重置高度过渡完成后
+        setTimeout(() => {
+            contentDiv.style.maxHeight = 'none';
+        }, 400);
+    } else {
+        contentDiv.style.maxHeight = contentDiv.scrollHeight + 'px';
+        // 强制重绘
+        getComputedStyle(contentDiv).maxHeight;
+        contentDiv.style.maxHeight = '0';
+    }
 }
 
 // 递归展开/折叠所有子项
@@ -284,6 +274,26 @@ document.getElementById('globalToggle').addEventListener('click', () => {
     document.getElementById('globalToggle').textContent = 
         isAllExpanded ? '全部折叠' : '全部展开';
 });
+
+// 进度解析函数
+function getProgressValue(text) {
+    const match = text.match(/#progress=(\d+)/);
+    return match ? parseInt(match[1]) : 0;
+}
+
+// 状态解析函数
+function getStatusClass(text) {
+    if (text.includes('#status=done')) return 'status-done';
+    if (text.includes('#status=doing')) return 'status-doing';
+    return 'status-todo';
+}
+
+// 优先级解析函数
+function getPriorityStars(text) {
+    const match = text.match(/#priority=(\d)/);
+    const priority = match ? parseInt(match[1]) : 0;
+    return '★'.repeat(priority) + '☆'.repeat(5 - priority);
+}
 </script>
 </body>
 </html>

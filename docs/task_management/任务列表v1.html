@@ -77,17 +77,17 @@ renderer.heading = function(text) {
     taskItem.className = 'task-item';
     taskItem.innerHTML = `
         <div class="task-header" onclick="toggleTask(this)">
+            <div class="progress-container">
+                <div class="progress-bar" style="width: ${getProgressValue(titleText)}%"></div>
+            </div>
+            <div class="status-indicator ${getStatusClass(titleText)}"></div>
+            <span class="task-title">${prefix} ${titleText.replace(/^#+\s*/, '').replace(/#progress=\d+/g, '').replace(/#status=\w+/g, '').replace(/#priority=\d/g, '').trim()}</span>
+            <span class="toggle-indicator">▶ 折叠</span>
             <div class="task-markers">
-                <div class="progress-indicator">
-                    <div class="progress-bar" style="width: ${getProgressValue(titleText)}%"></div>
-                </div>
-                <div class="status-indicator ${getStatusClass(titleText)}"></div>
                 <div class="priority-indicator">
                     ${getPriorityStars(titleText)}
                 </div>
             </div>
-            <span class="task-title">${prefix} ${titleText.replace(/^#+\s*/, '').replace(/#progress=\d+/g, '').replace(/#status=\w+/g, '').replace(/#priority=\d/g, '').trim()}</span>
-            <span class="status-indicator">▶ 折叠</span>
         </div>
         <div class="task-content"></div>
     `;
@@ -150,7 +150,7 @@ renderer.listitem = (text) => {
     taskItem.innerHTML = `
         <div class="task-header" onclick="toggleTask(this)">
             <span class="task-title">${DOMPurify.sanitize(parsedHtml)}</span>
-            <span class="status-indicator">▶ 折叠</span>
+            <span class="toggle-indicator">▶ 折叠</span>
         </div>
         <div class="task-content"></div>
     `;
@@ -212,8 +212,8 @@ function toggleTask(header) {
     if(wasExpanded) {
         childTasks.forEach(child => {
             child.classList.remove('expanded');
-            const indicator = child.querySelector('.status-indicator');
-            if(indicator) indicator.textContent = "▶ 折叠";
+            const toggle = child.querySelector('.toggle-indicator');
+            if(toggle) toggle.textContent = "▶ 折叠";
         });
     }
     
@@ -222,9 +222,9 @@ function toggleTask(header) {
     const newState = taskItem.classList.contains('expanded');
     console.log('切换后状态:', newState ? '已展开' : '已折叠');
     
-    const indicator = header.querySelector('.status-indicator');
-    if(indicator) {
-        indicator.textContent = newState ? "▼ 已展开" : "▶ 折叠";
+    const toggle = header.querySelector('.toggle-indicator');
+    if(toggle) {
+        toggle.textContent = newState ? "▼ 已展开" : "▶ 折叠";
     }
 
     // 切换展开状态
@@ -253,9 +253,9 @@ function setAllExpanded(expanded) {
         task.classList.toggle('expanded', expanded);
         
         // 更新状态指示器
-        const indicator = task.querySelector('.status-indicator');
-        if (indicator) {
-            indicator.textContent = expanded ? "▼ 已展开" : "▶ 折叠";
+        const toggle = task.querySelector('.toggle-indicator');
+        if (toggle) {
+            toggle.textContent = expanded ? "▼ 已展开" : "▶ 折叠";
         }
         
         // 强制显示/隐藏内容区域

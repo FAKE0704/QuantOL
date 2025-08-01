@@ -1,4 +1,12 @@
 # 量化金融知识体系
+## 书单
+《投资管理量化方法》（Quantitative Methods for Investment Management）
+《投资组合理论》（Portfolio Theory）
+《风险管理技术》
+
+Statistics and Data Analysis for Financial Engineering
+with R examples
+https://link.springer.com/book/10.1007/978-1-4939-2614-5
 
 ## 1. 数学基础
 - 概率论与随机过程
@@ -31,6 +39,17 @@
   * 强化学习
 
 ## 4. 量化策略开发
+### 因子暴露
+- economic(outperformance of value stocks)
+- fundamental(book-to-price ratio)
+- technical(previous periods' returns)
+- statistical(PCA)
+### 因子类型
+- time series factors
+- cross-sectional factors
+- macroeconomic factors
+- sentiment factors
+
 - 因子投资
   * 因子构造
   * 因子分析

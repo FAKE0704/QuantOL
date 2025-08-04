@@ -1,6 +1,7 @@
 import pandas as pd
 import baostock as bs
 from .data_source import DataSource, DataSourceError
+from .data_factory import DataFactory
 from typing import Optional
 
 # from core.data.database import
@@ -158,3 +159,6 @@ class BaostockDataSource(DataSource):
         finally:
             bs.logout()
             progress_service.end_task(task_id)
+
+# 注册到数据源工厂
+DataFactory.register_source("baostock", BaostockDataSource)

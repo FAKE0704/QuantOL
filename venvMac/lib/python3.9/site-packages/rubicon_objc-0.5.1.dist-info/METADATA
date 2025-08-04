@@ -1,0 +1,147 @@
+Metadata-Version: 2.4
+Name: rubicon-objc
+Version: 0.5.1
+Summary: A bridge between an Objective C runtime environment and Python.
+Author-email: Russell Keith-Magee <russell@keith-magee.com>
+Maintainer-email: BeeWare Team <team@beeware.org>
+License-Expression: BSD-3-Clause
+Project-URL: Homepage, https://beeware.org/rubicon
+Project-URL: Funding, https://beeware.org/contributing/membership/
+Project-URL: Documentation, https://rubicon-objc.readthedocs.io/en/latest/
+Project-URL: Tracker, https://github.com/beeware/rubicon-objc/issues
+Project-URL: Source, https://github.com/beeware/rubicon-objc
+Keywords: macOS,iOS,Objective C
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Objective C
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Topic :: Software Development
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Provides-Extra: dev
+Requires-Dist: pre-commit==4.2.0; extra == "dev"
+Requires-Dist: pytest==8.3.5; extra == "dev"
+Requires-Dist: setuptools_scm==8.3.1; extra == "dev"
+Requires-Dist: tox==4.26.0; extra == "dev"
+Provides-Extra: docs
+Requires-Dist: furo==2024.8.6; extra == "docs"
+Requires-Dist: pyenchant==3.2.2; extra == "docs"
+Requires-Dist: sphinx==8.2.3; extra == "docs"
+Requires-Dist: sphinx_tabs==3.4.7; extra == "docs"
+Requires-Dist: sphinx-autobuild==2024.10.3; extra == "docs"
+Requires-Dist: sphinx-copybutton==0.5.2; extra == "docs"
+Requires-Dist: sphinxcontrib-spelling==8.0.1; extra == "docs"
+Dynamic: license-file
+
+.. |logo| image:: https://beeware.org/project/utilities/rubicon/rubicon.png
+    :width: 72px
+    :target: https://beeware.org/rubicon
+
+.. |pyversions| image:: https://img.shields.io/pypi/pyversions/rubicon-objc.svg
+   :target: https://pypi.python.org/pypi/rubicon-objc
+   :alt: Python Versions
+
+.. |version| image:: https://img.shields.io/pypi/v/rubicon-objc.svg
+   :target: https://pypi.python.org/pypi/rubicon-objc
+   :alt: Project Version
+
+.. |maturity| image:: https://img.shields.io/pypi/status/rubicon-objc.svg
+   :target: https://pypi.python.org/pypi/rubicon-objc
+   :alt: Project status
+
+.. |license| image:: https://img.shields.io/pypi/l/rubicon-objc.svg
+   :target: https://github.com/beeware/rubicon-objc/blob/main/LICENSE
+   :alt: License
+
+.. |ci| image:: https://github.com/beeware/rubicon-objc/workflows/CI/badge.svg?branch=main
+   :target: https://github.com/beeware/rubicon-objc/actions
+   :alt: Build Status
+
+.. |social| image:: https://img.shields.io/discord/836455665257021440?label=Discord%20Chat&logo=discord&style=plastic
+   :target: https://beeware.org/bee/chat/
+   :alt: Discord server
+
+|logo|
+
+Rubicon-ObjC
+============
+
+|pyversions| |version| |maturity| |license| |ci| |social|
+
+Rubicon-ObjC is a bridge between Objective-C and Python. It enables you to:
+
+* Use Python to instantiate objects defined in Objective-C,
+* Use Python to invoke methods on objects defined in Objective-C, and
+* Subclass and extend Objective-C classes in Python.
+
+It also includes wrappers of the some key data types from the Foundation
+framework (e.g., ``NSString``).
+
+Tutorial
+--------
+
+Want to jump in and get started? We have a `hands-on tutorial for
+beginners <https://rubicon-objc.readthedocs.io/en/latest/tutorial/index.html>`__.
+
+How-to guides
+-------------
+
+Looking for guidance on how to solve a specific problems? We have `how-to
+guides and recipes <https://rubicon-objc.readthedocs.io/en/latest/how-to/index.html>`__
+for common problems and tasks, including how to contribute.
+
+Reference
+---------
+
+Just want the raw technical details? Here's our `Technical
+reference <https://rubicon-objc.readthedocs.io/en/latest/reference/index.html>`__.
+
+Background
+----------
+
+Looking for explanations and discussion of key topics and concepts?
+Our `background <https://rubicon-objc.readthedocs.io/en/latest/background/index.html>`__
+guides may help.
+
+
+Community
+---------
+
+Rubicon is part of the `BeeWare suite <https://beeware.org>`__. You can talk to
+the community through:
+
+* `@beeware@fosstodon.org on Mastodon <https://fosstodon.org/@beeware>`__
+
+* `Discord <https://beeware.org/bee/chat/>`__
+
+* The Rubicon-ObjC `Github Discussions forum <https://github.com/beeware/rubicon-objc/discussions>`__
+
+Code of Conduct
+---------------
+
+The BeeWare community has a strict `Code of Conduct
+<https://beeware.org/community/behavior/>`__. All users and developers are
+expected to adhere to this code.
+
+If you have any concerns about this code of conduct, or you wish to report a
+violation of this code, please contact the project founder `Russell Keith-
+Magee <mailto:russell@beeware.org>`__.
+
+Contributing
+------------
+
+If you experience problems with Rubicon-ObjC, `log them on GitHub
+<https://github.com/beeware/rubicon-objc/issues>`__.
+
+If you'd like to contribute to Rubicon-ObjC development, our `contribution guide
+<https://rubicon-objc.readthedocs.io/en/latest/how-to/contribute/index.html>`__
+details how to set up a development environment, and other requirements we have
+as part of our contribution process.

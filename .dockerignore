@@ -1,0 +1,40 @@
+# 排除虚拟环境目录
+venvQ/
+venvMac/
+垃圾桶/
+docs/
+image/
+tests/
+data_cache/
+
+
+# 排除git相关文件
+.git/
+.gitignore
+
+# 排除IDE配置文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 排除日志和缓存文件
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+
+# 排除Python编译文件和缓存
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 排除测试和覆盖率报告
+htmlcov/
+.tox/
+.nox/
+.coverage
+*.cover
+.hypothesis/
+.pytest_cache/

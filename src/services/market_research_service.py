@@ -1,6 +1,7 @@
 from typing import List, Dict
 import pandas as pd
 import plotly.graph_objects as go
+import logging
 from core.data.data_source import DataSource
 from core.data.market_data_source import MarketDataSource
 from services.chart_service import ChartService, DataBundle
@@ -13,15 +14,20 @@ class MarketResearchService:
         初始化服务
         :param data_source: 数据源类型 (tushare/yahoo)
         """
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("市场研究服务初始化 | 数据源: %s", data_source)
+        
         self.data_loader = MarketDataSource(api_key="", base_url="")
-        self.chart_service = ChartService(
-            data_loader=self.data_loader,
-            template="plotly_white"
-        )
+        # 初始化DataBundle
+        data_bundle = DataBundle()
+        self.chart_service = ChartService(data_bundle=data_bundle)
         
     def get_available_fields(self, symbol: str) -> List[str]:
         """获取指定标的可用数据字段"""
-        return self.data_loader.get_available_fields(symbol)
+        self.logger.info("获取可用字段 | 标的: %s", symbol)
+        fields = self.data_loader.get_available_fields(symbol)
+        self.logger.info("获取可用字段完成 | 标的: %s | 字段数: %d", symbol, len(fields))
+        return fields
     
     def generate_chart(
         self,
@@ -37,6 +43,8 @@ class MarketResearchService:
         :param chart_type: 图表类型 (K线图/成交量/资金流向)
         :return: Plotly图表对象
         """
+        self.logger.info("生成图表开始 | 标的: %s | 图表类型: %s | 字段: %s",
+                       symbol, chart_type, fields)
         # 加载数据
         data = self._load_data(symbol, fields)
         
@@ -57,7 +65,9 @@ class MarketResearchService:
         }
         
         # 生成图表
-        return self.chart_service.create_combined_chart(config)
+        fig = self.chart_service.create_combined_chart(config)
+        self.logger.info("图表生成完成 | 标的: %s | 图表类型: %s", symbol, chart_type)
+        return fig
     
     def generate_analysis_report(
         self, 
@@ -70,12 +80,16 @@ class MarketResearchService:
         :param data_summary: 数据摘要
         :return: Markdown格式分析报告
         """
+        self.logger.info("生成分析报告 | 图表标题: %s", chart_config.get('title', '未命名图表'))
         # TODO: 集成AI服务
-        return f"# AI分析报告\n\n## {chart_config.get('title', '未命名图表')}\n\n报告生成中..."
+        report = f"# AI分析报告\n\n## {chart_config.get('title', '未命名图表')}\n\n报告生成中..."
+        self.logger.info("分析报告生成完成 | 图表标题: %s", chart_config.get('title', '未命名图表'))
+        return report
     
     def _load_data(self, symbol: str, fields: List[str]) -> pd.DataFrame:
         """加载市场数据"""
         try:
+            self.logger.debug("加载市场数据 | 标的: %s | 字段: %s", symbol, fields)
             # 从数据加载器获取数据
             data = self.data_loader.get_data(symbol=symbol, fields=fields)
             
@@ -90,6 +104,7 @@ class MarketResearchService:
             return data
             
         except Exception as e:
+            self.logger.error("加载市场数据失败 | 标的: %s | 错误: %s", symbol, str(e))
             raise RuntimeError(f"加载{symbol}数据失败: {str(e)}")
 
 if __name__ == "__main__":

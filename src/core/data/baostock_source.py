@@ -4,7 +4,7 @@ from .data_source import DataSource, DataSourceError
 from .data_factory import DataFactory
 from typing import Optional
 
-# from core.data.database import
+from core.data.database import DatabaseManager
 import os
 from datetime import datetime
 
@@ -159,6 +159,71 @@ class BaostockDataSource(DataSource):
         finally:
             bs.logout()
             progress_service.end_task(task_id)
+
+    async def get_money_supply_data(self, start_date: str, end_date: str) -> pd.DataFrame:
+        """获取货币供应量数据并保存到数据库
+        
+        Args:
+            start_date: 开始日期 (格式: YYYY-MM)
+            end_date: 结束日期 (格式: YYYY-MM)
+            
+        Returns:
+            包含货币供应量数据的DataFrame
+        """
+        from services.progress_service import progress_service
+        
+        task_id = "money_supply_load"
+        progress_service.start_task(task_id, 1)
+        
+        try:
+            # 登录Baostock
+            lg = bs.login()
+            if lg.error_code != '0':
+                progress_service.end_task(task_id)
+                raise DataSourceError(f"Baostock登录失败: {lg.error_msg}")
+            
+            # 获取货币供应量数据
+            rs = bs.query_money_supply_data_month(start_date=start_date, end_date=end_date)
+            if rs.error_code != '0':
+                bs.logout()
+                progress_service.end_task(task_id)
+                raise DataSourceError(f"获取货币供应量失败: {rs.error_msg}")
+            
+            # 处理数据
+            data_list = []
+            while (rs.error_code == '0') & rs.next():
+                data_list.append(rs.get_row_data())
+            
+            if not data_list:
+                bs.logout()
+                progress_service.end_task(task_id)
+                raise DataSourceError("未获取到货币供应量数据")
+                
+            df = pd.DataFrame(data_list, columns=rs.fields)
+            
+            # 转换字段名格式
+            df.rename(columns={
+                'statMonth': 'stat_month',
+                'm2YoY': 'm2_yoy',
+                'm1YoY': 'm1_yoy',
+                'm0YoY': 'm0_yoy',
+                'cdYoY': 'cd_yoy',
+                'qmYoY': 'qm_yoy',
+                'ftdYoY': 'ftd_yoy',
+                'sdYoY': 'sd_yoy'
+            }, inplace=True)
+            
+            # 保存到数据库
+            db = DatabaseManager()
+            await db.save_money_supply_data(df)
+            
+            bs.logout()
+            progress_service.end_task(task_id)
+            return df
+            
+        except Exception as e:
+            progress_service.end_task(task_id)
+            raise DataSourceError(f"获取货币供应量数据失败: {str(e)}")
 
 # 注册到数据源工厂
 DataFactory.register_source("baostock", BaostockDataSource)

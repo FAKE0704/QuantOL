@@ -6,7 +6,6 @@ from .stock import Stock
 import streamlit as st
 from datetime import datetime
 import asyncio
-from support.log import logger
 
 @st.cache_resource(ttl=3600, show_spinner=False)
 def get_db_manager():
@@ -20,7 +19,9 @@ class DatabaseManager:
                  user='quant', password='quant123', admin_db='quantdb'):
         self.connection = None
         # self._loop = asyncio.get_event_loop()  # 全局唯一事件循环
-        logger._init_logger(self)
+        import logging
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
         self._instance_id = id(self)  # 添加实例ID用于调试
         self.connection_states = {}  # 连接状态跟踪 {conn_id: {status, last_change}}
         self.connection_config = { # 数据库连接配置
@@ -129,7 +130,29 @@ class DatabaseManager:
                 );
             """)
             
-        
+            # 建表MoneySupplyData
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS MoneySupplyData (
+                    id SERIAL PRIMARY KEY,
+                    stat_month VARCHAR(10) NOT NULL,
+                    m2 NUMERIC NOT NULL,
+                    m2_yoy NUMERIC NOT NULL,
+                    m1 NUMERIC NOT NULL,
+                    m1_yoy NUMERIC NOT NULL,
+                    m0 NUMERIC NOT NULL,
+                    m0_yoy NUMERIC NOT NULL,
+                    cd NUMERIC NOT NULL,
+                    cd_yoy NUMERIC NOT NULL,
+                    qm NUMERIC NOT NULL,
+                    qm_yoy NUMERIC NOT NULL,
+                    ftd NUMERIC NOT NULL,
+                    ftd_yoy NUMERIC NOT NULL,
+                    sd NUMERIC NOT NULL,
+                    sd_yoy NUMERIC NOT NULL,
+                    UNIQUE (stat_month)
+                );
+            """)
+            
         self.logger.info("数据库表结构初始化完成",
                 extra={'connection_id': id(conn)}
             )
@@ -568,6 +591,97 @@ class DatabaseManager:
             
         except Exception as e:
             self.logger.error(f"保存股票数据失败: {str(e)}")
+            raise
+
+    async def save_money_supply_data(self, data: pd.DataFrame) -> bool:
+        """保存货币供应量数据"""
+        try:
+            records = data.to_dict('records')
+            insert_data = [
+                (
+                    record['statMonth'],
+                    record['m2'],
+                    record['m2YoY'],
+                    record['m1'],
+                    record['m1YoY'],
+                    record['m0'],
+                    record['m0YoY'],
+                    record['cd'],
+                    record['cdYoY'],
+                    record['qm'],
+                    record['qmYoY'],
+                    record['ftd'],
+                    record['ftdYoY'],
+                    record['sd'],
+                    record['sdYoY']
+                )
+                for record in records
+            ]
+            
+            async with self.pool.acquire() as conn:
+                await conn.executemany("""
+                    INSERT INTO MoneySupplyData (
+                        stat_month, m2, m2_yoy, m1, m1_yoy, m0, m0_yoy,
+                        cd, cd_yoy, qm, qm_yoy, ftd, ftd_yoy, sd, sd_yoy
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                    ON CONFLICT (stat_month) DO UPDATE SET
+                        m2 = EXCLUDED.m2,
+                        m2_yoy = EXCLUDED.m2_yoy,
+                        m1 = EXCLUDED.m1,
+                        m1_yoy = EXCLUDED.m1_yoy,
+                        m0 = EXCLUDED.m0,
+                        m0_yoy = EXCLUDED.m0_yoy,
+                        cd = EXCLUDED.cd,
+                        cd_yoy = EXCLUDED.cd_yoy,
+                        qm = EXCLUDED.qm,
+                        qm_yoy = EXCLUDED.qm_yoy,
+                        ftd = EXCLUDED.ftd,
+                        ftd_yoy = EXCLUDED.ftd_yoy,
+                        sd = EXCLUDED.sd,
+                        sd_yoy = EXCLUDED.sd_yoy
+                """, insert_data)
+                
+            self.logger.info(f"成功保存{len(insert_data)}条货币供应量数据")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"保存货币供应量数据失败: {str(e)}")
+            raise
+
+    async def get_money_supply_data(self, start_month: str, end_month: str) -> pd.DataFrame:
+        """获取货币供应量数据
+        
+        Args:
+            start_month: 开始月份 (格式: YYYY-MM)
+            end_month: 结束月份 (格式: YYYY-MM)
+            
+        Returns:
+            包含货币供应量数据的DataFrame
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                rows = await conn.fetch("""
+                    SELECT * FROM MoneySupplyData
+                    WHERE stat_month BETWEEN $1 AND $2
+                    ORDER BY stat_month
+                """, start_month, end_month)
+                
+                if not rows:
+                    self.logger.warning(f"未找到{start_month}至{end_month}的货币供应量数据")
+                    return pd.DataFrame()
+                    
+                df = pd.DataFrame(rows, columns=[
+                    'stat_month', 'm2', 'm2_yoy', 'm1', 'm1_yoy',
+                    'm0', 'm0_yoy', 'cd', 'cd_yoy', 'qm', 'qm_yoy',
+                    'ftd', 'ftd_yoy', 'sd', 'sd_yoy'
+                ])
+                
+                self.logger.info(f"成功获取{len(df)}条货币供应量数据")
+                return df
+                
+        except Exception as e:
+            self.logger.error(f"获取货币供应量数据失败: {str(e)}")
             raise
 
     async def del_stock_data(self, name):

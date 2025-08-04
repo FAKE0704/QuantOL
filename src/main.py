@@ -5,11 +5,12 @@ from frontend.backtesting import show_backtesting_page
 from frontend.trading import show_trading_page
 from frontend.settings import show_settings_page
 from frontend.dashboard import show_dashboard
+from frontend.market_research import show_market_research_page
+
 import streamlit as st
 from core.data.database import get_db_manager
 from services.stock_search import StockSearchService
 import asyncio, platform
-
 
 async def init_global_services():
     """初始化全局服务并存储在session_state"""
@@ -47,10 +48,11 @@ async def main():
         show_trading_page()
     elif page == "系统设置":
         show_settings_page()
-    elif page == "仪表盘":
-        show_dashboard()
-    # await asyncio.Event().wait()
-    print("### main循环结束 ####")
+    elif page == "市场研究":
+        await show_market_research_page()
+  
+
+    # print("### main循环结束 ####")
 
 if __name__ == "__main__":
     import asyncio

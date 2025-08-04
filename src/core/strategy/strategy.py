@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict, Any
 from event_bus.event_types import StrategyScheduleEvent
 from core.strategy.backtesting import BacktestEngine
-from support.log import logger
+from support.log.logger import _init_logger
 
 
 class BaseEvent:
@@ -12,7 +12,7 @@ class BaseEvent:
     def __init__(self, timestamp: datetime, event_type: str):
         self.timestamp = timestamp
         self.event_type = event_type
-        self.logger._init_logger()
+        _init_logger(self)
 
     def to_dict(self) -> Dict[str, Any]:
         """将事件转换为字典"""
@@ -40,9 +40,9 @@ from typing import Type, Callable, Dict
 
 
 class BaseStrategy():
-    def __init__(self, Data, name, buySignal, sellSignal):
+    def __init__(self, Data, name, buySignal, sellSignal, invest_ratio=0.01):
         import uuid
-        logger._init_logger(self)
+        _init_logger(self)
         self.Data = Data
         self.name : str = name
         self.buySignal = buySignal

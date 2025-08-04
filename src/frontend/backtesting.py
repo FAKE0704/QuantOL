@@ -4,12 +4,13 @@ import plotly.express as px
 from core.strategy.backtesting import  BacktestEngine
 from core.strategy.backtesting import  BacktestConfig
 from services.chart_service import  ChartService, DataBundle
-from event_bus.event_types import  SignalEvent
+from event_bus.event_types import  StrategyScheduleEvent,SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from core.strategy.strategy import FixedInvestmentStrategy
 from core.data.database import DatabaseManager
 from services.progress_service import progress_service
 from typing import cast
+
 import time
 
 
@@ -121,7 +122,7 @@ async def show_backtesting_page():
         st.write(data) 
 
         # 注册事件处理器
-        engine.register_handler(ScheduleEvent, handle_schedule)
+        engine.register_handler(StrategyScheduleEvent, handle_schedule)
         engine.register_handler(SignalEvent, handle_signal)
         
         # 初始化策略

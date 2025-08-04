@@ -55,12 +55,14 @@ class FillEvent:
 
 @dataclass
 class SignalEvent:
-    """策略信号事件"""
+    """信号事件"""
     strategy_id: str
     symbol: str
     signal_type: str  # ENTRY/EXIT
     strength: float  # 信号强度
     timestamp: datetime
+    engine: Any = None
+    parameters: Dict[str, Any] = None
 
 @dataclass
 class SystemEvent:
@@ -78,6 +80,8 @@ class StrategySignalEvent(BaseEvent):
     quantity: int
     confidence: float
     timestamp: datetime
+    engine: Any = None
+    parameters: Optional[Dict[str, Any]] = None
 
 @dataclass
 class StrategyScheduleEvent(BaseEvent):
@@ -86,3 +90,4 @@ class StrategyScheduleEvent(BaseEvent):
     symbol: str
     parameters: Dict[str, Any]
     timestamp: datetime
+    engine: Any = None  # 添加engine字段保持兼容性

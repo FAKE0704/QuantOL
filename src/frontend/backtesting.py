@@ -4,7 +4,7 @@ import plotly.express as px
 from core.strategy.backtesting import  BacktestEngine
 from core.strategy.backtesting import  BacktestConfig
 from services.chart_service import  ChartService, DataBundle
-from core.strategy.events import ScheduleEvent, SignalEvent
+from event_bus.event_types import  SignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from core.strategy.strategy import FixedInvestmentStrategy
 from core.data.database import DatabaseManager

@@ -7,7 +7,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 import os
-from core.strategy.events import ScheduleEvent, SignalEvent
+from event_bus.event_types import SignalEvent
 import pandas as pd
 import streamlit as st
 from support.log import logger
@@ -38,7 +38,7 @@ class BacktestConfig:
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
     max_holding_days: Optional[int] = None
-    extra_params: Dict[str, Any] = None
+    extra_params: Optional[Dict[str, Any]] = None
     initial_capital: float = 1e6
     commission: float = 0.0005
     slippage: float = 0.00
@@ -98,7 +98,7 @@ class BacktestEngine:
     """回测引擎，负责执行回测流程"""
     
     def __init__(self, config: BacktestConfig, data):
-        logger._init_logger(self)
+        self.logger = logging.getLogger(__name__)
         self.config = config
         self.event_queue = []
         self.current_price = None  # 添加当前价格属性
@@ -166,7 +166,8 @@ class BacktestEngine:
         
         # 为定投策略添加事件处理器
         if hasattr(strategy, 'is_fixed_investment') and strategy.is_fixed_investment:
-            self.register_handler(ScheduleEvent, strategy.handle_event)
+            pass
+            # 移除ScheduleEvent相关处理，改为策略内部定时逻辑，待修改
             
         # 记录策略注册日志
         self.logger.info(f"策略注册成功 | ID: {strategy.strategy_id} | 名称: {strategy.name}")
@@ -232,24 +233,24 @@ class BacktestEngine:
             if current_date.month != self.current_month:
                 first_trading_day = self.get_first_trading_day_of_month(current_date)
                 if first_trading_day is not None:
-                    monthly_event = ScheduleEvent(
-                        timestamp=first_trading_day,
-                        schedule_type="MONTHLY",
-                        engine=self,
-                        parameters={
-                            'investment_amount': self.config.monthly_investment,
-                            'current_capital': self.current_capital
-                        }
-                    )
-                    self.push_event(monthly_event)
+                    # 直接调用策略的每月处理方法
+                    for strategy in self.strategies:
+                        if hasattr(strategy, 'on_monthly_schedule'):
+                            strategy.on_monthly_schedule(
+                                timestamp=first_trading_day,
+                                investment_amount=self.config.monthly_investment,
+                                current_capital=self.current_capital
+                            )
                     self.current_month = current_date.month
                     
                     # 处理当月定投事件
                     for strategy in self.strategies:
-                        if hasattr(strategy, 'on_event'):
-                            strategy.on_event(monthly_event)
-                        else:
-                            strategy.handle_event(event = monthly_event, engine = self)
+                        if hasattr(strategy, 'on_monthly_schedule'):
+                            strategy.on_monthly_schedule(
+                                timestamp=first_trading_day,
+                                investment_amount=self.config.monthly_investment,
+                                current_capital=self.current_capital
+                            )
             
             
             # 处理当日事件
@@ -310,7 +311,7 @@ class BacktestEngine:
         month_start = date.replace(day=1)
         # 使用已创建的combined_time列作为索引
         if not isinstance(self.data.index, pd.DatetimeIndex):
-            self.data.index = self.data['combined_time']
+            self.data = self.data.set_index('combined_time')
         
         # 获取该月所有交易日
         try:
@@ -518,7 +519,7 @@ class BacktestEngine:
         
         return self.data
 
-    def create_order(self, timestamp : datetime ,symbol: str, quantity: int, side: str, price: float, strategy_id: str = None):
+    def create_order(self, timestamp : datetime ,symbol: str, quantity: int, side: str, price: float, strategy_id: Optional[str] = None):
         """创建交易订单"""
         # 添加DEBUG日志记录订单创建
         self.logger.debug(

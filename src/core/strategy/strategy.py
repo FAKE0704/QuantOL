@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from typing import Dict, Any
-from core.strategy.events import ScheduleEvent
+from event_bus.event_types import StrategyScheduleEvent
 from core.strategy.backtesting import BacktestEngine
 from support.log import logger
 
@@ -97,7 +97,7 @@ class BaseStrategy():
 
     def handle_event(self, engine, event):
         """统一事件处理入口"""
-        if isinstance(event, ScheduleEvent):
+        if isinstance(event, StrategyScheduleEvent):
             if event.schedule_type == "MONTHLY":
                 self.on_monthly_schedule(engine, event)
                 
@@ -111,7 +111,7 @@ class FixedInvestmentStrategy(BaseStrategy):
         self.invest_ratio = 0.01  # 定投比例
         
 
-    def on_monthly_schedule(self, engine:BacktestEngine, event:ScheduleEvent):
+    def on_monthly_schedule(self, engine:BacktestEngine, event:StrategyScheduleEvent):
         """每月定投逻辑"""
         # 计算定投金额
         invest_amount = engine.config.initial_capital * self.invest_ratio
@@ -134,7 +134,7 @@ class FixedInvestmentStrategy(BaseStrategy):
         return name
 
     def get_required_events(self):
-        return [ScheduleEvent]
+        return [StrategyScheduleEvent]
 
 
 

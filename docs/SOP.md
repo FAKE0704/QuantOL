@@ -9,3 +9,8 @@ pip install xxx -i https://mirrors.aliyun.com/pypi/simple/
 
 # 启动应用
 streamlit run app.py
+
+# 重新部署单个容器
+docker-compose stop **web** && docker-compose rm -f **web** && docker-compose up -d --force-recreate --build **web**
+
+# 

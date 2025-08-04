@@ -13,4 +13,32 @@ streamlit run app.py
 # 重新部署单个容器
 docker-compose stop **web** && docker-compose rm -f **web** && docker-compose up -d --force-recreate --build **web**
 
+docker-compose down && docker-compose up --build  -d
+
 # 
+```mermaid
+flowchart TD
+    A([开始]) --> B[阅读文件结构]
+    B --> C[阅读类与方法]
+    C --> D[开发具体问题]
+    D --> E{涉及结构调整？}
+    E -- 是 --> F[更新文件结构]
+    E -- 否 --> G{涉及代码变更？}
+    F --> G
+    G -- 是 --> H[更新类与方法]
+    G -- 否 --> I([结束])
+    H --> I
+    H --> B
+    F --> C
+
+%% 样式优化
+    style A fill:#1d9fe4,stroke:#333,stroke-width:2px,color:#fff
+    style B fill:#9f9,stroke:#333
+    style C fill:#9f9,stroke:#333
+    style D fill:#f90,stroke:#333
+    style F fill:#ff9,stroke:#333
+    style H fill:#ff9,stroke:#333
+    style I fill:#e84133,stroke:#333,color:#fff
+    style E fill:#f9f,stroke:#333,stroke-dasharray:5 5
+    style G fill:#f9f,stroke:#333,stroke-dasharray:5 5
+```

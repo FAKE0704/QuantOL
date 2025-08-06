@@ -99,13 +99,11 @@ async def show_backtesting_page():
         # 初始化回测配置
         symbol = selected[0] # 股票代号
         frequency = "5"      # 数据频率
-        start_date=start_date.strftime("%Y%m%d") # 开始日期
-        end_date=end_date.strftime("%Y%m%d") # 结束日期
 
         # 初始化回测参数BacktestConfig
         backtest_config = BacktestConfig( # 设置回测参数
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_date.strftime("%Y%m%d"),  # BacktestConfig仍需要字符串格式
+            end_date=end_date.strftime("%Y%m%d"),
             frequency=frequency,
             target_symbol=symbol,
             initial_capital=initial_capital,
@@ -114,7 +112,7 @@ async def show_backtesting_page():
         
         # 初始化事件引擎BacktestEngine
         db = cast(DatabaseManager, st.session_state.db)
-        data = await db.load_stock_data(symbol, start_date, end_date, frequency)
+        data = await db.load_stock_data(symbol, start_date, end_date, frequency)  # 直接传递date对象
         engine = BacktestEngine(config=backtest_config, data=data)
         
         

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import pandas as pd
 from typing import Optional
+from datetime import date
 
 class DataSourceError(Exception):
     """数据源操作异常基类"""
@@ -9,7 +10,7 @@ class DataSourceError(Exception):
 class DataSource(ABC):
     """数据源抽象基类"""
     @abstractmethod
-    async def load_data(self, symbol: str, start_date: str, end_date: str, frequency: str) -> pd.DataFrame:
+    async def load_data(self, symbol: str, start_date: date, end_date: date, frequency: str) -> pd.DataFrame:
         """加载数据"""
         pass
         

@@ -12,7 +12,8 @@ from pathlib import Path
 import json
 import uuid
 import time
-from support.log import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 class ThemeConfig:
@@ -161,6 +162,53 @@ class ChartBase(ABC):
     @abstractmethod
     def render(self, data: pd.DataFrame):
         pass
+
+
+class ChartFactory:
+    """图表工厂类，支持动态注册和创建图表实例"""
+    
+    _chart_types = {}  # 存储注册的图表类型
+    
+    @classmethod
+    def register_chart(cls, chart_type: str, chart_class):
+        """注册新的图表类型
+        
+        Args:
+            chart_type: 图表类型标识字符串
+            chart_class: 图表实现类(必须继承自ChartBase)
+        """
+        if not issubclass(chart_class, ChartBase):
+            raise TypeError(f"{chart_class.__name__} 必须继承自 ChartBase")
+        cls._chart_types[chart_type] = chart_class
+    
+    @classmethod
+    def create_chart(cls, chart_type: str, config: ChartConfig) -> ChartBase:
+        """创建图表实例
+        
+        Args:
+            chart_type: 图表类型标识字符串
+            config: 图表配置对象
+            
+        Returns:
+            图表实例
+            
+        Raises:
+            ValueError: 如果图表类型未注册
+        """
+        if chart_type not in cls._chart_types:
+            raise ValueError(f"未知的图表类型: {chart_type}. 可用类型: {list(cls._chart_types.keys())}")
+        return cls._chart_types[chart_type](config)
+    
+    @classmethod
+    def get_registered_charts(cls) -> list:
+        """获取已注册的图表类型列表"""
+        return list(cls._chart_types.keys())
+
+
+# 注册内置图表类型
+ChartFactory.register_chart("capital_flow", CapitalFlowChart)
+ChartFactory.register_chart("candlestick", CandlestickChart)
+ChartFactory.register_chart("volume", VolumeChart)
 
 
 class CapitalFlowChart(ChartBase):
@@ -353,7 +401,6 @@ class ChartService:
         self._selected_primary_fields = []
         self._selected_secondary_fields = []
         self._chart_types = {"primary": "K线图", "secondary": "K线图"}
-        logger._init_logger(self)
 
     @st.cache_resource(show_spinner=False)
     def get_chart_service(_strategy_id: str, data_bundle: DataBundle):
@@ -619,7 +666,11 @@ class ChartService:
 
     def create_kline(self) -> go.Figure:
         """创建K线图"""
+        logger.debug(f"开始创建K线图，数据形状: {self.data_bundle.kline_data.shape if self.data_bundle.kline_data is not None else 'None'}",
+                   extra={'connection_id': str(id(self))})
         if self.data_bundle.kline_data is None:
+            logger.error("创建K线图失败: 缺少K线数据",
+                       extra={'connection_id': str(id(self))})
             raise ValueError("缺少K线数据")
 
         # 配置作图参数
@@ -627,6 +678,8 @@ class ChartService:
         kline = CandlestickChart(config)
         fig = kline.render(self.data_bundle.kline_data)
         self.figure = fig
+        logger.debug("K线图创建完成",
+                    extra={'connection_id': str(id(self))})
         return fig
 
     def create_volume_chart(self) -> go.Figure:

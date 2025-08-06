@@ -51,7 +51,22 @@ async def show_history_page():
         with col2:
             end_date = st.date_input("结束日期")
         with col3:
-            frequency = st.selectbox("频率", ["5","15","30","60","120","d","w","m","y"])
+            frequency_options = {
+                "5": "5分钟",
+                "15": "15分钟",
+                "30": "30分钟",
+                "60": "60分钟",
+                "120": "120分钟",
+                "d": "日线",
+                "w": "周线",
+                "m": "月线",
+                "y": "年线"
+            }
+            frequency = st.selectbox(
+                "频率",
+                options=list(frequency_options.keys()),
+                format_func=lambda x: frequency_options[x]
+            )
         
         if st.button("查看历史行情"):
             from components.progress import show_progress

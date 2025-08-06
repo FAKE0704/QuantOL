@@ -551,22 +551,44 @@ class DatabaseManager:
         try:
             # 将DataFrame转换为适合插入的格式
             records = data_tmp.to_dict('records')
-            insert_data = [
-                (
-                    symbol,
-                    record['date'],
-                    record['time'],
-                    record['open'],
-                    record['high'],
-                    record['low'],
-                    record['close'],
-                    record['volume'],
-                    record.get('amount'),
-                    record.get('adjustflag'),
-                    frequency
-                )
-                for record in records
-            ]
+            
+            # 处理不同频率的数据
+            if frequency in ["1", "5", "15", "30", "60"]:
+                # 分钟级数据有time字段
+                insert_data = [
+                    (
+                        symbol,
+                        record['date'],
+                        record.get('time', "00:00:00"),  # 安全获取时间字段
+                        record['open'],
+                        record['high'],
+                        record['low'],
+                        record['close'],
+                        record['volume'],
+                        record.get('amount'),
+                        record.get('adjustflag'),
+                        frequency
+                    )
+                    for record in records
+                ]
+            else:
+                # 日线及以上频率数据，设置默认时间
+                insert_data = [
+                    (
+                        symbol,
+                        record['date'],
+                        "00:00:00",  # 日线数据默认时间
+                        record['open'],
+                        record['high'],
+                        record['low'],
+                        record['close'],
+                        record['volume'],
+                        record.get('amount'),
+                        record.get('adjustflag'),
+                        frequency
+                    )
+                    for record in records
+                ]
 
             
             async with self.pool.acquire() as conn:

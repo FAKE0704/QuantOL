@@ -1,4 +1,10 @@
 import streamlit as st
+import logging
+from support.log.logger import logger
+
+# 设置INFO日志级别
+logger.setLevel(logging.INFO)
+import logging
 import pandas as pd
 import plotly.graph_objects as go
 import time
@@ -72,14 +78,30 @@ async def show_history_page():
             from components.progress import show_progress
             progress, status = show_progress("history_data", "正在获取数据...")
             
+            # 生成缓存键
+            cache_key = f"{stock_code}_{start_date}_{end_date}_{frequency}"
+            
             try:
-                # 获取历史数据
+                # 检查缓存
+                # stock_cache用于股票列表，history_data_cache用于行情数据
+                if 'history_data_cache' not in st.session_state:
+                    st.session_state.history_data_cache = {}
                 
-                start_date = start_date.strftime("%Y%m%d") 
-                end_date = end_date.strftime("%Y%m%d")
-                # st.write(stock_code, start_date, end_date, frequency) # debug
-                data = await db.load_stock_data(stock_code, start_date, end_date, frequency) 
-                status.update(label="数据获取成功!", state="complete")
+                if cache_key not in st.session_state.history_data_cache:
+                    # 获取历史数据
+                    start_date_str = start_date.strftime("%Y%m%d")
+                    end_date_str = end_date.strftime("%Y%m%d")
+                    
+                    data = await db.load_stock_data(stock_code, start_date_str, end_date_str, frequency)
+                    # 缓存数据
+                    st.session_state.history_data_cache[cache_key] = data
+                    logger.info(f"新获取数据: {stock_code} {start_date.strftime('%Y-%m-%d')}至{end_date.strftime('%Y-%m-%d')} {frequency}")
+                    status.update(label="数据获取成功!", state="complete")
+                else:
+                    # 使用缓存数据
+                    data = st.session_state.history_data_cache[cache_key]
+                    logger.info(f"使用缓存数据: {stock_code} {start_date}至{end_date} {frequency}")
+                    status.update(label="使用缓存数据", state="complete")
             except Exception as e:
                 status.update(label=f"获取失败: {str(e)}", state="error")
                 raise
@@ -91,14 +113,27 @@ async def show_history_page():
                 st.subheader("历史数据")
                 st.dataframe(data)
                 
-                
-
-                # 使用ChartService绘制图表
-                chart_service = ChartService(data)
-                
-                # K线图
-                st.subheader("K线图")
-                kline = chart_service.create_kline()
+                try:
+                    # 检查必需字段
+                    required_fields = ['open', 'high', 'low', 'close']
+                    if not all(field in data.columns for field in required_fields):
+                        raise ValueError(f"数据缺少必需字段: {required_fields}")
+                        
+                    # 使用ChartService绘制图表
+                    from services.chart_service import DataBundle
+                    data_bundle = DataBundle(raw_data=data)
+                    chart_service = ChartService(data_bundle)
+                    
+                    # K线图
+                    st.subheader("K线图")
+                    kline = chart_service.create_kline()
+                except ValueError as e:
+                    st.error(f"无法绘制图表: {str(e)}")
+                    return
+                except Exception as e:
+                    st.error(f"绘制图表时发生错误: {str(e)}")
+                    logger.error(f"图表绘制错误: {str(e)}")
+                    return
                 st.plotly_chart(kline, use_container_width=True)
                 
                 # 成交量图

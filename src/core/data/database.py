@@ -200,9 +200,9 @@ class DatabaseManager:
         try:
             self.logger.info(f"Checking data completeness for {symbol} from {start_date} to {end_date}")
             
-            # 转换输入日期
-            start_dt = datetime.strptime(start_date, "%Y%m%d") # datetime.date()
-            end_dt = datetime.strptime(end_date, "%Y%m%d") # datetime.date()
+            # 转换输入日期（统一使用YYYY-MM-DD格式）
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d") # datetime.date()
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d") # datetime.date()
             
             async with self.pool.acquire() as conn:
                 # 获取数据库中已有日期
@@ -245,14 +245,14 @@ class DatabaseManager:
                     
                     for current_date in sorted_dates[1:]:
                         if (current_date - prev_date).days > 1:  # 出现断点
-                            missing_ranges.append((range_start.strftime('%Y%m%d'), 
-                                                 prev_date.strftime('%Y%m%d')))
+                            missing_ranges.append((range_start.strftime('%Y-%m-%d'),
+                                                 prev_date.strftime('%Y-%m-%d')))
                             range_start = current_date
                         prev_date = current_date
                     
                     # 添加最后一个区间
-                    missing_ranges.append((range_start.strftime('%Y%m%d'), 
-                                         prev_date.strftime('%Y%m%d')))
+                    missing_ranges.append((range_start.strftime('%Y-%m-%d'),
+                                         prev_date.strftime('%Y-%m-%d')))
                 
                 self.logger.info(f"Found {len(missing_ranges)} missing data ranges for {symbol}")
                 return missing_ranges
@@ -263,10 +263,15 @@ class DatabaseManager:
 
 # 数据操作
     async def load_stock_data(self, symbol: str, start_date: str, end_date: str, frequency: str) -> pd.DataFrame:
-        """Load stock data from database, fetch missing data from Baostock and save in database if needed"""
+        """Load stock data from database, fetch missing data from Baostock and save in database if needed
+        日期示例：2024-07-01
+        """
         try:
             self.logger.info(f"Loading stock data for {symbol} from {start_date} to {end_date}")
             
+            
+            
+
             # Check data completeness
 
             missing_ranges = await self.check_data_completeness(symbol, start_date, end_date)
@@ -304,7 +309,16 @@ class DatabaseManager:
                 rows = await conn.fetch(query, symbol, start_dt, end_dt, frequency)
                 
                 if not rows:
-                    self.logger.warning(f"No data found for {symbol} in specified date range")
+                    self.logger.warning(
+                        f"No stock data found for symbol={symbol} "
+                        f"between {start_date} and {end_date} "
+                        f"with frequency={frequency}"
+                    )
+                    self.logger.debug(
+                        f"Query details: symbol={symbol}, "
+                        f"start_date={start_dt}, end_date={end_dt}, "
+                        f"frequency={frequency}, pool_status={self.get_pool_status()}"
+                    )
                     return pd.DataFrame()
                 data = [dict(row) for row in rows]
                 df = pd.DataFrame(data, columns=['date', 'time', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount', 'adjustflag'])

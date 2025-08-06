@@ -6,7 +6,7 @@ from services.interaction_service import InteractionService
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from typing import List, Optional
+from typing import List, Optional, Dict, Set, Any
 from pandas import DataFrame
 from pathlib import Path
 import json
@@ -49,18 +49,24 @@ class ChartConfig:
         self.layout = LayoutConfig()
         self.data = DataConfig()
         self._config_manager = ChartConfigManager()
-        self._load_config()
-
-    def _load_config(self):
-        """加载配置文件"""
-        try:
-            config = self._config_manager.load_config()
-            self.theme.__dict__.update(vars(config.theme))
-            self.layout.__dict__.update(vars(config.layout))
-            self.data.__dict__.update(vars(config.data))
-        except Exception as e:
-            st.error(f"配置加载失败: {str(e)}")
-            self._config_manager._create_default()
+        
+    def load(self):
+        """显式加载配置文件"""
+        config_data = self._config_manager.load_config()
+        
+        # 确保配置数据是字典格式
+        if not isinstance(config_data, dict):
+            st.error(f"配置数据格式错误: {type(config_data)}")
+            config_data = self._config_manager._create_default_dict()
+        
+        # 更新配置
+        theme_config = config_data.get("theme", {})
+        layout_config = config_data.get("layout", {})
+        data_config = config_data.get("data", {})
+        
+        self.theme.__dict__.update(theme_config)
+        self.layout.__dict__.update(layout_config)
+        self.data.__dict__.update(data_config)
 
     def save(self):
         """保存当前配置"""
@@ -71,20 +77,17 @@ class ChartConfigManager:
     CONFIG_PATH = Path("src/support/config/chart_config.json")
 
     @classmethod
-    def load_config(cls) -> ChartConfig:
-        config = ChartConfig()
+    def load_config(cls) -> dict:
+        """加载配置并返回字典"""
         try:
             if cls.CONFIG_PATH.exists():
                 with open(cls.CONFIG_PATH, "r", encoding="utf-8") as f:
-                    raw_data = json.load(f)
-                    # 反序列化配置
-                    config.theme.__dict__.update(raw_data.get("theme", {}))
-                    config.layout.__dict__.update(raw_data.get("layout", {}))
-                    config.data.__dict__.update(raw_data.get("data", {}))
+                    return json.load(f)
         except Exception as e:
             st.error(f"配置加载失败: {str(e)}")
-            return cls._create_default()
-        return config
+        
+        # 返回默认配置
+        return cls._create_default_dict()
 
     @classmethod
     def save_config(cls, config: ChartConfig):
@@ -102,9 +105,17 @@ class ChartConfigManager:
             st.error(f"配置保存失败: {str(e)}")
 
     @classmethod
-    def _create_default(cls) -> ChartConfig:
-        """创建默认配置"""
-        return ChartConfig()
+    def _create_default_dict(cls) -> dict:
+        """创建默认配置字典"""
+        theme = ThemeConfig()
+        layout = LayoutConfig()
+        data = DataConfig()
+        
+        return {
+            "theme": vars(theme),
+            "layout": vars(layout),
+            "data": vars(data)
+        }
 
     @classmethod
     def _migrate_old_config(cls, raw_data):
@@ -154,14 +165,208 @@ class ChartConfigManager:
 
 class ChartBase(ABC):
     """图表基类"""
-
+    figure: go.Figure
+    logger: logging.Logger = logging.getLogger(__name__)
+    default_line_width: float = 1.0
+    
     def __init__(self, config: ChartConfig):
         self.config = config
         self.figure = go.Figure()
 
     @abstractmethod
-    def render(self, data: pd.DataFrame):
+    def render(self, data: pd.DataFrame) -> go.Figure:
+        """渲染图表并返回Figure对象"""
         pass
+
+
+# 确保图表类定义在工厂类之前
+class CapitalFlowChart(ChartBase):
+    """资金流图表实现"""
+    main_color: str
+    north_color: str
+    
+    def __init__(self, config: ChartConfig):
+        super().__init__(config)
+        self.main_color = "#4E79A7"
+        self.north_color = "#59A14F"
+
+    def render(self, data: pd.DataFrame) -> go.Figure:
+        from plotly.subplots import make_subplots
+        self.figure = make_subplots(specs=[[{"secondary_y": True}]])
+        self.figure.add_trace(
+            go.Bar(
+                x=data["date"],
+                y=data["main_net"],
+                name="主力净流入",
+                marker_color=self.main_color,
+                opacity=0.7,
+            ),
+            secondary_y=False,
+        )
+        self.figure.add_trace(
+            go.Scatter(
+                x=data["date"],
+                y=data["north_net"].cumsum(),
+                name="北向累计",
+                line=dict(color=self.north_color, width=2),
+                secondary_y=True,
+            )
+        )
+        theme = self.config.theme
+        self.figure.update_layout(
+            plot_bgcolor=theme.colors["background"],
+            paper_bgcolor=theme.colors["background"],
+            barmode="relative",
+            title="资金流向分析",
+        )
+        return self.figure
+    """资金流图表实现"""
+    main_color: str
+    north_color: str
+    
+    def __init__(self, config: ChartConfig):
+        super().__init__(config)
+        self.main_color = "#4E79A7"  # 主力资金颜色
+        self.north_color = "#59A14F"  # 北向资金颜色
+
+    def render(self, data: pd.DataFrame) -> go.Figure:
+        from plotly.subplots import make_subplots
+
+        # 创建双Y轴图表
+        self.figure = make_subplots(specs=[[{"secondary_y": True}]])
+
+        # 主力资金（左轴）
+        self.figure.add_trace(
+            go.Bar(
+                x=data["date"],
+                y=data["main_net"],
+                name="主力净流入",
+                marker_color=self.main_color,
+                opacity=0.7,
+            ),
+            secondary_y=False,
+        )
+
+        # 北向资金（右轴）
+        self.figure.add_trace(
+            go.Scatter(
+                x=data["date"],
+                y=data["north_net"].cumsum(),
+                name="北向累计",
+                line=dict(color=self.north_color, width=2),
+                secondary_y=True,
+            )
+        )
+
+        # 应用主题配置
+        theme = self.config.theme
+        self.figure.update_layout(
+            plot_bgcolor=theme.colors["background"],
+            paper_bgcolor=theme.colors["background"],
+            barmode="relative",
+            title="资金流向分析",
+        )
+        return self.figure
+
+
+class CandlestickChart(ChartBase):
+    """K线图表实现"""
+    add_ma: bool
+    ma_periods: List[int]
+    
+    def __init__(self, config: ChartConfig):
+        super().__init__(config)
+        self.add_ma = True
+        self.ma_periods = [5, 10, 20]
+
+    def render(self, data: pd.DataFrame) -> go.Figure:
+        """K线图表渲染"""
+        # 绘制K线
+        self.figure.add_trace(
+            go.Candlestick(
+                x=data.index,
+                open=data["open"],
+                high=data["high"],
+                low=data["low"],
+                close=data["close"],
+                increasing_line_color="#25A776",
+                decreasing_line_color="#EF4444",
+            )
+        )
+
+        # 绘制均线
+        if self.add_ma:
+            for period in self.ma_periods:
+                ma = data["close"].rolling(period).mean()
+                self.figure.add_trace(
+                    go.Scatter(x=data.index, y=ma, line=dict(width=1), opacity=0.7)
+                )
+
+        # 应用主题配置
+        theme = self.config.theme
+        layout = self.config.layout
+
+        self.figure.update_layout(
+            xaxis_rangeslider_visible=False,
+            plot_bgcolor=theme.colors["background"],
+            paper_bgcolor=theme.colors["background"],
+            xaxis=dict(
+                gridcolor=theme.colors["grid"],
+                title_font=dict(size=12, family=theme.font),
+            ),
+            yaxis=dict(
+                gridcolor=theme.colors["grid"],
+                title_font=dict(size=12, family=theme.font),
+            ),
+            title_font=dict(size=14, family=theme.font),
+            legend=dict(font=dict(size=10, family=theme.font)),
+        )
+        return self.figure
+
+
+class VolumeChart(ChartBase):
+    """成交量图表实现"""
+    default_up_color: str
+    default_down_color: str
+    
+    def __init__(self, config: ChartConfig):
+        super().__init__(config)
+        self.default_up_color = "#25A776"
+        self.default_down_color = "#EF4444"
+
+    def render(self, data: pd.DataFrame) -> go.Figure:
+        # 计算涨跌颜色
+        colors = np.where(
+            data["close"] >= data["open"],
+            self.default_up_color,
+            self.default_down_color,
+        )
+
+        # 绘制成交量
+        self.figure.add_trace(
+            go.Bar(x=data.index, y=data["volume"], marker_color=colors, name="成交量")
+        )
+
+        # 应用主题配置
+        theme = self.config.theme
+        layout = self.config.layout
+
+        self.figure.update_layout(
+            title="成交量",
+            plot_bgcolor=theme.colors["background"],
+            paper_bgcolor=theme.colors["background"],
+            xaxis=dict(
+                gridcolor=theme.colors["grid"],
+                title_font=dict(size=12, family=theme.font),
+            ),
+            yaxis=dict(
+                gridcolor=theme.colors["grid"],
+                title_font=dict(size=12, family=theme.font),
+            ),
+            title_font=dict(size=14, family=theme.font),
+            legend=dict(font=dict(size=10, family=theme.font)),
+        )
+        return self.figure
 
 
 class ChartFactory:
@@ -211,150 +416,8 @@ ChartFactory.register_chart("candlestick", CandlestickChart)
 ChartFactory.register_chart("volume", VolumeChart)
 
 
-class CapitalFlowChart(ChartBase):
-    """资金流图表实现"""
-
-    def __init__(self, config: ChartConfig):
-        super().__init__(config)
-        self.main_color = "#4E79A7"  # 主力资金颜色
-        self.north_color = "#59A14F"  # 北向资金颜色
-
-    def render(self, data: pd.DataFrame):
-        from plotly.subplots import make_subplots
-
-        # 创建双Y轴图表
-        self.figure = make_subplots(specs=[[{"secondary_y": True}]])
-
-        # 主力资金（左轴）
-        self.figure.add_trace(
-            go.Bar(
-                x=data["date"],
-                y=data["main_net"],
-                name="主力净流入",
-                marker_color=self.main_color,
-                opacity=0.7,
-            ),
-            secondary_y=False,
-        )
-
-        # 北向资金（右轴）
-        self.figure.add_trace(
-            go.Scatter(
-                x=data["date"],
-                y=data["north_net"].cumsum(),
-                name="北向累计",
-                line=dict(color=self.north_color, width=2),
-                secondary_y=True,
-            )
-        )
-
-        # 应用主题配置
-        theme = self.config.theme
-        self.figure.update_layout(
-            plot_bgcolor=theme.colors["background"],
-            paper_bgcolor=theme.colors["background"],
-            barmode="relative",
-            title="资金流向分析",
-        )
-        return self.figure
 
 
-class CandlestickChart(ChartBase):
-    """K线图表实现"""
-
-    def __init__(self, config: ChartConfig):
-        super().__init__(config)
-        self.add_ma = True
-        self.ma_periods = [5, 10, 20]
-
-    def render(self, data: pd.DataFrame):
-        """K线图表渲染"""
-
-        # 绘制K线
-        self.figure.add_trace(
-            go.Candlestick(
-                x=data.index,
-                open=data["open"],
-                high=data["high"],
-                low=data["low"],
-                close=data["close"],
-                increasing_line_color="#25A776",
-                decreasing_line_color="#EF4444",
-            )
-        )
-
-        # 绘制均线
-        if self.add_ma:
-            for period in self.ma_periods:
-                ma = data["close"].rolling(period).mean()
-                self.figure.add_trace(
-                    go.Scatter(x=data.index, y=ma, line=dict(width=1), opacity=0.7)
-                )
-
-        # 应用主题配置
-        theme = self.config.theme
-        layout = self.config.layout
-
-        self.figure.update_layout(
-            xaxis_rangeslider_visible=False,
-            plot_bgcolor=theme.colors["background"],
-            paper_bgcolor=theme.colors["background"],
-            xaxis=dict(
-                gridcolor=theme.colors["grid"],
-                title_font=dict(size=12, family=theme.font),
-            ),
-            yaxis=dict(
-                gridcolor=theme.colors["grid"],
-                title_font=dict(size=12, family=theme.font),
-            ),
-            title_font=dict(size=14, family=theme.font),
-            legend=dict(font=dict(size=10, family=theme.font)),
-        )
-
-        return self.figure
-
-
-class VolumeChart(ChartBase):
-    """成交量图表实现"""
-
-    def __init__(self, config: ChartConfig):
-        super().__init__(config)
-        self.default_up_color = "#25A776"
-        self.default_down_color = "#EF4444"
-
-    def render(self, data: pd.DataFrame):
-        # 计算涨跌颜色
-        colors = np.where(
-            data["close"] >= data["open"],
-            self.default_up_color,
-            self.default_down_color,
-        )
-
-        # 绘制成交量
-        self.figure.add_trace(
-            go.Bar(x=data.index, y=data["volume"], marker_color=colors, name="成交量")
-        )
-
-        # 应用主题配置
-        theme = self.config.theme
-        layout = self.config.layout
-
-        self.figure.update_layout(
-            title="成交量",
-            plot_bgcolor=theme.colors["background"],
-            paper_bgcolor=theme.colors["background"],
-            xaxis=dict(
-                gridcolor=theme.colors["grid"],
-                title_font=dict(size=12, family=theme.font),
-            ),
-            yaxis=dict(
-                gridcolor=theme.colors["grid"],
-                title_font=dict(size=12, family=theme.font),
-            ),
-            title_font=dict(size=14, family=theme.font),
-            legend=dict(font=dict(size=10, family=theme.font)),
-        )
-        return self.figure
 
 
 class CombinedChartConfig(ChartConfig):
@@ -369,51 +432,75 @@ class CombinedChartConfig(ChartConfig):
 
 class DataBundle:
     """数据容器，用于存储多种类型的数据"""
+    kline_data: Optional[DataFrame]
+    trade_records: Optional[DataFrame]
+    capital_flow: Optional[DataFrame]
 
     def __init__(
         self,
-        raw_data: DataFrame = None,
-        transaction_data: DataFrame = None,
-        capital_flow_data: DataFrame = None,
+        raw_data: Optional[DataFrame] = None,
+        transaction_data: Optional[DataFrame] = None,
+        capital_flow_data: Optional[DataFrame] = None,
     ):
+        self.kline_data = raw_data
+        self.trade_records = transaction_data
+        self.capital_flow = capital_flow_data
         self.kline_data = raw_data  # K线数据
         self.trade_records = transaction_data  # 交易记录
         self.capital_flow = capital_flow_data  # 新增资金流数据字段
 
-    def get_all_columns(self) -> list:
-        """获取所有 DataFrame 的列名集合"""
+    def get_all_columns(self) -> List[str]:
+        """获取所有列名"""
         columns = set()
         # 遍历所有数据容器字段
         for attr in ["kline_data", "trade_records", "capital_flow"]:
             df = getattr(self, attr)
             if df is not None and isinstance(df, DataFrame):
                 columns.update(df.columns.tolist())
-        return columns
+        return list(columns)  # 转换为列表返回
 
 
 class ChartService:
     """图表服务，支持多种数据源的图表绘制"""
+    logger: logging.Logger = logging.getLogger(__name__)
+    default_line_width: float = 1.0
+    data_bundle: DataBundle
+    figure: go.Figure
+    _selected_primary_fields: List[str]
+    _selected_secondary_fields: List[str]
+    _chart_types: Dict[str, str]
 
     def __init__(self, data_bundle: DataBundle):
         self.data_bundle = data_bundle
-        self.interaction_service = InteractionService()
+        # self._interaction_service = None
         self.figure = go.Figure()
         self._selected_primary_fields = []
         self._selected_secondary_fields = []
-        self._chart_types = {"primary": "K线图", "secondary": "K线图"}
+        self._chart_types = {"primary": "K线图", "secondary": "柱形图"}
+
+    def _get_interaction_service(self):
+        """惰性获取InteractionService实例"""
+        if self._interaction_service is None:
+            self._interaction_service = InteractionService()
+        return self._interaction_service
 
     @st.cache_resource(show_spinner=False)
     def get_chart_service(_strategy_id: str, data_bundle: DataBundle):
         """基于策略ID的缓存实例工厂"""
         return ChartService(data_bundle)
 
-    def _handle_config_change(*args):
+    def _handle_config_change(self, *args):
         """处理配置变更的回调函数"""
+        if len(args) == 0:
+            return
+            
         # 解析参数 - Streamlit会传递3个参数: widget_key, value, field_type
-        if len(args) == 3:
+        if len(args) >= 3:
             _, _, field_type = args
+        elif len(args) >= 2:
+            _, field_type = args
         else:
-            field_type = args[1] if len(args) > 1 else args[0]
+            field_type = args[0]
 
         # 防抖机制：如果距离上次变更时间小于300ms则忽略
         current_time = time.time()
@@ -640,8 +727,9 @@ class ChartService:
                 st.write(fig)
 
     def create_interactive_chart(self) -> go.Figure:
-        
         """生成交互式配置的图表"""
+        if not hasattr(self, 'figure'):
+            self.figure = go.Figure()
         # 参数有效性检查
         if not self._selected_primary_fields:
             raise ValueError("至少需要选择一个主图字段")
@@ -656,16 +744,13 @@ class ChartService:
             ),
         )
 
-        # 应用图表类型样式
-        if self._chart_types["primary"] == "K线图":
-            fig = self._apply_candlestick_style(fig)
-        elif self._chart_types["primary"] == "面积图":
-            fig = self._apply_area_style(fig, self._selected_primary_fields)
-
         return fig
 
-    def create_kline(self) -> go.Figure:
-        """创建K线图"""
+    def create_kline(self, auto_listen: bool = False) -> go.Figure:
+        """创建K线图(通过工厂模式)
+        Args:
+            auto_listen: 是否自动注册交互事件监听，默认为False
+        """
         logger.debug(f"开始创建K线图，数据形状: {self.data_bundle.kline_data.shape if self.data_bundle.kline_data is not None else 'None'}",
                    extra={'connection_id': str(id(self))})
         if self.data_bundle.kline_data is None:
@@ -673,38 +758,57 @@ class ChartService:
                        extra={'connection_id': str(id(self))})
             raise ValueError("缺少K线数据")
 
-        # 配置作图参数
+        # 通过工厂创建图表实例
         config = ChartConfig()
-        kline = CandlestickChart(config)
+        kline = ChartFactory.create_chart("candlestick", config)
         fig = kline.render(self.data_bundle.kline_data)
         self.figure = fig
+        
+        # 只有auto_listen为True时才注册事件监听
+        if auto_listen:
+            self._get_interaction_service().subscribe(
+                lambda x_range: fig.update_xaxes(range=x_range))
+            
         logger.debug("K线图创建完成",
                     extra={'connection_id': str(id(self))})
         return fig
 
-    def create_volume_chart(self) -> go.Figure:
-        """创建成交量图"""
+    def create_volume_chart(self, auto_listen: bool = False) -> go.Figure:
+        """创建成交量图(通过工厂模式)
+        Args:
+            auto_listen: 是否自动注册交互事件监听，默认为False
+        """
         if self.data_bundle.kline_data is None:
             raise ValueError("缺少K线数据")
 
         config = ChartConfig()
-        volume = VolumeChart(config)
+        volume = ChartFactory.create_chart("volume", config)
         fig = volume.render(self.data_bundle.kline_data)
+        
+        # 只有auto_listen为True时才注册事件监听
+        if auto_listen:
+            self._get_interaction_service().subscribe(
+                lambda x_range: fig.update_xaxes(range=x_range))
+            
         return fig
 
-    def create_capital_flow_chart(self, config: dict = None) -> go.Figure:
-        """创建资金流图表"""
+    def create_capital_flow_chart(self, config: Optional[dict] = None) -> go.Figure:
+        """创建资金流图表(通过工厂模式)"""
         if self.data_bundle.capital_flow is None:
             raise ValueError("缺少资金流数据")
 
-        # 初始化配置
+        # 通过工厂创建图表实例
         flow_config = ChartConfig()
-        capital_chart = CapitalFlowChart(flow_config)
+        capital_chart = ChartFactory.create_chart("capital_flow", flow_config)
 
-        # 应用自定义配置
+        # 应用自定义配置 - 直接使用配置值
         if config:
             capital_chart.main_color = config.get("main_color", "#4E79A7")
             capital_chart.north_color = config.get("north_color", "#59A14F")
+        else:
+            # 使用默认值
+            capital_chart.main_color = "#4E79A7"
+            capital_chart.north_color = "#59A14F"
 
         return capital_chart.render(self.data_bundle.capital_flow)
 
@@ -841,6 +945,8 @@ class ChartService:
 
     def draw_equity(self) -> go.Figure:
         """绘制净值曲线图（包含回撤）"""
+        if not hasattr(self, 'figure'):
+            self.figure = go.Figure()
         if self.data_bundle.trade_records is None:
             raise ValueError("缺少净值数据")
 
@@ -855,22 +961,20 @@ class ChartService:
 
         return self.figure
 
-    def drawMA(self, data: DataFrame, periods: List[int]):
-        """绘制均线
-        input: data , periods
-        output: [trace]
-        """
+    def drawMA(self, data: Optional[DataFrame], periods: List[int]) -> List[go.Scatter]:
+        """绘制均线"""
         traces = []
-        for period in periods:
-            ma = data["close"].rolling(window=period).mean()
-            traces.append(
-                go.Scatter(
-                    x=data.index,
-                    y=ma,
-                    name=f"MA{period}",
-                    line=dict(width=1), # bug: 线宽
+        if data is not None and "close" in data.columns:
+            for period in periods:
+                ma = data["close"].rolling(window=period).mean()
+                traces.append(
+                    go.Scatter(
+                        x=data.index,
+                        y=ma,
+                        name=f"MA{period}",
+                        line=dict(width=1),
+                    )
                 )
-            )
         return traces
 
     def drawMACD(self, fast=12, slow=26, signal=9):
@@ -1066,7 +1170,7 @@ class ChartService:
             yaxis_title="RSI",
             template="plotly_dark",
         )
-        st.plotly_chart(fg)
+        st.plotly_chart(fig)
 
     def drawallRSI(data, window, color, line_width):
         """绘制所有RSI"""

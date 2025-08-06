@@ -127,8 +127,10 @@ async def show_history_page():
                     # 使用ChartService绘制图表
                     from services.chart_service import DataBundle
                     data_bundle = DataBundle(raw_data=data)
-                    st.write("BUGGGGGG")
+                    st.write("BUGGGGGG1")
+                    st.write(data_bundle)
                     chart_service = ChartService(data_bundle)
+                    st.write("BUGGGGGG2")
                     
                     # K线图
                     st.subheader("K线图")
@@ -141,10 +143,11 @@ async def show_history_page():
                     logger.error(f"图表绘制错误: {str(e)}")
                     return
                 st.plotly_chart(kline, use_container_width=True)
+                st.write("BUGGGGGG3")
                 
                 # 成交量图
                 st.subheader("成交量图")
-                volume = chart_service.create_volume_chart()
+                volume = chart_service.create_volume_chart(auto_listen=False)
                 st.plotly_chart(volume, use_container_width=True)
             
                 # # 初始化交互服务

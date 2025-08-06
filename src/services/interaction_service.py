@@ -37,6 +37,8 @@ class InteractionService:
         if callback in self.subscribers:
             self.subscribers.remove(callback)
 
+    MAX_RECURSION_DEPTH = 5  # 最大递归深度限制
+
     @debounce(0.5)  # 500ms防抖
     def handle_zoom_event(self, source: str, x_range: list):
         """处理缩放事件
@@ -44,15 +46,25 @@ class InteractionService:
             source: 事件来源图表名称
             x_range: 新的x轴范围 [start, end]
         """
-        if x_range != self.last_xrange:  # 仅当范围变化时处理
-            self.current_xrange = x_range
-            self.last_xrange = x_range
-            # 使用副本遍历防止回调中修改订阅列表
-            for callback in self.subscribers.copy():
-                try:
-                    callback(x_range)
-                except Exception as e:
-                    print(f"Error in callback: {e}")
+        if not hasattr(self, '_recursion_depth'):
+            self._recursion_depth = 0
+        
+        if self._recursion_depth >= self.MAX_RECURSION_DEPTH:
+            return
+            
+        self._recursion_depth += 1
+        try:
+            if x_range != self.last_xrange:  # 仅当范围变化时处理
+                self.current_xrange = x_range
+                self.last_xrange = x_range
+                # 使用副本遍历防止回调中修改订阅列表
+                for callback in self.subscribers.copy():
+                    try:
+                        callback(x_range)
+                    except Exception as e:
+                        print(f"Error in callback: {e}")
+        finally:
+            self._recursion_depth -= 1
 
     def get_current_xrange(self):
         """获取当前x轴范围"""
@@ -65,15 +77,16 @@ class InteractionService:
             self.event_handlers.clear()
 
     # 注册缩放回调（异步兼容）
-    async def update_current_xrange(self,relayout_data)->None:
-      if 'xaxis.range[0]' in relayout_data:
-        await self.handle_zoom_event(
-          source='kline',
-          x_range=[
-            relayout_data['xaxis.range[0]'],
-            relayout_data['xaxis.range[1]']
-          ]
-        )
+    async def update_current_xrange(self, relayout_data) -> None:
+        if 'xaxis.range[0]' in relayout_data:
+            self.handle_zoom_event(
+                source='kline',
+                x_range=[
+                    relayout_data['xaxis.range[0]'],
+                    relayout_data['xaxis.range[1]']
+                ]
+            )
+        return None
 
     def sync_zooming(self, figures):
         """同步多个图表的缩放

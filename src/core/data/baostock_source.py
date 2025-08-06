@@ -3,7 +3,7 @@ import baostock as bs
 from .data_source import DataSource, DataSourceError
 from .data_factory import DataFactory
 from typing import Optional
-
+from datetime import date, datetime, timedelta
 from core.data.database import DatabaseManager
 import os
 from datetime import datetime
@@ -21,10 +21,21 @@ class BaostockDataSource(DataSource):
         if cache_dir and not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
 
-    async def load_data(self, symbol: str, start_date: str, end_date: str, frequency: Optional[str] = None) -> pd.DataFrame:
-        """从baostock获取股票symbol从start_date到end_date的频率frequency数据"""
-        start_date = datetime.strptime(start_date, "%Y%m%d").strftime("%Y-%m-%d")
-        end_date = datetime.strptime(end_date, "%Y%m%d").strftime("%Y-%m-%d")
+    async def load_data(self, symbol: str, start_date: date, end_date: date, frequency: Optional[str] = None) -> pd.DataFrame:
+        """从baostock获取股票symbol从start_date到end_date的频率frequency数据
+        Args:
+            symbol: 股票代码
+            start_date: 开始日期(date对象)
+            end_date: 结束日期(date对象)
+            frequency: 数据频率(可选)
+        """
+        # 处理单日查询情况
+        if start_date == end_date:
+            end_date = start_date + timedelta(days=1)
+            
+        # 转换为baostock需要的日期格式
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
 
         from services.progress_service import progress_service
         
@@ -46,8 +57,8 @@ class BaostockDataSource(DataSource):
         rs = bs.query_history_k_data_plus(
             symbol,
             fields,
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_date_str,
+            end_date=end_date_str,
             frequency=freq,
             adjustflag="3"
         ) # 日期格式需要为 20250202
@@ -70,7 +81,12 @@ class BaostockDataSource(DataSource):
         progress_service.end_task(task_id)
         
         if not data_list:
-            raise DataSourceError(f"未获取到数据, symbol: {symbol},start_date:{start_date}, end_date:{end_date}, frequency: {freq}")
+            raise DataSourceError(
+                f"未获取到数据, symbol: {symbol}, "
+                f"start_date:{start_date_str}, "
+                f"end_date:{end_date_str}, "
+                f"frequency: {freq}"
+            )
             
         df = pd.DataFrame(data_list, columns=rs.fields)
         

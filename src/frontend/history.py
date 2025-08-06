@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import datetime
 import logging
 from support.log.logger import logger
 
@@ -74,12 +75,16 @@ async def show_history_page():
                 format_func=lambda x: frequency_options[x]
             )
         
+        # 日期格式转换
+        start_date = pd.to_datetime(start_date).strftime('%Y-%m-%d')
+        end_date = pd.to_datetime(end_date).strftime('%Y-%m-%d')
+
         if st.button("查看历史行情"):
             from components.progress import show_progress
             progress, status = show_progress("history_data", "正在获取数据...")
             
-            # 生成缓存键
-            cache_key = f"{stock_code}_{start_date}_{end_date}_{frequency}"
+            # 生成包含完整信息的缓存键
+            cache_key = f"history_{stock_code}_{start_date}_{end_date}_{frequency}"
             
             try:
                 # 检查缓存
@@ -89,13 +94,13 @@ async def show_history_page():
                 
                 if cache_key not in st.session_state.history_data_cache:
                     # 获取历史数据
-                    start_date_str = start_date.strftime("%Y%m%d")
-                    end_date_str = end_date.strftime("%Y%m%d")
-                    
-                    data = await db.load_stock_data(stock_code, start_date_str, end_date_str, frequency)
+                    # Convert string dates to date objects
+                    start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                    end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+                    data = await db.load_stock_data(stock_code, start_date_obj, end_date_obj, frequency)
                     # 缓存数据
                     st.session_state.history_data_cache[cache_key] = data
-                    logger.info(f"新获取数据: {stock_code} {start_date.strftime('%Y-%m-%d')}至{end_date.strftime('%Y-%m-%d')} {frequency}")
+                    logger.info(f"新获取数据: {stock_code} {start_date}至{end_date} {frequency}")
                     status.update(label="数据获取成功!", state="complete")
                 else:
                     # 使用缓存数据
@@ -122,6 +127,7 @@ async def show_history_page():
                     # 使用ChartService绘制图表
                     from services.chart_service import DataBundle
                     data_bundle = DataBundle(raw_data=data)
+                    st.write("BUGGGGGG")
                     chart_service = ChartService(data_bundle)
                     
                     # K线图

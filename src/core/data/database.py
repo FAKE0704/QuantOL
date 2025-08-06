@@ -4,7 +4,7 @@ import pandas as pd
 import chinese_calendar as calendar
 from .stock import Stock
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, date,time
 import asyncio
 
 @st.cache_resource(ttl=3600, show_spinner=False)
@@ -20,10 +20,12 @@ class DatabaseManager:
         self.connection = None
         # self._loop = asyncio.get_event_loop()  # 全局唯一事件循环
         import logging
-        self.logger = logging.getLogger(__name__)
+        from support.log.logger import logger
+        self.logger = logger
         self.logger.setLevel(logging.DEBUG)
         self._instance_id = id(self)  # 添加实例ID用于调试
         self.connection_states = {}  # 连接状态跟踪 {conn_id: {status, last_change}}
+        self.logger.debug(f"DatabaseManager initialized, instance_id: {self._instance_id}")  # 测试warning日志
         self.connection_config = { # 数据库连接配置
             'host': host,
             'port': port,
@@ -38,7 +40,8 @@ class DatabaseManager:
             'user': user,
             'password': password
         }
-        self._initialized = False  # 初始化状态  False:没有初始化
+        self._initialized = False  # 初始化状态
+        self._initializing = False  # 防止重复初始化
         self.pool = None  # 记录连接池
         self._loop = None
         self.max_pool_size = 15  # 最大连接数
@@ -49,34 +52,42 @@ class DatabaseManager:
 
     async def initialize(self):
         """异步初始化整个模块"""
+        if self._initialized:
+            return
+            
+        start_time = asyncio.get_event_loop().time()
         await self._create_pool()
         await self._init_db_tables()
-        self.initialized = True  # 添加状态标记
-        # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
-        self.logger.debug(f"initialize调用结束")
+        self._initialized = True
+        self.logger.debug(
+            f"initialize调用结束，总耗时: {asyncio.get_event_loop().time() - start_time:.2f}s"
+        )
 
     async def _create_pool(self):
         """创建连接池"""
         if not self.pool:
-            valid_config = {
-                "database": self.connection_config["dbname"],  # 关键修改点
-                "user": self.connection_config["user"],
-                "password": self.connection_config["password"],
-                "host": self.connection_config["host"],
-                "port": self.connection_config.get("port",'5432')
-            }
-            self.pool = await asyncpg.create_pool(
-                
-                loop=st.session_state._loop,
-                **valid_config,
-                min_size=3,
-                max_size=self.max_pool_size,
-                command_timeout=self.query_timeout,
-                max_inactive_connection_lifetime= 60, # 30秒不用就终止
-                max_queries=10_000  # 防止单连接过度使用
-            )
-            self._loop = self.pool._loop
-            self.logger.debug(f"连接池初始化循环ID: {id(self.pool._loop)}")
+            try:
+                valid_config = {
+                    "database": self.connection_config["dbname"],
+                    "user": self.connection_config["user"],
+                    "password": self.connection_config["password"],
+                    "host": self.connection_config["host"],
+                    "port": self.connection_config.get("port",'5432')
+                }
+                self.pool = await asyncpg.create_pool(
+                    loop=st.session_state._loop,
+                    **valid_config,
+                    min_size=3,
+                    max_size=self.max_pool_size,
+                    command_timeout=self.query_timeout,
+                    max_inactive_connection_lifetime=300, 
+                    max_queries=10_000
+                )
+                self._loop = self.pool._loop
+                self.logger.debug(f"连接池初始化成功, 循环ID: {id(self.pool._loop)}")
+            except Exception as e:
+                self.logger.error(f"连接池初始化失败: {str(e)}")
+                raise
             # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
 
     async def _init_db_tables(self):
@@ -153,7 +164,7 @@ class DatabaseManager:
                 );
             """)
             
-        self.logger.info("数据库表结构初始化完成",
+        self.logger.debug("数据库表结构初始化完成",
                 extra={'connection_id': id(conn)}
             )
         self.logger.debug(f"连接已释放，当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}")
@@ -167,7 +178,6 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Failed to get database connection: {str(e)}")
             raise
-
 
     async def save_stock_info(self, code: str, code_name: str, ipo_date: str, 
                       stock_type: str, status: str, out_date: Optional[str] = None) -> bool:
@@ -191,29 +201,39 @@ class DatabaseManager:
             self.logger.error(f"保存股票信息失败: {str(e)}")
             raise
 
-    async def check_data_completeness(self, symbol: str, start_date: str, end_date: str) -> list:
+    async def check_data_completeness(self, symbol: str, start_date: date, end_date: date, frequency: str) -> list:
+        """异步检查数据完整性
+        Args:
+            symbol: 股票代码
+            start_date: 开始日期(date对象)，示例
+            end_date: 结束日期(date对象)
+        Returns:
+            缺失日期区间列表[(start1,end1), (start2,end2)...]
+        """
         self.logger.debug("""异步检查数据完整性""")
         if not self.pool:
             await self._create_pool()
 
-        """检查指定日期范围内的数据完整性，返回缺失日期区间，自动排除节假日"""
         try:
             self.logger.info(f"Checking data completeness for {symbol} from {start_date} to {end_date}")
             
-            # 转换输入日期（统一使用YYYY-MM-DD格式）
-            start_dt = datetime.strptime(start_date, "%Y-%m-%d") # datetime.date()
-            end_dt = datetime.strptime(end_date, "%Y-%m-%d") # datetime.date()
+            # 直接使用date对象
+            start_dt = start_date
+            end_dt = end_date
             
             async with self.pool.acquire() as conn:
                 # 获取数据库中已有日期
                 query = """
                     SELECT DISTINCT date 
                     FROM StockData
-                    WHERE code = $1 AND date BETWEEN $2 AND $3
+                    WHERE code = $1 AND frequency = $4 AND date BETWEEN $2 AND $3 
                     ORDER BY date
                 """
-                rows = await conn.fetch(query, symbol, start_dt, end_dt)
+                rows = await conn.fetch(query, symbol, start_dt, end_dt, frequency)
+                self.logger.info(f"从数据库获取 {start_dt}-{end_dt} for {symbol}\n")
+
                 existing_dates = {pd.to_datetime(row["date"]).date() for row in rows}
+                self.logger.info(f"Existing_dates {existing_dates} for {symbol}\n")
                 
                 # 生成理论交易日集合（排除节假日）
                 all_dates = pd.date_range(start_dt, end_dt, freq='B')  # 工作日
@@ -221,16 +241,9 @@ class DatabaseManager:
                     date.date() for date in all_dates 
                     if not calendar.is_holiday(date.date())
                 )
-                from datetime import date
-                today = date.today() 
-                trading_dates = set(
-                    d for d in trading_dates
-                    if (
-                        (d != today) if isinstance(d, date)
-                        else (date.fromisoformat(d) != today)
-                    )
-                )# 若今日查询，则排除今日
-                    
+                today = date.today()
+                trading_dates = {d for d in trading_dates if d != today}  # 若今日查询，则排除今日
+                self.logger.info(f"trading_dates {trading_dates} for {symbol}")
                 
                 # 计算缺失日期
                 missing_dates = trading_dates - existing_dates
@@ -245,14 +258,14 @@ class DatabaseManager:
                     
                     for current_date in sorted_dates[1:]:
                         if (current_date - prev_date).days > 1:  # 出现断点
-                            missing_ranges.append((range_start.strftime('%Y-%m-%d'),
-                                                 prev_date.strftime('%Y-%m-%d')))
+                            missing_ranges.append((range_start,
+                                                 prev_date))
                             range_start = current_date
                         prev_date = current_date
                     
                     # 添加最后一个区间
-                    missing_ranges.append((range_start.strftime('%Y-%m-%d'),
-                                         prev_date.strftime('%Y-%m-%d')))
+                    missing_ranges.append((range_start,
+                                         prev_date))
                 
                 self.logger.info(f"Found {len(missing_ranges)} missing data ranges for {symbol}")
                 return missing_ranges
@@ -261,32 +274,38 @@ class DatabaseManager:
             self.logger.error(f"检查数据完整性失败: {str(e)}")
             raise
 
-# 数据操作
-    async def load_stock_data(self, symbol: str, start_date: str, end_date: str, frequency: str) -> pd.DataFrame:
-        """Load stock data from database, fetch missing data from Baostock and save in database if needed
-        日期示例：2024-07-01
+# 加载数据
+    async def load_stock_data(self, symbol: str, start_date: date, end_date: date, frequency: str) -> pd.DataFrame:
+        """从数据库加载股票数据，如有缺失则从数据源获取并保存
+        Args:
+            symbol: 股票代码
+            start_date: 开始日期(date对象)
+            end_date: 结束日期(date对象)
+            frequency: 数据频率(如'd'表示日线)
+        Returns:
+            包含股票数据的DataFrame
         """
         try:
             self.logger.info(f"Loading stock data for {symbol} from {start_date} to {end_date}")
-            
-            
-            
 
-            # Check data completeness
-
-            missing_ranges = await self.check_data_completeness(symbol, start_date, end_date)
+            # the date that data lack of 
+            missing_ranges = await self.check_data_completeness(symbol, start_date, end_date,frequency)
             
-            start_dt = datetime.strptime(start_date, "%Y%m%d") # datetime.date()
-            end_dt = datetime.strptime(end_date, "%Y%m%d")
+            # 直接使用date对象
+            start_dt = start_date
+            end_dt = end_date
 
             # Fetch missing data ranges from Baostock
             if missing_ranges:
+                self.logger.info(f"missing_ranges {missing_ranges}")
                 self.logger.info(f"Fetching missing data ranges for {symbol}")  
                 from .baostock_source import BaostockDataSource
                 data_source = BaostockDataSource(frequency)
                 data = pd.DataFrame()
                 for range_start, range_end in missing_ranges:
                     self.logger.info(f"Fetching data from {range_start} to {range_end}")
+                    # 转换为 Baostock 需要的格式
+                    
                     new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
                     print(new_data.head(2))
                     await self.save_stock_data(symbol, new_data, frequency)  # save stock data into table Stockdata
@@ -310,14 +329,14 @@ class DatabaseManager:
                 
                 if not rows:
                     self.logger.warning(
-                        f"No stock data found for symbol={symbol} "
-                        f"between {start_date} and {end_date} "
-                        f"with frequency={frequency}"
+                        f"[{symbol}] 未找到股票数据 date_range=[{start_date}~{end_date}] "
+                        f"frequency={frequency} pool_status={self.get_pool_status()}",
+                        extra={'connection_id': f'QUERY-{symbol}'}
                     )
                     self.logger.debug(
-                        f"Query details: symbol={symbol}, "
-                        f"start_date={start_dt}, end_date={end_dt}, "
-                        f"frequency={frequency}, pool_status={self.get_pool_status()}"
+                        f"详细查询参数: symbol={symbol} "
+                        f"start_date={start_dt} end_date={end_dt} "
+                        f"frequency={frequency}"
                     )
                     return pd.DataFrame()
                 data = [dict(row) for row in rows]
@@ -335,18 +354,13 @@ class DatabaseManager:
         """标准化数据格式"""
         if 'date' in data.columns:
             data['date'] = pd.to_datetime(data['date'])
-        # if 'time' in data.columns:
-        #     # 截取前14位字符并转换为datetime
-        #     data['time'] = data['time'].astype(str)
-        #     data['time'] = pd.to_datetime(
-        #         data['time'].str[9:14], 
-        #         format="%H%M%S"
-        #     )
-        
-        # Convert numpy datetime64 to Python datetime
-        data['date'] = data['date'].dt.strftime('%Y-%m-%d')
-        # if 'time' in data.columns:
-        #     data['time'] = data['time'].dt.time
+            data['date'] = data['date'].dt.strftime('%Y-%m-%d')
+        if 'time' in data.columns:
+            data['time'] = data['time'].astype(str)
+            data['time'] = pd.to_datetime(
+                data['time'].str[9:14],
+                format="%H%M%S"
+            ).dt.time
 
         return data
 
@@ -388,46 +402,60 @@ class DatabaseManager:
             self.logger.error(f"获取所有股票信息失败: {str(e)}")
             raise
 
-    async def _is_stock_info_up_to_date(self) -> bool:
-        """异步检查StockInfo表是否最新"""
-        # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
-        async with self.pool.acquire() as conn:
+    async def _is_stock_info_up_to_date(self, max_retries: int = 3) -> bool:
+        """异步检查StockInfo表是否最新
+        Args:
+            max_retries: 最大重试次数
+        """
+        if not self.pool:
+            await self._create_pool()
+            
+        for attempt in range(max_retries):
             try:
-                self.logger.debug(f"当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}", extra={'connection_id': id(conn)})
-                self.logger.debug(f"活跃任务数: {len(asyncio.all_tasks())}")
-                # self.logger.debug(f"running_loop_id:{id(asyncio.get_running_loop())}")
-                # 验证表结构
-                # 检查表是否存在
-                table_exists = await conn.fetchval(
-                    "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='stockinfo')"
-                )
-                if not table_exists:
-                    raise ValueError("表StockInfo不存在")
+                async with self.pool.acquire() as conn:
+                    self.logger.debug(f"检查StockInfo表状态(尝试{attempt+1}/{max_retries})")
+                    self.logger.debug(f"当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}",
+                                    extra={'connection_id': id(conn)})
+                    
+                    # 优化后的表检查查询
+                    table_check = await conn.fetchval(
+                        """SELECT 1 FROM information_schema.tables
+                        WHERE table_schema='public' AND table_name='stockinfo'"""
+                    )
+                    if not table_check:
+                        raise ValueError("表StockInfo不存在")
 
-                # 检查字段是否存在及类型
-                field_info = await conn.fetchrow(
-                    "SELECT column_name, data_type FROM information_schema.columns "
-                    "WHERE table_name='stockinfo' AND column_name ILIKE 'ipodate'"
-                )
-                if not field_info:
-                    raise ValueError("字段ipoDate不存在")
-                
+                    # 优化后的字段检查
+                    field_check = await conn.fetchval(
+                        """SELECT 1 FROM information_schema.columns
+                        WHERE table_name='stockinfo' AND column_name='ipodate'"""
+                    )
+                    if not field_check:
+                        raise ValueError("字段ipoDate不存在")
 
-                # 执行查询并立即获取结果
-                row = await conn.fetchrow("SELECT MAX(ipoDate) FROM StockInfo")
-                # self.logger.debug(f"当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}")
-                if row:
-                    latest_ipo = row[0]
-                else:
-                    self.logger.error("last_ipo is none")
-                    return False
-                
-                # 如果最新IPO日期在最近30天内，则认为数据是最新的
-                cutoff = pd.Timestamp.now() - pd.Timedelta(days=30)
-                latest_ipo_timestamp = pd.Timestamp(latest_ipo)  # 关键转换
-                return latest_ipo_timestamp >= cutoff if latest_ipo else False
+                    # 优化后的IPO日期查询
+                    row = await conn.fetchrow(
+                        """SELECT ipoDate FROM StockInfo
+                        ORDER BY ipoDate DESC LIMIT 1"""
+                    )
+                    
+                    if not row:
+                        self.logger.warning("StockInfo表为空")
+                        return False
+                        
+                    latest_ipo = pd.Timestamp(row['ipodate'])
+                    cutoff = pd.Timestamp.now() - pd.Timedelta(days=30)
+                    is_up_to_date = latest_ipo >= cutoff
+                    
+                    self.logger.debug(f"最新IPO日期: {latest_ipo.isoformat()}, 是否最新: {is_up_to_date}")
+                    return is_up_to_date
+                    
             except Exception as e:
-                self.logger.error(f"检查StockInfo表状态失败: {str(e)}")
+                if attempt == max_retries - 1:
+                    self.logger.error(f"检查StockInfo表状态失败(最终尝试): {str(e)}")
+                    raise
+                self.logger.warning(f"检查StockInfo表状态失败(尝试{attempt+1}): {str(e)}")
+                await asyncio.sleep(1 * (attempt + 1))  # 指数退避
         return False
 
     async def _validate_stock_info(self, row: pd.Series) -> tuple:
@@ -474,19 +502,6 @@ class DatabaseManager:
         """
         valid_data = []
         invalid_rows = []
-        
-        # 先验证所有数据
-        for idx, row in df.iterrows():
-            try:
-                validated_data = await self._validate_stock_info(row)
-                valid_data.append(validated_data)
-            except Exception as e:
-                invalid_rows.append((idx, str(e)))
-                self.logger.error(f"第{idx}行数据验证失败: {str(e)}")
-        
-        if not valid_data:
-            self.logger.warning("没有有效数据可以插入")
-            return 0, len(df)
             
         try:
             
@@ -534,7 +549,6 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"获取股票信息失败: {str(e)}")
             raise
-
 
     async def get_stock_name(self, code: str) -> str:
         """异步根据股票代码获取名称"""
@@ -591,7 +605,7 @@ class DatabaseManager:
                     (
                         symbol,
                         record['date'],
-                        "00:00:00",  # 日线数据默认时间
+                        time.min,  # 使用time.min表示00:00:00
                         record['open'],
                         record['high'],
                         record['low'],
@@ -704,7 +718,10 @@ class DatabaseManager:
                 """, start_month, end_month)
                 
                 if not rows:
-                    self.logger.warning(f"未找到{start_month}至{end_month}的货币供应量数据")
+                    self.logger.warning(
+                        f"未找到{start_month}至{end_month}的货币供应量数据",
+                        extra={'connection_id': 'MONETARY-QUERY'}
+                    )
                     return pd.DataFrame()
                     
                 df = pd.DataFrame(rows, columns=[
@@ -742,7 +759,7 @@ class DatabaseManager:
                 """, name
             )
             if not exists:
-                self.logger.info(f"表 {name}已删除")
+                self.logger.warning(f"表 {name}已删除", extra={'connection_id': id(conn)})
 
     def get_pool_status(self):
         """获取连接池状态"""

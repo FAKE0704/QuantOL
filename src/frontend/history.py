@@ -23,7 +23,8 @@ async def show_history_page():
         if 'stock_cache' not in st.session_state or st.session_state.stock_cache is None:
             with st.spinner("正在加载股票列表..."):
                 try:
-                    st.session_state.stock_cache = await search_service.get_all_stocks()
+                    df = await search_service.get_all_stocks()
+                    st.session_state.stock_cache = list(zip(df['code'], df['code_name']))
                     st.session_state.last_stock_update = time.time()
                 except Exception as e:
                     st.error(f"加载股票列表失败: {str(e)}")

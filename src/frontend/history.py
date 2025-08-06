@@ -115,6 +115,7 @@ async def show_history_page():
 
             if data is not None:
                 # 显示数据表格
+                st.subheader("标的信息")
                 st.subheader("历史数据")
                 st.dataframe(data)
                 

@@ -775,3 +775,71 @@ class DatabaseManager:
             status = self.get_pool_status()
             self.logger.info(f"Connection pool status: {status}")
             await asyncio.sleep(60)
+
+    async def load_global_market_data(self, type: Optional[str] = None, year: Optional[int] = None) -> pd.DataFrame:
+        """加载全球市场资金分布数据
+        Args:
+            type: 机构类型(可选)
+            year: 年份(可选)
+        Returns:
+            包含全球市场资金分布数据的DataFrame
+        """
+        if not self.pool:
+            await self._create_pool()
+        try:
+            async with self.pool.acquire() as conn:
+                query = "SELECT type, name, currency, assets, year FROM global_fund_distribution"
+                params = []
+                
+                if type or year:
+                    conditions = []
+                    if type:
+                        conditions.append("type = $1")
+                        params.append(type)
+                    if year:
+                        conditions.append("year = ${}".format(len(params)+1))
+                        params.append(year)
+                    query += " WHERE " + " AND ".join(conditions)
+                
+                query += " ORDER BY year, assets DESC"
+                
+                rows = await conn.fetch(query, *params)
+                if not rows:
+                    self.logger.warning("未找到全球市场资金分布数据")
+                    return pd.DataFrame()
+                
+                return pd.DataFrame(rows, columns=['type', 'name', 'currency', 'assets', 'year'])
+                
+        except Exception as e:
+            self.logger.error(f"获取全球市场资金分布数据失败: {str(e)}")
+            raise
+
+    async def get_distinct_values(self) -> dict:
+        """获取全球市场资金分布表中的distinct类型和年份
+        Returns:
+            {'types': [类型列表], 'years': [年份列表]}
+        """
+        if not self.pool:
+            await self._create_pool()
+        try:
+            async with self.pool.acquire() as conn:
+                # 获取distinct类型
+                type_rows = await conn.fetch(
+                    "SELECT DISTINCT type FROM global_fund_distribution ORDER BY type"
+                )
+                types = [row['type'] for row in type_rows] if type_rows else []
+                
+                # 获取distinct年份
+                year_rows = await conn.fetch(
+                    "SELECT DISTINCT year FROM global_fund_distribution ORDER BY year DESC"
+                )
+                years = [str(row['year']) for row in year_rows] if year_rows else []
+                
+                return {
+                    'types': types,
+                    'years': years
+                }
+                
+        except Exception as e:
+            self.logger.error(f"获取distinct值失败: {str(e)}")
+            return {'types': [], 'years': []}

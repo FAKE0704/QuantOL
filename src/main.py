@@ -4,7 +4,7 @@ from frontend.indicators import show_indicators_page
 from frontend.backtesting import show_backtesting_page
 from frontend.trading import show_trading_page
 from frontend.settings import show_settings_page
-from frontend.dashboard import show_dashboard
+from frontend.global_market import show_global_market
 from frontend.market_research import show_market_research_page
 
 import streamlit as st
@@ -50,6 +50,9 @@ async def main():
         show_settings_page()
     elif page == "市场研究":
         await show_market_research_page()
+    elif page == "全球市场资金分布":
+        await show_global_market()
+    
   
 
     # print("### main循环结束 ####")

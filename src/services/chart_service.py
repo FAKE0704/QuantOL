@@ -1,4 +1,5 @@
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 from abc import ABC, abstractmethod
 from services.theme_manager import ThemeManager
@@ -6,7 +7,7 @@ from services.interaction_service import InteractionService
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from typing import List, Optional, Dict, Set, Any
+from typing import List, Optional, Dict, Set, Any, Union
 from pandas import DataFrame
 from pathlib import Path
 import json
@@ -163,6 +164,7 @@ class ChartConfigManager:
         return default_config
                     
 
+
 class ChartBase(ABC):
     """图表基类"""
     figure: go.Figure
@@ -174,9 +176,90 @@ class ChartBase(ABC):
         self.figure = go.Figure()
 
     @abstractmethod
-    def render(self, data: pd.DataFrame) -> go.Figure:
-        """渲染图表并返回Figure对象"""
+    def render(self, data: pd.DataFrame, scope: str) -> go.Figure:
+        """渲染图表并返回Figure对象
+        Args:
+            data: 图表数据
+            scope: 时间维度 (second/minute/hour/day/week/month/year)
+        """
         pass
+
+class Indicator(ABC):
+    """指标基类"""
+    @abstractmethod
+    def apply(self, data: pd.DataFrame) -> List[Union[go.Scatter, go.Bar]]:
+        """应用指标并返回trace列表"""
+        pass
+
+class MAIndicator(Indicator):
+    """均线指标"""
+    def __init__(self, periods: List[int] = [5, 10, 20]):
+        self.periods = periods
+    
+    def apply(self, data: pd.DataFrame) -> List[Union[go.Scatter, go.Bar]]:
+        traces = []
+        for period in self.periods:
+            ma = data["close"].rolling(period).mean()
+            traces.append(go.Scatter(
+                x=data.index,
+                y=ma,
+                name=f"MA{period}",
+                line=dict(width=1),
+                opacity=0.7
+            ))
+        return traces
+
+class MACDIndicator(Indicator):
+    """MACD指标"""
+    def __init__(self, fast=12, slow=26, signal=9):
+        self.fast = fast
+        self.slow = slow 
+        self.signal = signal
+    
+    def apply(self, data: pd.DataFrame) -> List[go.Scatter]:
+        exp1 = data["close"].ewm(span=self.fast, adjust=False).mean()
+        exp2 = data["close"].ewm(span=self.slow, adjust=False).mean()
+        macd = exp1 - exp2
+        signal = macd.ewm(span=self.signal, adjust=False).mean()
+        histogram = macd - signal
+        
+        return [
+            go.Scatter(x=data.index, y=macd, name="MACD", line=dict(color="blue")),
+            go.Scatter(x=data.index, y=signal, name="Signal", line=dict(color="orange")),
+            go.Bar(x=data.index, y=histogram, name="Histogram", 
+                  marker_color=np.where(histogram >= 0, "green", "red"))
+        ]
+
+class RSIIndicator(Indicator):
+    """RSI指标"""
+    def __init__(self, window=14):
+        self.window = window
+    
+    def apply(self, data: pd.DataFrame) -> List[Union[go.Scatter, go.Bar]]:
+        delta: pd.Series = data["close"].diff()
+        gain: pd.Series = (delta.where(delta > 0, 0)).rolling(self.window).mean()
+        loss: pd.Series = (-delta.where(delta < 0, 0)).rolling(self.window).mean()
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        
+        return [
+            go.Scatter(x=data.index, y=rsi, name=f"RSI{self.window}", line=dict(color="purple")),
+            go.Scatter(x=data.index, y=[30]*len(data), name="超卖线", line=dict(color="red", dash="dash")),
+            go.Scatter(x=data.index, y=[70]*len(data), name="超买线", line=dict(color="red", dash="dash"))
+        ]
+
+class IndicatorDecorator(ChartBase):
+    """指标装饰器"""
+    def __init__(self, chart: ChartBase, indicators: List[Indicator]):
+        self._chart = chart
+        self._indicators = indicators
+    
+    def render(self, data: pd.DataFrame, scope: str) -> go.Figure:
+        fig = self._chart.render(data, scope)
+        for indicator in self._indicators:
+            for trace in indicator.apply(data):
+                fig.add_trace(trace)
+        return fig
 
 
 # 确保图表类定义在工厂类之前
@@ -190,7 +273,12 @@ class CapitalFlowChart(ChartBase):
         self.main_color = "#4E79A7"
         self.north_color = "#59A14F"
 
-    def render(self, data: pd.DataFrame) -> go.Figure:
+    def render(self, data: pd.DataFrame, scope: str = "day") -> go.Figure:
+        """资金流图表渲染
+        Args:
+            data: 资金流数据
+            scope: 时间维度 (day/week/month/year/minute)
+        """
         from plotly.subplots import make_subplots
         self.figure = make_subplots(specs=[[{"secondary_y": True}]])
         self.figure.add_trace(
@@ -212,53 +300,6 @@ class CapitalFlowChart(ChartBase):
                 secondary_y=True,
             )
         )
-        theme = self.config.theme
-        self.figure.update_layout(
-            plot_bgcolor=theme.colors["background"],
-            paper_bgcolor=theme.colors["background"],
-            barmode="relative",
-            title="资金流向分析",
-        )
-        return self.figure
-    """资金流图表实现"""
-    main_color: str
-    north_color: str
-    
-    def __init__(self, config: ChartConfig):
-        super().__init__(config)
-        self.main_color = "#4E79A7"  # 主力资金颜色
-        self.north_color = "#59A14F"  # 北向资金颜色
-
-    def render(self, data: pd.DataFrame) -> go.Figure:
-        from plotly.subplots import make_subplots
-
-        # 创建双Y轴图表
-        self.figure = make_subplots(specs=[[{"secondary_y": True}]])
-
-        # 主力资金（左轴）
-        self.figure.add_trace(
-            go.Bar(
-                x=data["date"],
-                y=data["main_net"],
-                name="主力净流入",
-                marker_color=self.main_color,
-                opacity=0.7,
-            ),
-            secondary_y=False,
-        )
-
-        # 北向资金（右轴）
-        self.figure.add_trace(
-            go.Scatter(
-                x=data["date"],
-                y=data["north_net"].cumsum(),
-                name="北向累计",
-                line=dict(color=self.north_color, width=2),
-                secondary_y=True,
-            )
-        )
-
-        # 应用主题配置
         theme = self.config.theme
         self.figure.update_layout(
             plot_bgcolor=theme.colors["background"],
@@ -271,16 +312,15 @@ class CapitalFlowChart(ChartBase):
 
 class CandlestickChart(ChartBase):
     """K线图表实现"""
-    add_ma: bool
-    ma_periods: List[int]
-    
     def __init__(self, config: ChartConfig):
         super().__init__(config)
-        self.add_ma = True
-        self.ma_periods = [5, 10, 20]
 
-    def render(self, data: pd.DataFrame) -> go.Figure:
-        """K线图表渲染"""
+    def render(self, data: pd.DataFrame, scope: str) -> go.Figure:
+        """K线图表渲染
+        Args:
+            data: K线数据
+            scope: 时间维度 (second/minute/hour/day/week/month/year)
+        """
         # 绘制K线
         self.figure.add_trace(
             go.Candlestick(
@@ -289,28 +329,28 @@ class CandlestickChart(ChartBase):
                 high=data["high"],
                 low=data["low"],
                 close=data["close"],
+                name="K线",  # 设置trace名称
                 increasing_line_color="#25A776",
                 decreasing_line_color="#EF4444",
             )
         )
+        
 
-        # 绘制均线
-        if self.add_ma:
-            for period in self.ma_periods:
-                ma = data["close"].rolling(period).mean()
-                self.figure.add_trace(
-                    go.Scatter(x=data.index, y=ma, line=dict(width=1), opacity=0.7)
-                )
-
+        # 显式禁用缩略图
+        self.figure.update_layout(xaxis_rangeslider_visible=False)
+        
         # 应用主题配置
         theme = self.config.theme
         layout = self.config.layout
 
         self.figure.update_layout(
-            xaxis_rangeslider_visible=False,
             plot_bgcolor=theme.colors["background"],
             paper_bgcolor=theme.colors["background"],
             xaxis=dict(
+                title="时间",
+                tickvals=data.index[::100],
+                ticktext=data["date" if scope in ("day", "week", "month", "year") else "time"][::100],
+                tickangle=45,
                 gridcolor=theme.colors["grid"],
                 title_font=dict(size=12, family=theme.font),
             ),
@@ -320,6 +360,7 @@ class CandlestickChart(ChartBase):
             ),
             title_font=dict(size=14, family=theme.font),
             legend=dict(font=dict(size=10, family=theme.font)),
+            margin=dict(t=30, b=30)  # 添加上下边距
         )
         return self.figure
 
@@ -334,7 +375,12 @@ class VolumeChart(ChartBase):
         self.default_up_color = "#25A776"
         self.default_down_color = "#EF4444"
 
-    def render(self, data: pd.DataFrame) -> go.Figure:
+    def render(self, data: pd.DataFrame, scope: str = "day") -> go.Figure:
+        """成交量图表渲染
+        Args:
+            data: 成交量数据
+            scope: 时间维度 (day/week/month/year/minute)
+        """
         # 计算涨跌颜色
         colors = np.where(
             data["close"] >= data["open"],
@@ -356,6 +402,11 @@ class VolumeChart(ChartBase):
             plot_bgcolor=theme.colors["background"],
             paper_bgcolor=theme.colors["background"],
             xaxis=dict(
+                
+                title="时间",
+                tickvals=data.index[::100],
+                ticktext=data["date" if scope in ("day", "week", "month", "year") else "time"][::100],
+                tickangle=45,
                 gridcolor=theme.colors["grid"],
                 title_font=dict(size=12, family=theme.font),
             ),
@@ -472,11 +523,13 @@ class ChartService:
 
     def __init__(self, data_bundle: DataBundle):
         self.data_bundle = data_bundle
-        # self._interaction_service = None
+        self._interaction_service = None
         self.figure = go.Figure()
         self._selected_primary_fields = []
         self._selected_secondary_fields = []
         self._chart_types = {"primary": "K线图", "secondary": "柱形图"}
+        self.index = None  # 初始化index属性
+        self._config = None  # 初始化配置属性
 
     def _get_interaction_service(self):
         """惰性获取InteractionService实例"""
@@ -485,7 +538,7 @@ class ChartService:
         return self._interaction_service
 
     @st.cache_resource(show_spinner=False)
-    def get_chart_service(_strategy_id: str, data_bundle: DataBundle):
+    def get_chart_service(_strategy_id: str, data_bundle: DataBundle) -> 'ChartService':
         """基于策略ID的缓存实例工厂"""
         return ChartService(data_bundle)
 
@@ -545,8 +598,20 @@ class ChartService:
 
     def render_chart_controls(self) -> go.Figure:
         """渲染作图配置"""
+        # 初始化配置
+        if not hasattr(st.session_state, 'chart_instance_id'):
+            st.session_state.chart_instance_id = str(uuid.uuid4())
+            
         # 生成配置key
         config_key = f"chart_config_{st.session_state.chart_instance_id}"
+
+        # 初始化配置
+        if config_key not in st.session_state:
+            st.session_state[config_key] = ChartConfigManager._get_default_config()
+            
+        # 确保策略ID存在
+        if not hasattr(st.session_state, 'strategy_id'):
+            st.session_state.strategy_id = "default_strategy"
 
 
         # 新配置new_config初始化
@@ -622,6 +687,10 @@ class ChartService:
         @st.fragment
         def render_sub_chart_config():
             """渲染副图配置选项"""
+            # 初始化默认值
+            new_sub_type = "柱状图"
+            new_sub_fields = ["volume"]
+            
             show_sub = st.checkbox(
                 "显示副图",
                 value=st.session_state.config_key["sub_chart"]["show"],
@@ -746,11 +815,13 @@ class ChartService:
 
         return fig
 
-    def create_kline(self, auto_listen: bool = False) -> go.Figure:
+    def create_kline(self, scope: str = "day", auto_listen: bool = False) -> go.Figure:
         """创建K线图(通过工厂模式)
         Args:
+            scope: 时间维度 (day/week/month/year/minute)
             auto_listen: 是否自动注册交互事件监听，默认为False
         """
+        # logging
         logger.debug(f"开始创建K线图，数据形状: {self.data_bundle.kline_data.shape if self.data_bundle.kline_data is not None else 'None'}",
                    extra={'connection_id': str(id(self))})
         if self.data_bundle.kline_data is None:
@@ -761,7 +832,14 @@ class ChartService:
         # 通过工厂创建图表实例
         config = ChartConfig()
         kline = ChartFactory.create_chart("candlestick", config)
-        fig = kline.render(self.data_bundle.kline_data)
+        
+        # 添加指标装饰
+        decorated_chart = IndicatorDecorator(
+            kline,
+            indicators=[MAIndicator([5, 10, 20])]
+        )
+        
+        fig = decorated_chart.render(self.data_bundle.kline_data, scope)
         self.figure = fig
         
         # 只有auto_listen为True时才注册事件监听
@@ -853,7 +931,9 @@ class ChartService:
 
     def create_combined_chart(
         self,
-        config: dict
+        config: dict,
+        primary_cols: Optional[List[str]] = None,
+        secondary_cols: Optional[List[str]] = None
     ) -> go.Figure:
         """
         创建支持单/双Y轴的组合图表
@@ -977,10 +1057,10 @@ class ChartService:
                 )
         return traces
 
-    def drawMACD(self, fast=12, slow=26, signal=9):
+    def drawMACD(self, data: pd.DataFrame, fast=12, slow=26, signal=9):
         """绘制MACD指标"""
-        exp1 = self.data["close"].ewm(span=fast, adjust=False).mean()
-        exp2 = self.data["close"].ewm(span=slow, adjust=False).mean()
+        exp1 = data["close"].ewm(span=fast, adjust=False).mean()
+        exp2 = data["close"].ewm(span=slow, adjust=False).mean()
         macd = exp1 - exp2
         signal_line = macd.ewm(span=signal, adjust=False).mean()
         histogram = macd - signal_line

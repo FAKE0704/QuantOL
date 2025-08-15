@@ -55,3 +55,12 @@
 [2025-08-08 16:36:27,659] [ERROR] [database:844] [conn:N/A] 获取distinct值失败: connection was closed in the middle of operation
 [2025-08-08 16:40:03,977] [WARNING] [database:443] [conn:N/A] StockInfo表为空
 [2025-08-08 16:40:32,998] [ERROR] [database:350] [conn:N/A] Failed to load stock data: 未获取到数据, symbol: sh.603900, start_date:2024-09-30, end_date:2024-10-01, frequency: d
+[2025-08-10 15:11:54,323] [ERROR] [database:89] [conn:N/A] 连接池初始化失败: 
+[2025-08-10 15:13:23,807] [ERROR] [database:89] [conn:N/A] 连接池初始化失败: 
+[2025-08-10 15:15:37,328] [ERROR] [database:89] [conn:N/A] 连接池初始化失败: 
+[2025-08-10 15:15:37,809] [ERROR] [database:89] [conn:N/A] 连接池初始化失败: 
+[2025-08-10 15:16:55,118] [ERROR] [database:89] [conn:N/A] 连接池初始化失败: 
+[2025-08-10 15:16:55,806] [ERROR] [database:89] [conn:N/A] 连接池初始化失败: 
+[2025-08-10 17:29:42,108] [WARNING] [database:443] [conn:N/A] StockInfo表为空
+[2025-08-10 17:30:31,129] [ERROR] [database:350] [conn:N/A] Failed to load stock data: 未获取到数据, symbol: sh.603900, start_date:2024-09-30, end_date:2024-10-01, frequency: d
+[2025-08-10 17:32:11,494] [ERROR] [database:350] [conn:N/A] Failed to load stock data: Baostock登录失败: 网络接收错误。

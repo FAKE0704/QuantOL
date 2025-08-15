@@ -58,9 +58,67 @@ async def show_backtesting_page():
     # 策略选择
     strategy = st.selectbox(
         "选择回测策略",
-        options=["月定投","移动平均线交叉", "MACD交叉", "RSI超买超卖"],
+        options=["月定投","移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"],
         key="strategy_select"
     )
+
+    # 规则编辑器
+    if strategy == "自定义规则":
+        with st.expander("规则编辑器", expanded=True):
+            cols = st.columns([1, 2, 1])
+            
+            with cols[0]:
+                st.subheader("指标选择")
+                indicator = st.selectbox(
+                    "技术指标",
+                    options=["SMA", "RSI", "MACD", "VOLUME"],
+                    key="indicator_select"
+                )
+                
+                # 指标参数输入
+                params = {}
+                if indicator in ["SMA", "RSI"]:
+                    params["n"] = st.number_input("周期", min_value=5, max_value=100, value=20 if indicator == "SMA" else 14)
+                
+                if st.button("添加到规则"):
+                    if 'rule_expr' not in st.session_state:
+                        st.session_state.rule_expr = ""
+                    
+                    # 构建指标调用字符串
+                    param_str = ", ".join(f"{k}={v}" for k, v in params.items())
+                    st.session_state.rule_expr += f"{indicator}({param_str})" if params else f"{indicator}()"
+            
+            with cols[1]:
+                st.subheader("表达式构建")
+                st.text_area("规则表达式", 
+                           value=st.session_state.get("rule_expr", ""),
+                           key="rule_expr_input",
+                           height=100)
+                
+                op_cols = st.columns(7)
+                with op_cols[0]: st.button(">", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " > "))
+                with op_cols[1]: st.button("<", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " < "))
+                with op_cols[2]: st.button("==", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " == "))
+                with op_cols[3]: st.button("&", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " & "))
+                with op_cols[4]: st.button("|", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " | "))
+                with op_cols[5]: st.button("(", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " ("))
+                with op_cols[6]: st.button(")", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + ") "))
+                
+                st.button("清空", on_click=lambda: st.session_state.__setitem__("rule_expr", ""))
+            
+            with cols[2]:
+                st.subheader("规则预览")
+                if 'rule_expr' in st.session_state and st.session_state.rule_expr:
+                    try:
+                        from core.strategy.rule_parser import RuleParser
+                        parser = RuleParser(pd.DataFrame())  # 空DF仅用于语法检查
+                        parser.parse(st.session_state.rule_expr)
+                        st.success("✓ 规则语法正确")
+                        st.code(st.session_state.rule_expr)
+                    except Exception as e:
+                        st.error(f"语法错误: {str(e)}")
+                else:
+                    st.info("请构建规则表达式")
     
     # 策略参数设置
     # if strategy == "移动平均线交叉":
@@ -129,6 +187,14 @@ async def show_backtesting_page():
             )
             # 注册策略
             engine.register_strategy(fixed_strategy)
+        elif strategy == "自定义规则" and 'rule_expr' in st.session_state:
+            from core.strategy.rule_based_strategy import RuleBasedStrategy
+            rule_strategy = RuleBasedStrategy(
+                Data=data,
+                name="自定义规则策略",
+                rule_expr=st.session_state.rule_expr
+            )
+            engine.register_strategy(rule_strategy)
         
         # 启动事件循环
         task_id = f"backtest_{st.session_state.strategy_id}"

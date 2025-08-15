@@ -1,3 +1,7 @@
+# 启动应用
+.\venvWin\Scripts\activate
+cd .\src\
+streamlit run main.py
 
 
 # 创建任务
@@ -7,8 +11,7 @@
 # 安装依赖
 pip install xxx -i https://mirrors.aliyun.com/pypi/simple/
 
-# 启动应用
-streamlit run app.py
+
 
 # 重新部署单个容器
 docker-compose stop **web** && docker-compose rm -f **web** && docker-compose up -d --force-recreate --build **web**

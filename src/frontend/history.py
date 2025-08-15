@@ -9,15 +9,32 @@ import logging
 import pandas as pd
 import plotly.graph_objects as go
 import time
-import asyncio
+# import asyncio
 from services.stock_search import StockSearchService
-from services.chart_service import ChartService
+from services.chart_service import ChartService, MAIndicator, RSIIndicator, MACDIndicator
 from core.data.database import DatabaseManager
 from services.interaction_service import InteractionService
 from ipywidgets import VBox
 
+def update_indicator():
+    """处理指标选择变化的回调函数"""
+    st.session_state.current_indicator = st.session_state.indicator_select
+
 async def show_history_page():
     st.title("历史行情")
+    
+    # 初始化指标选择状态
+    if 'current_indicator' not in st.session_state:
+        st.session_state.current_indicator = "无"
+    
+    # 指标选择控件
+    indicator = st.selectbox(
+        "选择技术指标",
+        options=["无", "MA均线", "RSI", "MACD"],
+        index=0,
+        key='indicator_select',
+        on_change=update_indicator
+    )
     
     # 使用全局服务实例
     db = st.session_state.db
@@ -128,14 +145,56 @@ async def show_history_page():
                     # 使用ChartService绘制图表
                     from services.chart_service import DataBundle
                     data_bundle = DataBundle(raw_data=data)
-                    st.write("BUGGGGGG1")
-                    st.write(data_bundle)
                     chart_service = ChartService(data_bundle)
-                    st.write("BUGGGGGG2")
                     
-                    # K线图
-                    st.subheader("K线图")
+                    # 创建三图布局 (K线图、指标图、成交量图)
+                    from plotly.subplots import make_subplots
+                    fig = make_subplots(
+                        rows=3, cols=1,
+                        shared_xaxes=True,
+                        vertical_spacing=0.08,  # 增加垂直间距
+                        row_heights=[0.5, 0.3, 0.2]  # 调整行高比例
+                    )
+                    
+                    # 添加K线图
                     kline = chart_service.create_kline()
+                    for trace in kline.data:
+                        fig.add_trace(trace, row=1, col=1)
+                    
+                    # 添加指标
+                    if st.session_state.current_indicator == "MA均线":
+                        ma_indicator = MAIndicator([5, 10, 20])
+                        for trace in ma_indicator.apply(data):
+                            fig.add_trace(trace, row=1, col=1)  # MA显示在主图
+                    elif st.session_state.current_indicator == "RSI":
+                        rsi_indicator = RSIIndicator(window=14)
+                        for trace in rsi_indicator.apply(data):
+                            fig.add_trace(trace, row=2, col=1)  # RSI显示在中间
+                    elif st.session_state.current_indicator == "MACD":
+                        macd_indicator = MACDIndicator()
+                        for trace in macd_indicator.apply(data):
+                            fig.add_trace(trace, row=2, col=1)  # MACD显示在中间
+                    
+                    # 添加成交量图
+                    volume = chart_service.create_volume_chart(auto_listen=False)
+                    for trace in volume.data:
+                        fig.add_trace(trace, row=3, col=1)  # 成交量显示在最下方
+                    
+                    # 缓存图表服务对象
+                    if 'chart_service' not in st.session_state:
+                        st.session_state.chart_service = chart_service
+                    
+                    # 更新布局
+                    fig.update_layout(
+                        height=1000,  # 增加总高度
+                        showlegend=True,
+                        hovermode="x unified",
+                        margin=dict(t=30, b=30, l=30, r=30),  # 调整边距
+                        xaxis=dict(rangeslider=dict(visible=False)),  # 主图
+                        xaxis2=dict(rangeslider=dict(visible=False)), # 指标图
+                        xaxis3=dict(rangeslider=dict(visible=False))  # 成交量图
+                    )
+                    
                 except ValueError as e:
                     st.error(f"无法绘制图表: {str(e)}")
                     return
@@ -143,13 +202,8 @@ async def show_history_page():
                     st.error(f"绘制图表时发生错误: {str(e)}")
                     logger.error(f"图表绘制错误: {str(e)}")
                     return
-                st.plotly_chart(kline, use_container_width=True)
-                st.write("BUGGGGGG3")
                 
-                # 成交量图
-                st.subheader("成交量图")
-                volume = chart_service.create_volume_chart(auto_listen=False)
-                st.plotly_chart(volume, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True)
             
                 # # 初始化交互服务
                 # interaction_service = InteractionService()

@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List, Type
+from src.core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -101,10 +102,12 @@ class BacktestEngine:
         self.logger = logging.getLogger(__name__)
         self.config = config
         self.event_queue = []
-        self.current_price = None  # 添加当前价格属性
+        self.current_price = None  # 当前价格
         self.handlers = {}
         self.strategies = []  # 改为支持多个策略
         self.data = data  # 回测数据
+        self.rule_parser = None  # 规则解析器
+        self.position_strategy = None  # 仓位策略
         self.trades = [] # 交易记录
         self.results = {}
         self.current_capital = config.initial_capital
@@ -153,6 +156,15 @@ class BacktestEngine:
         if not hasattr(strategy, 'strategy_id'):
             raise ValueError("策略必须设置strategy_id属性")
             
+        # 如果是规则策略，初始化规则解析器
+        if hasattr(strategy, 'is_rule_based') and strategy.is_rule_based:
+            self.rule_parser = strategy.rule_parser
+            # 初始化默认仓位策略为固定比例10%
+            self.position_strategy = FixedPercentStrategy(
+                account_value=self.current_capital,
+                percent=0.1
+            )
+            
         # 验证策略ID是否有效
         if not strategy.strategy_id or not isinstance(strategy.strategy_id, str):
             raise ValueError(f"无效的策略ID: {strategy.strategy_id}")
@@ -178,6 +190,9 @@ class BacktestEngine:
 
     def run(self, start_date: datetime, end_date: datetime):
         """执行事件循环"""
+        # 初始化仓位策略资金
+        if self.position_strategy:
+            self.position_strategy.account_value = self.current_capital
         
         # 调试日志：输出数据时间范围
         self.logger.info(f"回测数据时间范围: {self.data['date'].min()} 至 {self.data['date'].max()}")
@@ -468,7 +483,10 @@ class BacktestEngine:
                 self.equity_records['timestamp'] == timestamp
             ]
             if len(existing) == 0:
-                self.equity_records.loc[len(self.equity_records)] = record
+                self.equity_records = pd.concat([
+                self.equity_records, 
+                pd.DataFrame([record])
+            ], ignore_index=True)
             else:
                 # 更新现有记录
                 idx = existing.index[0]
@@ -499,10 +517,13 @@ class BacktestEngine:
         """从数据源加载数据，不存数据库？"""
         from core.data.baostock_source import BaostockDataSource
         ds = BaostockDataSource()
+        # 转换日期格式
+        start_date = datetime.strptime(self.config.start_date, "%Y%m%d").date()
+        end_date = datetime.strptime(self.config.end_date, "%Y%m%d").date()
         self.data = await ds.load_data(
             symbol=symbol,
-            start_date=self.config.start_date,
-            end_date=self.config.end_date,
+            start_date=start_date,
+            end_date=end_date,
             frequency=self.config.frequency
         )
         # 调试日志：验证加载的数据
@@ -519,8 +540,20 @@ class BacktestEngine:
         
         return self.data
 
-    def create_order(self, timestamp : datetime ,symbol: str, quantity: int, side: str, price: float, strategy_id: Optional[str] = None):
-        """创建交易订单"""
+    def create_order(self, timestamp: datetime, symbol: str, quantity: int, side: str, price: float, 
+                   strategy_id: Optional[str] = None, signal_strength: float = 1.0):
+        """创建交易订单
+        Args:
+            signal_strength: 信号强度(0-1)，用于仓位计算
+        """
+        # 如果有仓位策略，则根据信号强度计算实际交易量
+        if self.position_strategy and strategy_id:
+            position_amount = self.position_strategy.calculate_position(signal_strength)
+            quantity = int(position_amount / price)
+            if quantity <= 0:
+                self.logger.warning(f"计算交易量为0: position_amount={position_amount}, price={price}")
+                return
+                
         # 添加DEBUG日志记录订单创建
         self.logger.debug(
             f"Creating order | Symbol: {symbol} | Side: {side} | "

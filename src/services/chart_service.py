@@ -7,7 +7,7 @@ from services.interaction_service import InteractionService
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from typing import List, Optional, Dict, Set, Any, Union
+from typing import List, Optional, Dict, Set, Any, Union, Type
 from pandas import DataFrame
 from pathlib import Path
 import json
@@ -15,13 +15,6 @@ import uuid
 import time
 import logging
 logger = logging.getLogger(__name__)
-
-
-class ThemeConfig:
-    def __init__(self):
-        self.mode = "dark"
-        self.colors = {"background": "#1E1E1E", "grid": "#404040", "text": "#FFFFFF"}
-        self.font = "Arial"
 
 
 class LayoutConfig:
@@ -45,8 +38,10 @@ class DataConfig:
 class ChartConfig:
     """可视化配置管理"""
 
-    def __init__(self):
-        self.theme = ThemeConfig()
+    def __init__(self, theme_manager=None):
+        from services.theme_manager import ThemeManager
+        self.theme_manager = theme_manager or ThemeManager()
+        self.theme = self.theme_manager.get_theme()  # 获取默认主题配置
         self.layout = LayoutConfig()
         self.data = DataConfig()
         self._config_manager = ChartConfigManager()
@@ -65,7 +60,9 @@ class ChartConfig:
         layout_config = config_data.get("layout", {})
         data_config = config_data.get("data", {})
         
-        self.theme.__dict__.update(theme_config)
+        # 更新主题配置
+        if theme_config:
+            self.theme = self.theme_manager.get_theme(theme_config.get("preset_name"))
         self.layout.__dict__.update(layout_config)
         self.data.__dict__.update(data_config)
 
@@ -108,12 +105,13 @@ class ChartConfigManager:
     @classmethod
     def _create_default_dict(cls) -> dict:
         """创建默认配置字典"""
-        theme = ThemeConfig()
+        from services.theme_manager import ThemeManager
+        theme_manager = ThemeManager()
         layout = LayoutConfig()
         data = DataConfig()
         
         return {
-            "theme": vars(theme),
+            "theme": theme_manager.get_theme(),
             "layout": vars(layout),
             "data": vars(data)
         }
@@ -170,10 +168,18 @@ class ChartBase(ABC):
     figure: go.Figure
     logger: logging.Logger = logging.getLogger(__name__)
     default_line_width: float = 1.0
+    main_color: str
+    north_color: str
+    default_up_color: str
+    default_down_color: str
     
     def __init__(self, config: ChartConfig):
         self.config = config
         self.figure = go.Figure()
+        self.main_color = "#4E79A7"  # 默认主色
+        self.north_color = "#59A14F"  # 默认北向资金色
+        self.default_up_color = "#25A776"  # 默认上涨色
+        self.default_down_color = "#EF4444"  # 默认下跌色
 
     @abstractmethod
     def render(self, data: pd.DataFrame, scope: str) -> go.Figure:
@@ -191,12 +197,13 @@ class Indicator(ABC):
         """应用指标并返回trace列表"""
         pass
 
+# 先定义所有具体指标类
 class MAIndicator(Indicator):
     """均线指标"""
     def __init__(self, periods: List[int] = [5, 10, 20]):
         self.periods = periods
     
-    def apply(self, data: pd.DataFrame) -> List[Union[go.Scatter, go.Bar]]:
+    def apply(self, data: pd.DataFrame) -> List[go.Scatter]:
         traces = []
         for period in self.periods:
             ma = data["close"].rolling(period).mean()
@@ -216,7 +223,7 @@ class MACDIndicator(Indicator):
         self.slow = slow 
         self.signal = signal
     
-    def apply(self, data: pd.DataFrame) -> List[go.Scatter]:
+    def apply(self, data: pd.DataFrame) -> List[Union[go.Scatter, go.Bar]]:
         exp1 = data["close"].ewm(span=self.fast, adjust=False).mean()
         exp2 = data["close"].ewm(span=self.slow, adjust=False).mean()
         macd = exp1 - exp2
@@ -235,7 +242,7 @@ class RSIIndicator(Indicator):
     def __init__(self, window=14):
         self.window = window
     
-    def apply(self, data: pd.DataFrame) -> List[Union[go.Scatter, go.Bar]]:
+    def apply(self, data: pd.DataFrame) -> List[go.Scatter]:
         delta: pd.Series = data["close"].diff()
         gain: pd.Series = (delta.where(delta > 0, 0)).rolling(self.window).mean()
         loss: pd.Series = (-delta.where(delta < 0, 0)).rolling(self.window).mean()
@@ -248,17 +255,70 @@ class RSIIndicator(Indicator):
             go.Scatter(x=data.index, y=[70]*len(data), name="超买线", line=dict(color="red", dash="dash"))
         ]
 
+
+class IndicatorFactory:
+    """指标工厂，统一管理指标创建"""
+    _registry = {}  # 类型注册表: {"name": IndicatorClass}
+
+    @classmethod
+    def register(cls, name: str, indicator_class: Type[Indicator]):
+        """注册指标类型"""
+        if not issubclass(indicator_class, Indicator):
+            raise TypeError(f"{indicator_class.__name__} must inherit from Indicator")
+        cls._registry[name] = indicator_class
+
+    @classmethod
+    def create(cls, name: str, **params) -> Indicator:
+        """创建指标实例"""
+        if name not in cls._registry:
+            raise ValueError(f"Unknown indicator: {name}. Available: {list(cls._registry.keys())}")
+        return cls._registry[name](**params)
+
+    @classmethod
+    def get_available_indicators(cls) -> List[str]:
+        """获取已注册的指标类型列表"""
+        return list(cls._registry.keys())
+
+# 注册内置指标类型
+IndicatorFactory.register("ma", MAIndicator)
+IndicatorFactory.register("macd", MACDIndicator)
+IndicatorFactory.register("rsi", RSIIndicator)
+# 移除重复的指标类定义
+
 class IndicatorDecorator(ChartBase):
-    """指标装饰器"""
-    def __init__(self, chart: ChartBase, indicators: List[Indicator]):
-        self._chart = chart
-        self._indicators = indicators
+    """指标装饰器，支持工厂模式创建指标"""
+    def __init__(self, chart: ChartBase, indicators: Union[List[Indicator], List[dict], str]):
+        self._chart = chart   # 图表
+        self._indicators = []  # 指标
+        
+        # 支持多种输入格式：
+        # 1. 字典配置列表 - 通过工厂创建
+        # 2. Indicator实例列表 - 直接使用
+        # 3. 字符串列表 - 使用默认参数创建
+        for item in indicators if isinstance(indicators, list) else [indicators]:
+            if isinstance(item, dict):
+                self._indicators.append(IndicatorFactory.create(**item))
+            elif isinstance(item, Indicator):
+                self._indicators.append(item)
+            elif isinstance(item, str):
+                self._indicators.append(IndicatorFactory.create(item))
+            else:
+                raise TypeError(f"Invalid indicator type: {type(item)}")
     
     def render(self, data: pd.DataFrame, scope: str) -> go.Figure:
+        """渲染图表并添加指标"""
         fig = self._chart.render(data, scope)
+        
+        # 应用主题配置
+        theme = self._chart.config.theme if hasattr(self._chart, 'config') else {}
+        
         for indicator in self._indicators:
             for trace in indicator.apply(data):
+                # 应用主题颜色
+                if hasattr(trace, 'line') and trace.line and 'color' not in trace.line:
+                    trace.line.color = theme.get("primary_color", "#2c7be5")
                 fig.add_trace(trace)
+        
         return fig
 
 
@@ -302,10 +362,12 @@ class CapitalFlowChart(ChartBase):
         )
         theme = self.config.theme
         self.figure.update_layout(
-            plot_bgcolor=theme.colors["background"],
-            paper_bgcolor=theme.colors["background"],
+            plot_bgcolor=theme["background"],
+            paper_bgcolor=theme["background"],
             barmode="relative",
             title="资金流向分析",
+            title_font=dict(size=14, family=theme.get("font", "Arial")),
+            legend=dict(font=dict(size=10, family=theme.get("font", "Arial"))),
         )
         return self.figure
 
@@ -344,22 +406,22 @@ class CandlestickChart(ChartBase):
         layout = self.config.layout
 
         self.figure.update_layout(
-            plot_bgcolor=theme.colors["background"],
-            paper_bgcolor=theme.colors["background"],
+            plot_bgcolor=theme["background"],
+            paper_bgcolor=theme["background"],
             xaxis=dict(
                 title="时间",
                 tickvals=data.index[::100],
                 ticktext=data["date" if scope in ("day", "week", "month", "year") else "time"][::100],
                 tickangle=45,
-                gridcolor=theme.colors["grid"],
-                title_font=dict(size=12, family=theme.font),
+                gridcolor=theme["grid"],
+                title_font=dict(size=12, family=theme.get("font", "Arial")),
             ),
             yaxis=dict(
-                gridcolor=theme.colors["grid"],
-                title_font=dict(size=12, family=theme.font),
+                gridcolor=theme["grid"],
+                title_font=dict(size=12, family=theme.get("font", "Arial")),
             ),
-            title_font=dict(size=14, family=theme.font),
-            legend=dict(font=dict(size=10, family=theme.font)),
+            title_font=dict(size=14, family=theme.get("font", "Arial")),
+            legend=dict(font=dict(size=10, family=theme.get("font", "Arial"))),
             margin=dict(t=30, b=30)  # 添加上下边距
         )
         return self.figure
@@ -399,23 +461,23 @@ class VolumeChart(ChartBase):
 
         self.figure.update_layout(
             title="成交量",
-            plot_bgcolor=theme.colors["background"],
-            paper_bgcolor=theme.colors["background"],
+            plot_bgcolor=theme["background"],
+            paper_bgcolor=theme["background"],
             xaxis=dict(
                 
                 title="时间",
                 tickvals=data.index[::100],
                 ticktext=data["date" if scope in ("day", "week", "month", "year") else "time"][::100],
                 tickangle=45,
-                gridcolor=theme.colors["grid"],
-                title_font=dict(size=12, family=theme.font),
+                gridcolor=theme["grid"],
+                title_font=dict(size=12, family=theme.get("font", "Arial")),
             ),
             yaxis=dict(
-                gridcolor=theme.colors["grid"],
-                title_font=dict(size=12, family=theme.font),
+                gridcolor=theme["grid"],
+                title_font=dict(size=12, family=theme.get("font", "Arial")),
             ),
-            title_font=dict(size=14, family=theme.font),
-            legend=dict(font=dict(size=10, family=theme.font)),
+            title_font=dict(size=14, family=theme.get("font", "Arial")),
+            legend=dict(font=dict(size=10, family=theme.get("font", "Arial"))),
         )
         return self.figure
 
@@ -537,9 +599,23 @@ class ChartService:
             self._interaction_service = InteractionService()
         return self._interaction_service
 
+    @staticmethod
     @st.cache_resource(show_spinner=False)
-    def get_chart_service(_strategy_id: str, data_bundle: DataBundle) -> 'ChartService':
-        """基于策略ID的缓存实例工厂"""
+    def get_chart_service(data_bundle: DataBundle, _strategy_id: Optional[str] = None) -> 'ChartService':
+        """基于策略ID的缓存实例工厂
+        
+        Args:
+            data_bundle: 必需的数据容器对象
+            _strategy_id: 可选策略ID，用于缓存隔离
+            
+        Returns:
+            ChartService实例
+            
+        Raises:
+            ValueError: 如果data_bundle为None
+        """
+        if data_bundle is None:
+            raise ValueError("data_bundle参数不能为None")
         return ChartService(data_bundle)
 
     def _handle_config_change(self, *args):

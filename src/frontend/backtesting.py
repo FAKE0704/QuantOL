@@ -10,17 +10,13 @@ from core.strategy.strategy import FixedInvestmentStrategy
 from core.data.database import DatabaseManager
 from services.progress_service import progress_service
 from typing import cast
-
 import time
-
-
 
 async def show_backtesting_page():
     # 初始化策略ID
     if 'strategy_id' not in st.session_state:
         import uuid
         st.session_state.strategy_id = str(uuid.uuid4())
-
 
     st.title("策略回测")
 

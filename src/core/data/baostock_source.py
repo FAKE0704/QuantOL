@@ -31,7 +31,8 @@ class BaostockDataSource(DataSource):
         """
         # 处理单日查询情况
         if start_date == end_date:
-            end_date = start_date + timedelta(days=1)
+            start_date = end_date - timedelta(days=1)
+            
             
         # 转换为baostock需要的日期格式
         start_date_str = start_date.strftime("%Y-%m-%d")

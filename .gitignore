@@ -129,7 +129,7 @@ venv.bak/
 
 # 添加项目特定的虚拟环境目录
 venvMac/
-venvQ/
+venvWin/
 
 # Spyder project settings
 .spyderproject

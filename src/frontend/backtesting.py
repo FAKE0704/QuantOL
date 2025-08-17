@@ -4,7 +4,7 @@ import plotly.express as px
 from core.strategy.backtesting import  BacktestEngine
 from core.strategy.backtesting import  BacktestConfig
 from services.chart_service import  ChartService, DataBundle
-from event_bus.event_types import  StrategyScheduleEvent,SignalEvent
+from event_bus.event_types import StrategyScheduleEvent, StrategySignalEvent
 from core.strategy.event_handlers import handle_schedule, handle_signal
 from core.strategy.strategy import FixedInvestmentStrategy
 from core.data.database import DatabaseManager
@@ -55,70 +55,113 @@ async def show_backtesting_page():
     with col2:
         end_date = st.date_input("结束日期", key="end_date_input")
     
-    # 策略选择
-    strategy = st.selectbox(
-        "选择回测策略",
-        options=["月定投","移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"],
-        key="strategy_select"
-    )
+    col1, col2 = st.columns(2)
+    with col1:
+        # 策略选择
+        strategy = st.selectbox(
+            "选择回测策略",
+            options=["月定投","移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"],
+            key="strategy_select"
+        )
+    with col2:
+        frequency_options = {
+                "5": "5分钟",
+                "15": "15分钟",
+                "30": "30分钟",
+                "60": "60分钟",
+                "120": "120分钟",
+                "d": "日线",
+                "w": "周线",
+                "m": "月线",
+                "y": "年线"
+        }
+        frequency = st.selectbox(
+            "频率",
+            options=list(frequency_options.keys()),
+            format_func=lambda x: frequency_options[x]
+        )
+    
+    
 
     # 规则编辑器
     if strategy == "自定义规则":
         with st.expander("规则编辑器", expanded=True):
-            cols = st.columns([1, 2, 1])
+            cols = st.columns([3, 1])
             
             with cols[0]:
-                st.subheader("指标选择")
-                indicator = st.selectbox(
-                    "技术指标",
-                    options=["SMA", "RSI", "MACD", "VOLUME"],
-                    key="indicator_select"
+                st.subheader("买入规则")
+                st.text_area(
+                    "买入条件", 
+                    value=st.session_state.get("buy_rule_expr", ""),
+                    height=100,
+                    key="buy_rule_input",
+                    help="输入买入条件表达式，如: SMA(20) > SMA(50)"
                 )
                 
-                # 指标参数输入
-                params = {}
-                if indicator in ["SMA", "RSI"]:
-                    params["n"] = st.number_input("周期", min_value=5, max_value=100, value=20 if indicator == "SMA" else 14)
-                
-                if st.button("添加到规则"):
-                    if 'rule_expr' not in st.session_state:
-                        st.session_state.rule_expr = ""
-                    
-                    # 构建指标调用字符串
-                    param_str = ", ".join(f"{k}={v}" for k, v in params.items())
-                    st.session_state.rule_expr += f"{indicator}({param_str})" if params else f"{indicator}()"
+                st.subheader("卖出规则") 
+                st.text_area(
+                    "卖出条件",
+                    value=st.session_state.get("sell_rule_expr", ""),
+                    height=100,
+                    key="sell_rule_input",
+                    help="输入卖出条件表达式，如: SMA(20) < SMA(50)"
+                )
             
             with cols[1]:
-                st.subheader("表达式构建")
-                st.text_area("规则表达式", 
-                           value=st.session_state.get("rule_expr", ""),
-                           key="rule_expr_input",
-                           height=100)
+                st.subheader("规则语法校验")
+                if 'buy_rule_expr' in st.session_state and st.session_state.buy_rule_expr:
+                    from core.strategy.rule_parser import RuleParser
+                    valid, msg = RuleParser.validate_syntax(st.session_state.buy_rule_expr)
+                    if valid:
+                        st.success("✓ 买入规则语法正确")
+                        st.code(f"买入: {st.session_state.buy_rule_expr}")
+                    else:
+                        st.error(msg)
                 
-                op_cols = st.columns(7)
-                with op_cols[0]: st.button(">", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " > "))
-                with op_cols[1]: st.button("<", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " < "))
-                with op_cols[2]: st.button("==", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " == "))
-                with op_cols[3]: st.button("&", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " & "))
-                with op_cols[4]: st.button("|", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " | "))
-                with op_cols[5]: st.button("(", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + " ("))
-                with op_cols[6]: st.button(")", on_click=lambda: st.session_state.__setitem__("rule_expr", st.session_state.rule_expr + ") "))
+                if 'sell_rule_expr' in st.session_state and st.session_state.sell_rule_expr:
+                    from core.strategy.rule_parser import RuleParser
+                    valid, msg = RuleParser.validate_syntax(st.session_state.sell_rule_expr)
+                    if valid:
+                        st.success("✓ 卖出规则语法正确")
+                        st.code(f"卖出: {st.session_state.sell_rule_expr}")
+                    else:
+                        st.error(msg)
                 
-                st.button("清空", on_click=lambda: st.session_state.__setitem__("rule_expr", ""))
-            
-            with cols[2]:
-                st.subheader("规则预览")
-                if 'rule_expr' in st.session_state and st.session_state.rule_expr:
-                    try:
-                        from core.strategy.rule_parser import RuleParser
-                        parser = RuleParser(pd.DataFrame())  # 空DF仅用于语法检查
-                        parser.parse(st.session_state.rule_expr)
-                        st.success("✓ 规则语法正确")
-                        st.code(st.session_state.rule_expr)
-                    except Exception as e:
-                        st.error(f"语法错误: {str(e)}")
-                else:
-                    st.info("请构建规则表达式")
+                if not st.session_state.get('buy_rule_expr') and not st.session_state.get('sell_rule_expr'):
+                    st.info("请输入买入/卖出规则表达式")
+                
+                # 初始化规则组存储
+                if 'rule_groups' not in st.session_state:
+                    st.session_state.rule_groups = {
+                        '金叉死叉': {
+                            'buy_rule': 'REF(SMA(close,5), 1) < REF(SMA(close,20), 1) & SMA(close,5) > SMA(close,20)',
+                            'sell_rule': 'REF(SMA(close,5), 1) > REF(SMA(close,20), 1) & SMA(close,5) < SMA(close,20)'
+                        }
+                    }
+                
+                # 规则组管理
+                st.subheader("规则组管理")
+                selected_group = st.selectbox(
+                    "选择规则组",
+                    options=list(st.session_state.rule_groups.keys()),
+                    key="rule_group_select"
+                )
+                
+                if st.button("加载规则组"):
+                    if selected_group in st.session_state.rule_groups:
+                        group = st.session_state.rule_groups[selected_group]
+                        st.session_state.buy_rule_expr = group['buy_rule']
+                        st.session_state.sell_rule_expr = group['sell_rule']
+                        st.rerun()
+                
+                if st.button("保存当前规则组"):
+                    group_name = st.text_input("输入规则组名称", key="new_rule_group_name")
+                    if group_name and group_name.strip():
+                        st.session_state.rule_groups[group_name] = {
+                            'buy_rule': st.session_state.get('buy_rule_expr', ''),
+                            'sell_rule': st.session_state.get('sell_rule_expr', '')
+                        }
+                        st.success(f"规则组 '{group_name}' 已保存")
     
     # 策略参数设置
     # if strategy == "移动平均线交叉":
@@ -152,7 +195,6 @@ async def show_backtesting_page():
     ):
         # 初始化回测配置
         symbol = selected[0] # 股票代号
-        frequency = "5"      # 数据频率
 
         # 初始化回测参数BacktestConfig
         backtest_config = BacktestConfig( # 设置回测参数
@@ -175,24 +217,42 @@ async def show_backtesting_page():
 
         # 注册事件处理器
         engine.register_handler(StrategyScheduleEvent, handle_schedule)
-        engine.register_handler(SignalEvent, handle_signal)
+        engine.register_handler(StrategySignalEvent, handle_signal)
+        
+        # 确保事件处理器能访问当前索引
+        def handle_schedule_with_index(event: StrategyScheduleEvent):
+            event.current_index = engine.current_index
+            return handle_schedule(event)
+            
+        def handle_signal_with_direction(event: StrategySignalEvent):
+            event.direction = 'BUY' if event.confidence > 0 else 'SELL'
+            return handle_signal(event)
+            
+        engine.register_handler(StrategyScheduleEvent, handle_schedule_with_index)
+        engine.register_handler(StrategySignalEvent, handle_signal_with_direction)
         
         # 初始化策略
         if strategy == "月定投":
             fixed_strategy = FixedInvestmentStrategy(
                 Data=data,
                 name="月定投策略",
-                buySignal=True,
-                sellSignal=False
+                buy_rule_expr="True",
+                sell_rule_expr="False"
             )
             # 注册策略
             engine.register_strategy(fixed_strategy)
-        elif strategy == "自定义规则" and 'rule_expr' in st.session_state:
+        elif strategy == "自定义规则" and ('buy_rule_expr' in st.session_state or 'sell_rule_expr' in st.session_state):
             from core.strategy.rule_based_strategy import RuleBasedStrategy
+            if 'indicator_service' not in st.session_state:
+                from core.strategy.indicators import IndicatorService
+                st.session_state.indicator_service = IndicatorService()
+            
             rule_strategy = RuleBasedStrategy(
                 Data=data,
                 name="自定义规则策略",
-                rule_expr=st.session_state.rule_expr
+                indicator_service=st.session_state.indicator_service,
+                buy_rule_expr=st.session_state.get('buy_rule_expr', ""),
+                sell_rule_expr=st.session_state.get('sell_rule_expr', "")
             )
             engine.register_strategy(rule_strategy)
         
@@ -217,6 +277,10 @@ async def show_backtesting_page():
 
         if results:
             st.success("回测完成！")
+            
+            # 显示买卖信号
+            st.subheader("买卖信号")
+            st.dataframe(engine.data[['combined_time', 'close', 'signal']])
             
             # 显示回测结果
             st.subheader("回测结果")

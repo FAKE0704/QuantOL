@@ -90,4 +90,5 @@ class StrategyScheduleEvent(BaseEvent):
     symbol: str
     parameters: Dict[str, Any]
     timestamp: datetime
+    current_index: int  # 新增：当前数据索引位置
     engine: Any = None  # 添加engine字段保持兼容性

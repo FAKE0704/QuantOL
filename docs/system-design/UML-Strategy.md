@@ -25,7 +25,12 @@ classDiagram
       +calculate_order_amount(price): float
       +on_event()
   }
+  class RuleBasedStrategy {
+
+  }
+
 
   BaseStrategy <|-- EventDrivenStrategy
   BaseStrategy <|-- DCABaseStrategy
+  BaseStrategy <|-- RuleBasedStrategy
 ```

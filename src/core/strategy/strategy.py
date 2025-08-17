@@ -1,52 +1,19 @@
 import streamlit as st
 import pandas as pd
+import logging
 from datetime import datetime
-from typing import Dict, Any
-from event_bus.event_types import StrategyScheduleEvent
+from typing import Dict, Any, Type, Callable
+from event_bus.event_types import StrategyScheduleEvent, BaseEvent
 from core.strategy.backtesting import BacktestEngine
-from support.log.logger import _init_logger
-
-
-class BaseEvent:
-    """事件基类"""
-    def __init__(self, timestamp: datetime, event_type: str):
-        self.timestamp = timestamp
-        self.event_type = event_type
-        _init_logger(self)
-
-    def to_dict(self) -> Dict[str, Any]:
-        """将事件转换为字典"""
-        return {
-            'timestamp': self.timestamp.isoformat(),
-            'event_type': self.event_type
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'BaseEvent':
-        """从字典创建事件"""
-        return cls(
-            timestamp=datetime.fromisoformat(data['timestamp']),
-            event_type=data['event_type']
-        )
-
-    def __lt__(self, other: 'BaseEvent') -> bool:
-        """用于事件队列的优先级比较"""
-        return self.timestamp < other.timestamp
-
-
-
-from typing import Type, Callable, Dict
-
-
 
 class BaseStrategy():
-    def __init__(self, Data, name, buySignal, sellSignal, invest_ratio=0.01):
+    def __init__(self, Data, name, buy_rule_expr="", sell_rule_expr="", invest_ratio=0.01):
         import uuid
-        _init_logger(self)
+        self.logger = logging.getLogger(__name__)  # 使用标准logging
         self.Data = Data
         self.name : str = name
-        self.buySignal = buySignal
-        self.sellSignal = sellSignal
+        self.buy_rule_expr = buy_rule_expr
+        self.sell_rule_expr = sell_rule_expr
         self.strategy_id = str(uuid.uuid4())  # 生成唯一ID
         self.position_cost = 0.0  # 平均持仓成本
         self.position_size = 0.0  # 当前持仓数量
@@ -106,8 +73,8 @@ class BaseStrategy():
         pass
 
 class FixedInvestmentStrategy(BaseStrategy):
-    def __init__(self, Data, name, buySignal, sellSignal):
-        super().__init__(Data, name, buySignal, sellSignal)
+    def __init__(self, Data, name, buy_rule_expr="", sell_rule_expr=""):
+        super().__init__(Data, name, buy_rule_expr, sell_rule_expr)
         self.invest_ratio = 0.01  # 定投比例
         
 
@@ -147,19 +114,4 @@ class FixedInvestmentStrategy(BaseStrategy):
 
 # 主程序
 if __name__ == "__main__":
-    # 初始化数据提供者和策略
-    data_provider = MockDataProvider()
-    strategy = SimpleMovingAverageStrategy()
-
-    # 初始化交易系统
-    trading_system = TradingSystem(data_provider, strategy)
-
-    # 更新数据
-    trading_system.data_update()
-
-    # 加载策略并计算指标
-    trading_system.load_strategy()
-
-    # 模拟交易
-    trading_system.buy(amount=1000)
-    trading_system.sell(amount=1000)
+    pass

@@ -288,7 +288,7 @@ class DatabaseManager:
         try:
             self.logger.info(f"Loading stock data for {symbol} from {start_date} to {end_date}")
 
-            # the date that data lack of 
+            # the date that data lack of  # 
             missing_ranges = await self.check_data_completeness(symbol, start_date, end_date,frequency)
             
             # 直接使用date对象

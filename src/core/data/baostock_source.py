@@ -29,14 +29,7 @@ class BaostockDataSource(DataSource):
             end_date: 结束日期(date对象)
             frequency: 数据频率(可选)
         """
-        # 处理单日查询情况
-        if start_date == end_date:
-            start_date = end_date - timedelta(days=1)
-            
-            
-        # 转换为baostock需要的日期格式
-        start_date_str = start_date.strftime("%Y-%m-%d")
-        end_date_str = end_date.strftime("%Y-%m-%d")
+        
 
         from services.progress_service import progress_service
         
@@ -54,15 +47,30 @@ class BaostockDataSource(DataSource):
         else:
             fields = "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST"
         
+        # 如果日期相同，需要将前者日期前移一天
+        if start_date == end_date:
+            start_date_str = start_date.strftime("%Y-%m-%d")
+            rs = bs.query_history_k_data_plus(
+                symbol,
+                fields,
+                start_date=start_date_str,
+                frequency=freq,
+                adjustflag="3"
+            ) # 日期格式需要为 20250202
+
+        else:
+            # 转换为baostock需要的日期格式
+            start_date_str = start_date.strftime("%Y-%m-%d")
+            end_date_str = end_date.strftime("%Y-%m-%d")
         
-        rs = bs.query_history_k_data_plus(
-            symbol,
-            fields,
-            start_date=start_date_str,
-            end_date=end_date_str,
-            frequency=freq,
-            adjustflag="3"
-        ) # 日期格式需要为 20250202
+            rs = bs.query_history_k_data_plus(
+                symbol,
+                fields,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                frequency=freq,
+                adjustflag="3"
+            ) # 日期格式需要为 20250202
         
 
         if rs.error_code != '0':

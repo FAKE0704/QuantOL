@@ -167,7 +167,7 @@ class DatabaseManager:
         self.logger.debug("数据库表结构初始化完成",
                 extra={'connection_id': id(conn)}
             )
-        self.logger.debug(f"连接已释放，当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}")
+        # self.logger.debug(f"连接已释放，当前活跃连接数: {self.pool.get_size() - self.pool.get_idle_size()}")
         self.logger.debug(f"当前循环活跃状态: {not asyncio.get_event_loop().is_closed()}")
     
     async def _get_connection(self):
@@ -233,7 +233,7 @@ class DatabaseManager:
                 self.logger.info(f"从数据库获取 {start_dt}-{end_dt} for {symbol}\n")
 
                 existing_dates = {pd.to_datetime(row["date"]).date() for row in rows}
-                self.logger.info(f"Existing_dates {existing_dates} for {symbol}\n")
+                # self.logger.info(f"Existing_dates {existing_dates} for {symbol}\n")
                 
                 # 生成理论交易日集合（排除节假日）
                 all_dates = pd.date_range(start_dt, end_dt, freq='B')  # 工作日
@@ -243,11 +243,11 @@ class DatabaseManager:
                 )
                 today = date.today()
                 trading_dates = {d for d in trading_dates if d != today}  # 若今日查询，则排除今日
-                self.logger.info(f"trading_dates {trading_dates} for {symbol}")
+                # self.logger.info(f"trading_dates {trading_dates} for {symbol}")
                 
                 # 计算缺失日期
                 missing_dates = trading_dates - existing_dates
-                self.logger.info(f"Missing_dates {missing_dates} for {symbol}")
+                # self.logger.info(f"Missing_dates {missing_dates} for {symbol}")
                 
                 # 将连续缺失日期合并为区间
                 missing_ranges = []
@@ -307,7 +307,7 @@ class DatabaseManager:
                     # 转换为 Baostock 需要的格式
                     
                     new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
-                    print(new_data.head(2))
+                    
                     await self.save_stock_data(symbol, new_data, frequency)  # save stock data into table Stockdata
                     data = pd.concat([data, new_data])
 
@@ -636,7 +636,7 @@ class DatabaseManager:
                         adjustflag = EXCLUDED.adjustflag
                 """, insert_data)
                 
-            self.logger.info(f"成功保存{symbol}的{frequency}频率数据，共{len(insert_data)}条记录")
+            # self.logger.info(f"成功保存{symbol}的{frequency}频率数据，共{len(insert_data)}条记录")
             return True
             
         except Exception as e:

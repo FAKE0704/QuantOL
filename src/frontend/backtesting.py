@@ -134,8 +134,8 @@ async def show_backtesting_page():
                 if 'rule_groups' not in st.session_state:
                     st.session_state.rule_groups = {
                         '金叉死叉': {
-                            'buy_rule': 'REF(SMA(close,5), 1) < REF(SMA(close,20), 1) & SMA(close,5) > SMA(close,20)',
-                            'sell_rule': 'REF(SMA(close,5), 1) > REF(SMA(close,20), 1) & SMA(close,5) < SMA(close,20)'
+                            'buy_rule': '(REF(SMA(close,5), 1) < REF(SMA(close,20), 1)) & (SMA(close,5) > SMA(close,20))',
+                            'sell_rule': '(REF(SMA(close,5), 1) > REF(SMA(close,20), 1)) & (SMA(close,5) < SMA(close,20))'
                         }
                     }
                 
@@ -243,10 +243,13 @@ async def show_backtesting_page():
             engine.register_strategy(fixed_strategy)
         elif strategy == "自定义规则" and ('buy_rule_expr' in st.session_state or 'sell_rule_expr' in st.session_state):
             from core.strategy.rule_based_strategy import RuleBasedStrategy
+            
+            # 指标服务初始化
             if 'indicator_service' not in st.session_state:
                 from core.strategy.indicators import IndicatorService
                 st.session_state.indicator_service = IndicatorService()
             
+            # 实例化自定义策略
             rule_strategy = RuleBasedStrategy(
                 Data=data,
                 name="自定义规则策略",
@@ -254,21 +257,23 @@ async def show_backtesting_page():
                 buy_rule_expr=st.session_state.get('buy_rule_expr', ""),
                 sell_rule_expr=st.session_state.get('sell_rule_expr', "")
             )
+            # 注册策略实例
             engine.register_strategy(rule_strategy)
         
         # 启动事件循环
-        task_id = f"backtest_{st.session_state.strategy_id}"
-        progress_service.start_task(task_id, 100)
+        task_id = f"backtest_{st.session_state.strategy_id}" # 回测任务唯一id
+        # progress_service.start_task(task_id, 100)
         
-        # 模拟进度更新  这里没有结合engine.run
-        for i in range(100):
-            time.sleep(0.1)  # 模拟回测过程
-            progress_service.update_progress(task_id, (i + 1) / 100)
+        # 进度管理机制（目前未生效）
+        # for i in range(100):
+        #     # time.sleep(0.1)  # 模拟回测过程
+        #     progress_service.update_progress(task_id, (i + 1) / 100)
         
         engine.logger.debug("开始回测...")
 
+        # 回测运行（engine中已有策略实例和所有数据）
         engine.run(pd.to_datetime(start_date), pd.to_datetime(end_date))
-        progress_service.end_task(task_id)
+        # progress_service.end_task(task_id)
         
         # 获取回测结果
         results = engine.get_results()
@@ -277,10 +282,12 @@ async def show_backtesting_page():
 
         if results:
             st.success("回测完成！")
+            engine.logger.debug("回测完成！")
             
             # 显示买卖信号
             st.subheader("买卖信号")
-            st.dataframe(engine.data[['combined_time', 'close', 'signal']])
+            # st.dataframe(engine.data[['combined_time', 'close', 'signal']])
+            st.dataframe(engine.data)
             
             # 显示回测结果
             st.subheader("回测结果")

@@ -72,7 +72,7 @@ class SystemEvent:
 
 @dataclass
 class StrategySignalEvent(BaseEvent):
-    """策略信号事件"""
+    """基于自定义规则产生的策略信号事件"""
     strategy_id: str
     symbol: str
     direction: str  # BUY/SELL
@@ -86,9 +86,15 @@ class StrategySignalEvent(BaseEvent):
 @dataclass
 class StrategyScheduleEvent(BaseEvent):
     """策略定时任务事件"""
-    schedule_type: str
+    schedule_type: str  # 
     symbol: str
     parameters: Dict[str, Any]
     timestamp: datetime
     current_index: int  # 新增：当前数据索引位置
     engine: Any = None  # 添加engine字段保持兼容性
+
+@dataclass
+class TradingDayEvent(BaseEvent):
+    """交易日事件"""
+    timestamp: datetime
+    is_first_day: bool = False

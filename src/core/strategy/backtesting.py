@@ -4,16 +4,15 @@ from typing import Optional, Dict, Any, List, Type
 from core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy
 from core.strategy.indicators import IndicatorService  # 新增IndicatorService导入
 from core.strategy.rule_parser import RuleParser  # 新增RuleParser导入
-from event_bus.event_types import StrategyScheduleEvent  # 新增StrategyScheduleEvent导入
+from event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent  # 新增事件类型导入
 import json
-import logging
-from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 import os
-from event_bus.event_types import SignalEvent
 import pandas as pd
 import streamlit as st
-from support.log import logger
+import logging
+from support.log.logger import logger
+logger.setLevel(logging.DEBUG)  # 确保DEBUG级别日志输出
 
 @dataclass
 class BacktestConfig:
@@ -101,32 +100,39 @@ class BacktestEngine:
     """回测引擎，负责执行回测流程"""
     
     def __init__(self, config: BacktestConfig, data):
-        self.logger = logging.getLogger(__name__)
+        self.logger = logger
         self.config = config
         self.event_queue = []
-        self.current_price = None  # 当前价格
+        self.current_price = None  # 回测过程的当前价格
+        self.current_time = None #回测过程的当前时间
+
+        self.current_index = None
         self.handlers = {}  # 事件处理器字典 {event_type: handler}
-        self.strategies = []  # 改为支持多个策略
+        self.strategies = []  # 支持多个策略
         self.data = data  # 回测数据
         # 初始化指标服务和规则解析器
         self.indicator_service = IndicatorService()
         self.rule_parser = RuleParser(self.data, self.indicator_service)
-        self.position_strategy = None  # 仓位策略
         self.trades = [] # 交易记录
         self.results = {}
         self.current_capital = config.initial_capital
-        self.positions = {}  # 按策略ID存储持仓 {strategy_id: position}
         self.errors = []
-        # 更详细的净值记录结构
-        self.equity_records = pd.DataFrame(columns=[
+        self.equity_records = pd.DataFrame(columns=[  # 净值记录
             'timestamp',
             'price',
             'position',
             'cash',
             'total_value'
         ])
+
+        # 仓位、持仓相关
+        self.positions = {}  # 按策略ID存储持仓 {strategy_id: position}
+        self.position_strategy = None  # 仓位策略id
         self.current_month = None  # 跟踪当前月份
-        self.current_date = None  # 初始化当前回测日期
+        
+        # 注册StrategySignalEvent处理器
+        self.register_handler(StrategySignalEvent, self._handle_signal_event)
+        
         self.position_meta = {
             'quantity': 0,
             'avg_price': 0.0,
@@ -135,14 +141,24 @@ class BacktestEngine:
         self.strategy_holdings = {}  # 策略持仓状态 {strategy_id: holdings}
         self.position_records = {}  # 记录持仓时间 {strategy_id: {'entry_time': datetime, 'quantity': int}}
 
+    def update_rule_parser_data(self):
+        """更新RuleParser的数据引用"""
+        self.rule_parser.data = self.data
+        self.rule_parser.indicator_service = self.indicator_service
+
     def run(self, start_date: datetime, end_date: datetime):
         """执行事件驱动的回测"""
+
         # 初始化仓位策略资金
         if self.position_strategy:
             self.position_strategy.account_value = self.current_capital
         
+        # 更新RuleParser数据引用
+        self.update_rule_parser_data()
+        
         # 根据数据频率处理时间字段
         if self.config.frequency.lower() == 'd':
+            self.logger.debug(f"识别数据频率为：日线")
             self.data['combined_time'] = pd.to_datetime(self.data['date'], format='%Y-%m-%d')
             # 为日线数据添加默认时间
             self.data['time'] = '00:00:00'
@@ -163,24 +179,47 @@ class BacktestEngine:
             'close': self.data.iloc[0]['close']
         })
         
-        
         # 设置初始日期
-        self.current_date = self.data['combined_time'].iloc[0]
+        self.current_time = self.data['combined_time'].iloc[0]
         
-        # 发布首个交易日事件
-        self.push_event(TradingDayEvent(
-            timestamp=self.current_date,
-            is_first_day=True
-        ))
+        
+        # 遍历触发事件
+        self.logger.debug("开始回测...")
+        for idx in range(len(self.data)):
+            current_time = self.data.iloc[idx]['combined_time']
+            self.current_time = current_time
+            self.current_index = idx
+            
+            # 系统初始化（首个交易日）
+            if idx == 0:
+                self._initialize_backtest_system()
+            
+            # 更新RuleParser数据引用和当前索引
+            self.update_rule_parser_data()
+            self.rule_parser.current_index = idx
+            
+            # 创建并处理交易日事件
+            trading_day_event = TradingDayEvent(
+                timestamp=current_time,
+                is_first_day=(idx == 0)
+            )
+            self.handle_trading_day_event(trading_day_event)
+            
+            # 触发所有注册策略的定时检查
+            for strategy in self.strategies:
+                logger.debug("进入on_schedule方法")
+                strategy.on_schedule(self)
+            # logger.debug(f"已触发策略数量: {len(self.strategies)}")
+
+            # 添加详细调试日志
+            logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
+            
+        self.logger.debug("回测完成")
 
     def handle_trading_day_event(self, event):
         """处理交易日事件"""
-        # 获取当前价格
-        current_price = self.data.loc[event.timestamp, 'close']
-        if pd.isnull(current_price):
-            self.log_error(f"获取到空价格在 {event.timestamp}, 使用前值填充")
-            current_price = self.data['close'].shift(1).loc[event.timestamp]
-        self.current_price = current_price
+        self.logger.debug(f"处理交易日事件 @ {event.timestamp}")
+        self.logger.debug(f"待处理事件队列: {[e.__class__.__name__ for e in self.event_queue]}")
         
         # 处理事件队列
         while self.event_queue:
@@ -188,27 +227,34 @@ class BacktestEngine:
             handler = self.handlers.get(type(event))
             if handler:
                 try:
-                    # 如果是策略定时事件，设置当前索引
-                    if isinstance(event, StrategyScheduleEvent):
-                        current_idx = self.data.index.get_loc(event.timestamp)
-                        event.current_index = current_idx
-                    handler(event)
-                    # 记录信号
-                    if isinstance(event, SignalEvent):
-                        # 添加side属性检查
-                        side = getattr(event, 'side', None)
-                        if side in ('BUY', 'SELL'):
-                            self.data.loc[event.timestamp, 'signal'] = 1 if side == 'BUY' else -1
+                    # 处理策略信号事件
+                    if isinstance(event, StrategySignalEvent):
+                        # 使用StrategySignalEvent的direction属性
+                        if event.direction in ('BUY', 'SELL'):
+                            self.data.loc[event.timestamp, 'signal'] = 1 if event.direction == 'BUY' else -1
                         else:
-                            self.log_error(f"无效的信号方向: {side}")
+                            self.log_error(f"无效的信号方向: {event.direction}")
+                    # 处理策略定时事件
+                    elif isinstance(event, StrategyScheduleEvent):
+                        # 处理定时事件逻辑
+                        pass
                 except Exception as e:
                     self.log_error(f"处理事件失败: {str(e)}")
         
         # 更新净值记录
         self._update_equity({
             'datetime': event.timestamp,
-            'close': current_price
+            'close': self.current_price
         })
+
+    def _handle_signal_event(self, event: StrategySignalEvent):
+        """处理策略信号事件"""
+        self.logger.debug(f"处理策略信号: {event.direction} {event.symbol}@{event.price}")
+        # 在此处添加信号处理逻辑
+        if event.direction in ('BUY', 'SELL'):
+            self.data.loc[event.timestamp, 'signal'] = 1 if event.direction == 'BUY' else -1
+        else:
+            self.log_error(f"无效的信号方向: {event.direction}")
 
     def log_error(self, message: str):
         """记录错误信息"""
@@ -254,6 +300,10 @@ class BacktestEngine:
             
         self.strategies.append(strategy)
         self.strategy_holdings[strategy.strategy_id] = 0  # 初始化持仓
+        
+        # 注册策略调度事件处理器
+        self.register_handler(StrategyScheduleEvent, strategy.on_schedule)
+        self.logger.debug(f"注册策略调度处理器: {strategy.strategy_id}")
         
         # 记录策略注册日志
         self.logger.info(f"策略注册成功 | ID: {strategy.strategy_id} | 名称: {getattr(strategy, 'name', '未命名')}")
@@ -301,6 +351,40 @@ class BacktestEngine:
         trough = self.equity_records['total_value'].min()
         return (peak - trough) / peak if peak != 0 else 0.0
 
+    def _initialize_backtest_system(self):
+        """回测系统初始化（首个交易日执行）"""
+        self.logger.info("回测系统初始化开始")
+        
+        # 1. 预计算指标数据
+        if hasattr(self.indicator_service, 'calculate_indicators'):
+            # TODO
+            pass
+            # self.indicator_service.calculate_indicators(self.data)
+        
+        # 2. 初始化所有注册策略
+        for strategy in self.strategies:
+            if hasattr(strategy, 'initialize'):
+                strategy.initialize(self.data)
+            self.logger.info(f"策略初始化完成: {strategy.strategy_id}")
+        
+        # 3. 设置仓位管理策略
+        if not self.position_strategy:
+            # TODO:添加仓位管理策略
+            pass
+            # self.logger.info("使用默认仓位策略: FixedPercentStrategy(1%)")
+        
+        # 4. 初始化持仓记录
+        self.position_meta = {
+            'quantity': 0,
+            'avg_price': 0.0,
+            'direction': 0
+        }
+        
+        # 5. 清空交易记录和错误日志
+        self.trades = []
+        self.errors = []
+        self.logger.info("回测系统初始化完成")
+        
     def _update_equity(self, market_data):
         """更新净值记录"""
         # 确保数值类型正确
@@ -339,9 +423,3 @@ class BacktestEngine:
 
     # 保留其他原有方法不变...
     # (_update_equity, get_results, create_order等)
-
-@dataclass
-class TradingDayEvent:
-    """交易日事件"""
-    timestamp: datetime
-    is_first_day: bool = False

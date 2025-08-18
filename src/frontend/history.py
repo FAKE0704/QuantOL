@@ -3,8 +3,7 @@ from datetime import datetime
 import logging
 from support.log.logger import logger
 
-# 设置INFO日志级别
-logger.setLevel(logging.INFO)
+
 import logging
 import pandas as pd
 import plotly.graph_objects as go

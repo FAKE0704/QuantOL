@@ -1,0 +1,20 @@
+# Dependencies
+
+
+# Build outputs
+
+
+
+# Environment files
+.env
+.env.local
+
+# Large data files
+*.csv
+*.xlsx
+
+# files
+/docs/
+/垃圾桶/
+垃圾箱.md
+requirements.txt

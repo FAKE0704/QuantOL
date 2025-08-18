@@ -2,7 +2,8 @@ import ast
 import operator as op
 import sys  # 添加sys导入
 import logging
-from typing import Dict, Callable, Union, List, Tuple
+from support.log.logger import logger
+from typing import Any, Dict, Callable, Union, List, Tuple
 from dataclasses import dataclass
 import pandas as pd
 import astunparse
@@ -108,7 +109,10 @@ class RuleParser:
                 return False if mode == 'rule' else 0.0
             tree = ast.parse(rule, mode='eval')
             result = self._eval(tree.body)
-            return bool(result) if mode == 'rule' else result
+            final_result = bool(result) if mode == 'rule' else result
+            if mode == 'rule':
+                logger.info(f"[RULE_RESULT] {rule} = {final_result}")
+            return final_result
         except RecursionError:
             raise RecursionError("递归深度超过限制，请简化规则表达式")
         except Exception as e:
@@ -177,9 +181,30 @@ class RuleParser:
         # 检查递归深度
         self.recursion_counter += 1
         if self.recursion_counter > self.max_recursion_depth:
+            self.recursion_counter -= 1  # 恢复计数器
             raise RecursionError(f"递归深度超过限制 ({self.max_recursion_depth})")
             
-        func_name = node.func.id
+        try:
+            func_name = node.func.id
+            # logger.debug(f"[DEBUG] 开始计算指标: {func_name}")
+            # logger.debug(f"[DEBUG] 当前索引位置: {self.current_index}")
+        finally:
+            self.recursion_counter -= 1  # 确保计数器减少
+        
+        # 记录函数参数
+        args_str = ", ".join([self._node_to_expr(arg) for arg in node.args])
+        # logger.debug(f"[DEBUG] 指标参数: {args_str}")
+        
+        # 特殊处理SMA指标的计算细节
+        period = None
+        if func_name.upper() == 'SMA':
+            period = self._eval(node.args[1]) if len(node.args) > 1 else 5
+            data_column = self._node_to_expr(node.args[0]).strip('\"\'')
+            window_data = self.data[data_column].iloc[
+                max(0, self.current_index-period+1):self.current_index+1
+            ]
+            # logger.debug(f"[DEBUG] SMA计算窗口数据({period}期): {window_data.values}")
+            # logger.debug(f"[DEBUG] SMA计算窗口索引: {max(0, self.current_index-period+1)}:{self.current_index+1}")
         
         # 特殊处理REF函数（需要解析器状态）
         if func_name == 'REF':
@@ -227,10 +252,19 @@ class RuleParser:
             
         if cache_key in self.value_cache:
             self.cache_hits += 1
-            return float(self.value_cache[cache_key])  # 确保返回float
+            cached_value = float(self.value_cache[cache_key])
+            logger.info(f"[CACHE_HIT] {func_name}({args_str})={cached_value}")
+            if func_name.upper() == 'SMA':
+                period = self._eval(node.args[1]) if len(node.args) > 1 else 5
+                data_column = self._node_to_expr(node.args[0]).strip('\"\'')
+                logger.info(f"[SMA_RESULT] SMA({data_column},{period})={cached_value}")
+            return cached_value
         
         # 计算并缓存结果
         self.cache_misses += 1
+        logger.debug(f"计算指标 {func_name} 开始, 当前索引: {self.current_index}")
+        logger.debug(f"数据列: {data_column}, 参数: {remaining_args_str}")
+        logger.debug(f"缓存键: {cache_key}")
         
         # 验证指标参数（特别是周期类参数）
         for arg_node in remaining_args:
@@ -250,14 +284,34 @@ class RuleParser:
             
         # 委托给IndicatorService计算指标（传递数据序列和剩余参数）
         try:
+            # 特别记录SMA指标的计算细节
+            if func_name.upper() == 'SMA':
+                period = self._eval(remaining_args[0]) if remaining_args else 5
+                logger.debug(
+                    f"SMA计算详情: 周期={period}, "
+                    f"数据范围={self.current_index-period+1}:{self.current_index+1}, "
+                    f"当前值={series.iloc[self.current_index]}"
+                )
+            
             result = self.indicator_service.calculate_indicator(
                 func_name, 
                 series,  # 传递具体数据序列而非整个DataFrame
                 self.current_index,
                 *[self._eval(arg) for arg in remaining_args]  # 评估所有参数
             )
-        except AttributeError:
-            raise ValueError(f"不支持的指标函数: {func_name}")
+            
+            logger.debug(f"指标计算结果: {func_name}={result}")
+            if func_name.upper() == 'SMA':
+                logger.debug(f"SMA计算详情: {data_column},{period}={result}")
+        except AttributeError as e:
+            logging.error(f"不支持的指标函数: {func_name}, 错误: {str(e)}")
+            raise ValueError(f"不支持的指标函数: {func_name}") from e
+        except Exception as e:
+            logging.error(
+                f"指标计算失败: {func_name}({args_str}), "
+                f"错误: {str(e)}, 位置={self.current_index}"
+            )
+            raise
         
         # 使用统一的安全转换方法
         try:
@@ -273,10 +327,25 @@ class RuleParser:
         
         # 缓存并返回结果
         self.value_cache[cache_key] = result_float
+        # 存储指标计算结果到engine.data
+        col_name = f"{func_name}({args_str})"
+        logger.debug(f"准备存储指标 {col_name} 到索引 {self.current_index}, 值: {result_float}")
+        logger.debug(f"当前数据长度: {len(self.data)}, 列是否存在: {col_name in self.data.columns}")
+        if col_name not in self.data.columns:
+            # 初始化列并填充NaN
+            self.data[col_name] = [float('nan')] * len(self.data)
+        
+        # 确保当前索引有效
+        if 0 <= self.current_index < len(self.data):
+            self.data.at[self.current_index, col_name] = result_float
+            logger.debug(f"存储指标 {col_name}[{self.current_index}] = {result_float}")
+        else:
+            logger.error(f"无效索引 {self.current_index} 无法存储指标 {col_name}")
+        
         return result_float
     
         
-    def _safe_convert_to_float(self, value: any, context: str = "") -> float:
+    def _safe_convert_to_float(self, value: Any, context: str = "") -> float:
         """安全转换为浮点数，包含详细错误处理
         Args:
             value: 需要转换的值
@@ -286,20 +355,19 @@ class RuleParser:
         Raises:
             ValueError: 转换失败时抛出
         """
-        # 处理NaN值
-        if pd.isna(value):
-            return 0.0
-            
-        # 检查复数类型
-        if isinstance(value, complex):
-            raise ValueError(f"复数类型无法转换: {value} ({context})")
-            
-        # 处理None值
-        if value is None:
+        from typing import Any
+        import numpy as np
+        
+        # 处理NaN/None值
+        if pd.isna(value) or value is None:
             return 0.0
             
         # 处理布尔值
         if isinstance(value, bool):
+            return float(value)
+            
+        # 处理数字类型
+        if isinstance(value, (int, float)):
             return float(value)
             
         # 处理字符串
@@ -315,14 +383,11 @@ class RuleParser:
                 value = value.iloc[self.current_index]
             else:
                 value = value.iloc[-1]
+            return self._safe_convert_to_float(value, context)
         
-        # 处理NumPy类型
-        try:
-            import numpy as np
-            if isinstance(value, np.generic):
-                value = value.item()
-        except ImportError:
-            pass
+        # 处理numpy类型
+        if np and isinstance(value, (np.number, np.bool_, np.generic)):
+            return float(value.item())
         
         # 处理可转换为float的类型
         if hasattr(value, '__float__'):
@@ -332,14 +397,6 @@ class RuleParser:
                 raise ValueError(
                     f"类型转换失败: {type(value)} -> float (值: {value}, 上下文: {context})"
                 ) from e
-                
-        # 处理numpy数值类型
-        try:
-            import numpy as np
-            if isinstance(value, (np.number, np.bool_)):
-                return float(value.item())
-        except ImportError:
-            pass
             
         raise ValueError(
             f"不支持的类型转换: {type(value)} -> float (值: {value}, 上下文: {context})"
@@ -365,8 +422,19 @@ class RuleParser:
         return 1  # 默认最小长度
 
     def _ref(self, expr: str, period: int) -> float:
-        """引用前period期的指标值（保留在RuleParser中）"""
-        print(f"DEBUG_REF: 开始计算REF(expr={expr}, period={period})")
+        """引用前period期的指标值（保留在RuleParser中）
+        1. 计算原始指标并存储
+        2. 计算REF指标并存储
+        """
+        logger.debug(f"[REF] 开始计算REF(expr={expr}, period={period})")
+        
+        # 先计算并存储原始指标
+        if "(" in expr and ")" in expr:  # 如果是指标表达式
+            original_result = self.parse(expr, mode='ref')
+            original_col = expr
+            if original_col not in self.data.columns:
+                self.data[original_col] = None
+            self.data.at[self.current_index, original_col] = original_result
         
         # 检查递归深度
         self.recursion_counter += 1
@@ -379,37 +447,42 @@ class RuleParser:
         # 保存当前索引
         original_index = self.current_index
         
-        # 计算目标位置（确保在有效范围内）
-        target_index = max(0, min(original_index - period, len(self.data)-1))
+        # 计算目标位置
+        period_int = int(period) if period is not None else 0
+        target_index = max(0, min(int(original_index) - period_int, len(self.data)-1))
+        logger.debug(f"[REF] 目标索引位置: {target_index} (当前索引: {original_index}, 回溯周期: {period})")
         
         # 回溯到历史位置计算表达式
         self.current_index = target_index
-        print(f"DEBUG_REF: 解析表达式 '{expr}' (索引={target_index})")
         try:
-            # 尝试从缓存获取 - 使用统一格式的缓存键
+            # 尝试从缓存获取
             cache_key = f"REF({expr},{period})@{original_index}"
             if cache_key in self.value_cache:
                 return float(self.value_cache[cache_key])
                 
-            # 使用parse方法解析表达式（指定ref模式获取原始数值）
-            print(f"DEBUG_REF: 解析表达式 '{expr}'")
+            # 使用完整parse流程解析表达式（确保嵌套指标计算也能存储结果）
             result = self.parse(expr, mode='ref')
-            print(f"DEBUG_REF: 表达式结果: {result}")
             
-            # 使用统一的安全转换方法
-            try:
-                result_numeric = self._safe_convert_to_float(
-                    result,
-                    f"REF表达式 '{expr}'"
-                )
-            except ValueError as e:
-                raise ValueError(f"REF值转换失败: {str(e)}") from e
-            else:
-                self.value_cache[cache_key] = result_numeric
-                return result_numeric
+            # 处理结果并缓存
+            result_numeric = self._safe_convert_to_float(
+                result,
+                f"REF表达式 '{expr}'"
+            )
+            
+            # 确保嵌套指标计算结果已存储
+            if "(" in expr and ")" in expr:  # 如果是指标表达式
+                nested_col = f"REF({expr},{period})"
+                if nested_col not in self.data.columns:
+                    self.data[nested_col] = None
+                self.data.at[original_index, nested_col] = result_numeric
+            
+            self.value_cache[cache_key] = result_numeric
+            logger.info(f"[REF_RESULT] REF({expr},{period})={result_numeric} (from index {target_index})")
+            return result_numeric
         except Exception as e:
             raise ValueError(f"REF函数计算失败: {str(e)}") from e
         finally:
             # 恢复原始位置
             self.current_index = original_index
             self.recursion_counter -= 1  # 减少递归计数器
+            return 0.0  # 默认返回值

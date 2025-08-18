@@ -1,6 +1,6 @@
 RuleBasedStrategy负责：
 
-- 管理策略生命周期
+- 管理基于规则生成的策略的生命周期
 - 生成完整的SignalEvent事件
 - 处理错误和日志记录
 - 维护策略状态
@@ -11,8 +11,6 @@ RuleBasedStrategy负责：
 - 事件响应机制
 
 BacktestEngine只管理调度策略实例
-
-
 
 独立的策略类更容易添加新功能：
 

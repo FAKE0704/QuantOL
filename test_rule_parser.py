@@ -22,8 +22,7 @@ class MockIndicatorService(IndicatorService):
 
 def test_ref_sma():
     # 准备测试数据
-    data = {'close': [i for i in range(1, 21)]}  # 20个数据点[1,2,...,20]
-    print(data)
+    data = {'close': [6.4, 6.62, 6.64, 5.98, 5.56, 5.67, 5.97, 6.06, 6.22, 6.23, 6.17, 6.79, 6.34, 6.97, 6.82, 6.18, 5.92, 5.94, 6.09, 6.1, 6.71]}  # 数据点
     # sma(3)  [na,na,3,4.5,...]
     df = pd.DataFrame(data)
     
@@ -41,5 +40,30 @@ def test_ref_sma():
         result = parser.parse(test_expr, mode='ref')
         print(f'位置 {i}: {result}')
 
+def test_signal():
+    # 准备测试数据 (保持原有数据不变)
+    data = {'close': [6.4, 6.62, 6.64, 5.98, 5.56, 5.67, 5.97, 6.06, 6.22, 6.23, 6.17, 6.79, 6.34, 6.97, 6.82, 6.18, 5.92, 5.94, 6.09, 6.1, 6.71]}
+    df = pd.DataFrame(data)
+    
+    # 初始化解析器
+    indicator_service = MockIndicatorService()
+    parser = RuleParser(df, indicator_service)
+    
+    # 测试SMA(close,3)计算和存储
+    parser.current_index = 6
+    sma_value = parser.parse("SMA(close,3)", mode='ref')
+    
+    # 验证计算结果和存储
+    expected_sma = (5.67 + 5.97 + 6.06)/3
+    print( abs(sma_value - expected_sma) < 0.001)
+    print( "SMA(close,3)" in parser.data.columns)
+    print( abs(parser.data.at[6, "SMA(close,3)"] - expected_sma) < 0.001)
+    
+    # 测试REF函数
+    parser.current_index = 8
+    ref_value = parser.parse("REF(SMA(close,3),2)", mode='ref')
+    print( abs(ref_value - expected_sma) < 0.001 ) # 应返回第6位置的SMA值
+
 if __name__ == '__main__':
     test_ref_sma()
+    test_signal()  # 新增测试调用

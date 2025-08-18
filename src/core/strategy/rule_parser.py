@@ -299,7 +299,7 @@ class RuleParser:
         if cache_key in self.value_cache:
             self.cache_hits += 1
             cached_value = float(self.value_cache[cache_key])
-            logger.info(f"[CACHE_HIT] {func_name}({args_str})={cached_value}")
+            # logger.info(f"[CACHE_HIT] {func_name}({args_str})={cached_value}")
             if func_name.upper() == 'SMA':
                 period_val = self._eval(node.args[1]) if len(node.args) > 1 else 5
                 period = int(period_val) if isinstance(period_val, (int, float)) else 5

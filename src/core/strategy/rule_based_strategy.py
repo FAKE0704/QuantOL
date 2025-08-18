@@ -59,7 +59,7 @@ class RuleBasedStrategy(BaseStrategy):
                     self.logger.debug("生成 BUY 信号")
                     return StrategySignalEvent(
                         strategy_id=self.strategy_id,
-                        symbol=self.Data['symbol'].iloc[-1],
+                        symbol=self.Data['code'].iloc[-1],
                         direction='BUY',
                         price=float(self.Data['close'].iloc[-1]),
                         quantity=100,  # 默认数量
@@ -76,7 +76,7 @@ class RuleBasedStrategy(BaseStrategy):
                     self.logger.debug("生成 SELL 信号")
                     return StrategySignalEvent(
                         strategy_id=self.strategy_id,
-                        symbol=self.Data['symbol'].iloc[-1],
+                        symbol=self.Data['code'].iloc[-1],
                         direction='SELL',
                         price=float(self.Data['close'].iloc[-1]),
                         quantity=100,  # 默认数量
@@ -101,7 +101,6 @@ class RuleBasedStrategy(BaseStrategy):
         # 同步当前索引到规则解析器
         self.parser.current_index = engine.current_index
         signal = self.generate_signals(engine.current_index)
-        if signal:
-            # 推送事件到引擎
-            engine.push_event(signal)
-            self.logger.debug(f"已推送策略信号事件: {signal.direction} {signal.symbol}@{signal.price}")
+        if signal:  
+           engine._handle_signal_event(signal)
+

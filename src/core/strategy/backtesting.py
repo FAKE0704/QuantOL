@@ -201,12 +201,12 @@ class BacktestEngine:
             
             # 触发所有注册策略的定时检查
             for strategy in self.strategies:
-                logger.debug("进入on_schedule方法")
+                # logger.debug("进入on_schedule方法")
                 strategy.on_schedule(self)
             # logger.debug(f"已触发策略数量: {len(self.strategies)}")
 
             # 添加详细调试日志
-            logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
+            # logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
             
         self.logger.debug("回测完成")
 
@@ -250,6 +250,7 @@ class BacktestEngine:
         
         # 在此处添加信号处理逻辑
         if event.direction in ('BUY', 'SELL'):
+            print("信号只是没有被更新"*5)
             self.data.loc[idx, 'signal'] = 1 if event.direction == 'BUY' else -1
             self.logger.debug(f"在索引 {idx} 处记录信号: {event.direction}")
         else:

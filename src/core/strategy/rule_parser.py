@@ -139,7 +139,12 @@ class RuleParser:
     
     def _node_to_expr(self, node) -> str:
         """将AST节点转换为表达式字符串"""
-        return astunparse.unparse(node).strip()
+        expr = astunparse.unparse(node).strip()
+        # 处理函数调用参数间的多余空格
+        if isinstance(node, ast.Call):
+            # 将"func(arg1, arg2)"格式化为"func(arg1,arg2)"
+            expr = expr.replace(', ', ',')
+        return expr
             
     def _store_expression_result(self, node, result, bool_only=False):
         """存储表达式结果到data
@@ -543,4 +548,3 @@ class RuleParser:
             # 恢复原始位置
             self.current_index = original_index
             self.recursion_counter -= 1  # 减少递归计数器
-            return 0.0  # 默认返回值

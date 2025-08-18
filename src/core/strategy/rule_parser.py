@@ -141,12 +141,44 @@ class RuleParser:
         """将AST节点转换为表达式字符串"""
         return astunparse.unparse(node).strip()
             
+    def _store_expression_result(self, node, result, bool_only=False):
+        """存储表达式结果到data
+        Args:
+            node: AST节点
+            result: 计算结果
+            bool_only: 是否为bool表达式(需要符号替换)
+        """
+        expr_str = self._node_to_expr(node)
+        
+        # 生成列名 - 保持原始表达式格式
+        col_name = expr_str
+        
+        # 检查列是否已存在
+        if col_name not in self.data.columns:
+            # 根据表达式类型初始化列
+            if bool_only:
+                self.data[col_name] = [False] * len(self.data)
+            else:
+                self.data[col_name] = [float('nan')] * len(self.data)
+            # 添加表达式注释
+            self.data.attrs[f"{col_name}_expr"] = expr_str
+        
+        # 存储结果
+        if 0 <= self.current_index < len(self.data):
+            self.data.at[self.current_index, col_name] = bool(result) if bool_only else result
+
     def _eval(self, node):
         """递归评估AST节点"""
         if isinstance(node, ast.Compare):
             left = self._eval(node.left)
             right = self._eval(node.comparators[0])
-            return self.OPERATORS[type(node.ops[0])](left, right)
+            result = self.OPERATORS[type(node.ops[0])](left, right)
+            # 存储比较运算结果(bool值)
+            self._store_expression_result(node, result, bool_only=True)
+            # 存储左右表达式值(非bool)
+            self._store_expression_result(node.left, left)
+            self._store_expression_result(node.comparators[0], right)
+            return result
         elif isinstance(node, ast.BoolOp):
             return self._eval_bool_op(node)
         elif isinstance(node, ast.Call):
@@ -158,14 +190,23 @@ class RuleParser:
             right = self._eval(node.right)
             return self.OPERATORS[type(node.op)](left, right)
         elif isinstance(node, ast.Constant):
-            return node.value
+            try:
+                return float(node.value)
+            except (TypeError, ValueError):
+                return 0.0
         else:
             raise ValueError(f"不支持的AST节点类型: {type(node)}")
 
     def _eval_bool_op(self, node) -> bool:
         """评估逻辑运算符"""
         values = [self._eval(v) for v in node.values]
-        return self.OPERATORS[type(node.op)](*values)
+        result = self.OPERATORS[type(node.op)](*values)
+        # 存储布尔运算结果(bool值)
+        self._store_expression_result(node, result, bool_only=True)
+        # 存储子表达式结果(非bool)
+        for v in node.values:
+            self._store_expression_result(v, self._eval(v))
+        return result
     
     def _eval_variable(self, node) -> float:
         """评估变量(从数据源获取)"""
@@ -186,23 +227,23 @@ class RuleParser:
             
         try:
             func_name = node.func.id
-            # logger.debug(f"[DEBUG] 开始计算指标: {func_name}")
-            # logger.debug(f"[DEBUG] 当前索引位置: {self.current_index}")
+            
         finally:
             self.recursion_counter -= 1  # 确保计数器减少
         
         # 记录函数参数
         args_str = ", ".join([self._node_to_expr(arg) for arg in node.args])
-        # logger.debug(f"[DEBUG] 指标参数: {args_str}")
+        
         
         # 特殊处理SMA指标的计算细节
         period = None
         if func_name.upper() == 'SMA':
-            period = self._eval(node.args[1]) if len(node.args) > 1 else 5
+            period_val = self._eval(node.args[1]) if len(node.args) > 1 else 5
+            period = int(period_val) if isinstance(period_val, (int, float)) else 5
             data_column = self._node_to_expr(node.args[0]).strip('\"\'')
-            window_data = self.data[data_column].iloc[
-                max(0, self.current_index-period+1):self.current_index+1
-            ]
+            start_idx = max(0, int(self.current_index) - period + 1)
+            end_idx = int(self.current_index) + 1
+            window_data = self.data[data_column].iloc[start_idx:end_idx]
             # logger.debug(f"[DEBUG] SMA计算窗口数据({period}期): {window_data.values}")
             # logger.debug(f"[DEBUG] SMA计算窗口索引: {max(0, self.current_index-period+1)}:{self.current_index+1}")
         
@@ -255,7 +296,8 @@ class RuleParser:
             cached_value = float(self.value_cache[cache_key])
             logger.info(f"[CACHE_HIT] {func_name}({args_str})={cached_value}")
             if func_name.upper() == 'SMA':
-                period = self._eval(node.args[1]) if len(node.args) > 1 else 5
+                period_val = self._eval(node.args[1]) if len(node.args) > 1 else 5
+                period = int(period_val) if isinstance(period_val, (int, float)) else 5
                 data_column = self._node_to_expr(node.args[0]).strip('\"\'')
                 logger.info(f"[SMA_RESULT] SMA({data_column},{period})={cached_value}")
             return cached_value
@@ -286,10 +328,13 @@ class RuleParser:
         try:
             # 特别记录SMA指标的计算细节
             if func_name.upper() == 'SMA':
-                period = self._eval(remaining_args[0]) if remaining_args else 5
+                period_val = self._eval(remaining_args[0]) if remaining_args else 5
+                period = int(period_val) if isinstance(period_val, (int, float)) else 5
+                start_idx = max(0, int(self.current_index) - period + 1)
+                end_idx = int(self.current_index) + 1
                 logger.debug(
                     f"SMA计算详情: 周期={period}, "
-                    f"数据范围={self.current_index-period+1}:{self.current_index+1}, "
+                    f"数据范围={start_idx}:{end_idx}, "
                     f"当前值={series.iloc[self.current_index]}"
                 )
             
@@ -330,10 +375,18 @@ class RuleParser:
         # 存储指标计算结果到engine.data
         col_name = f"{func_name}({args_str})"
         logger.debug(f"准备存储指标 {col_name} 到索引 {self.current_index}, 值: {result_float}")
-        logger.debug(f"当前数据长度: {len(self.data)}, 列是否存在: {col_name in self.data.columns}")
-        if col_name not in self.data.columns:
+        
+        # 严格检查列是否存在（包括属性和注释）
+        col_exists = (
+            col_name in self.data.columns and 
+            f"{col_name}_expr" in self.data.attrs
+        )
+        
+        if not col_exists:
             # 初始化列并填充NaN
             self.data[col_name] = [float('nan')] * len(self.data)
+            # 添加表达式注释
+            self.data.attrs[f"{col_name}_expr"] = f"{func_name}({args_str})"
         
         # 确保当前索引有效
         if 0 <= self.current_index < len(self.data):
@@ -411,15 +464,20 @@ class RuleParser:
             最小需要的数据长度
         """
         func_name = func_name.lower()
-        if func_name == 'sma':
-            return int(args[0]) if args else 1
-        elif func_name == 'rsi':
-            return int(args[0]) if args else 14
-        elif func_name == 'macd':
-            return max(int(args[0]) if len(args)>0 else 12,
-                      int(args[1]) if len(args)>1 else 26,
-                      int(args[2]) if len(args)>2 else 9)
-        return 1  # 默认最小长度
+        try:
+            if func_name == 'sma':
+                return int(float(args[0])) if args else 1
+            elif func_name == 'rsi':
+                return int(float(args[0])) if args else 14
+            elif func_name == 'macd':
+                return max(
+                    int(float(args[0])) if len(args)>0 else 12,
+                    int(float(args[1])) if len(args)>1 else 26,
+                    int(float(args[2])) if len(args)>2 else 9
+                )
+            return 1  # 默认最小长度
+        except (ValueError, TypeError):
+            return 1  # 参数转换失败时返回默认值
 
     def _ref(self, expr: str, period: int) -> float:
         """引用前period期的指标值（保留在RuleParser中）

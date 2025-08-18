@@ -134,8 +134,8 @@ async def show_backtesting_page():
                 if 'rule_groups' not in st.session_state:
                     st.session_state.rule_groups = {
                         '金叉死叉': {
-                            'buy_rule': '(REF(SMA(close,5), 1) < REF(SMA(close,20), 1)) & (SMA(close,5) > SMA(close,20))',
-                            'sell_rule': '(REF(SMA(close,5), 1) > REF(SMA(close,20), 1)) & (SMA(close,5) < SMA(close,20))'
+                            'buy_rule': '(REF(SMA(close,5), 1) < REF(SMA(close,7), 1)) & (SMA(close,5) > SMA(close,7))',
+                            'sell_rule': '(REF(SMA(close,5), 1) > REF(SMA(close,7), 1)) & (SMA(close,5) < SMA(close,7))'
                         }
                     }
                 

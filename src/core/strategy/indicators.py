@@ -19,6 +19,9 @@ class IndicatorService:
         Returns:
             当前索引位置的指标值
         """
+        # 确保current_index是整数
+        if not isinstance(current_index, int):
+            current_index = int(current_index)
         # 边界检查
         if current_index < 0 or current_index >= len(series):
             raise IndexError(f"Invalid index {current_index} for series length {len(series)}")
@@ -47,9 +50,20 @@ class IndicatorService:
 
     def _sma(self, series: pd.Series, current_index: int, window: int) -> float:
         """计算简单移动平均（当前索引值）"""
+        # 确保参数为整数
+        current_index = int(current_index)
+        window = int(window)
+        
+        # 验证索引范围
         if current_index < window - 1:
             return 0.0  # 数据不足时返回安全值
-        return series.iloc[current_index-window+1:current_index+1].mean()
+            
+        # 计算切片索引并确保为整数
+        start = int(current_index - window + 1)
+        end = int(current_index + 1)
+        
+        # 执行切片计算
+        return series.iloc[start:end].mean()
 
     def _rsi(self, series: pd.Series, current_index: int, period: int = 14) -> float:
         """计算相对强弱指数（当前索引值）"""

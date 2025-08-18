@@ -26,10 +26,13 @@ class RuleBasedStrategy(BaseStrategy):
         self.sell_rule_expr = sell_rule_expr
         self.parser = RuleParser(Data, indicator_service)
         
-    def generate_signals(self) -> Optional[StrategySignalEvent]:
-        """根据买入/卖出规则表达式生成交易信号"""
+    def generate_signals(self, current_index: int) -> Optional[StrategySignalEvent]:
+        """根据买入/卖出规则表达式生成交易信号
+        Args:
+            current_index: 当前数据索引位置
+        """
         try:
-            self.logger.debug(f"开始生成信号，策略: {self.name}")
+            self.logger.debug(f"开始生成信号，策略: {self.name}, 当前索引: {current_index}")
             self.logger.debug(f"买入规则: {self.buy_rule_expr}")
             self.logger.debug(f"卖出规则: {self.sell_rule_expr}")
 
@@ -61,7 +64,8 @@ class RuleBasedStrategy(BaseStrategy):
                         price=float(self.Data['close'].iloc[-1]),
                         quantity=100,  # 默认数量
                         confidence=1.0,
-                        timestamp=pd.Timestamp.now()
+                        timestamp=self.Data.loc[current_index,'combined_time'],
+                        parameters={'current_index': current_index}
                     )
             
             # 解析卖出规则
@@ -77,7 +81,8 @@ class RuleBasedStrategy(BaseStrategy):
                         price=float(self.Data['close'].iloc[-1]),
                         quantity=100,  # 默认数量
                         confidence=1.0,
-                        timestamp=pd.Timestamp.now()
+                        timestamp=self.Data.loc[current_index,'combined_time'],
+                        parameters={'current_index': current_index}
                     )
             
             self.logger.debug("未触发任何交易信号")
@@ -95,7 +100,7 @@ class RuleBasedStrategy(BaseStrategy):
         self.logger.debug(f"on_schedule被触发")
         # 同步当前索引到规则解析器
         self.parser.current_index = engine.current_index
-        signal = self.generate_signals()
+        signal = self.generate_signals(engine.current_index)
         if signal:
             # 推送事件到引擎
             engine.push_event(signal)

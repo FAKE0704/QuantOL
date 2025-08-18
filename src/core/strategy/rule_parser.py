@@ -343,10 +343,14 @@ class RuleParser:
                     f"当前值={series.iloc[self.current_index]}"
                 )
             
+            # 确保current_index是整数
+            current_index = int(self.current_index) if not isinstance(self.current_index, int) else self.current_index
+            # 确保current_index是整数
+            current_index = int(self.current_index) if not isinstance(self.current_index, int) else self.current_index
             result = self.indicator_service.calculate_indicator(
-                func_name, 
+                func_name,
                 series,  # 传递具体数据序列而非整个DataFrame
-                self.current_index,
+                current_index,
                 *[self._eval(arg) for arg in remaining_args]  # 评估所有参数
             )
             
@@ -513,6 +517,7 @@ class RuleParser:
         # 计算目标位置
         period_int = int(period) if period is not None else 0
         target_index = max(0, min(int(original_index) - period_int, len(self.data)-1))
+        target_index = int(target_index)  # 确保转换为整数
         logger.debug(f"[REF] 目标索引位置: {target_index} (当前索引: {original_index}, 回溯周期: {period})")
         
         # 回溯到历史位置计算表达式

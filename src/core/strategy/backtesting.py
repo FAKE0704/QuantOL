@@ -198,12 +198,6 @@ class BacktestEngine:
             self.update_rule_parser_data()
             self.rule_parser.current_index = idx
             
-            # 创建并处理交易日事件
-            trading_day_event = TradingDayEvent(
-                timestamp=current_time,
-                is_first_day=(idx == 0)
-            )
-            self.handle_trading_day_event(trading_day_event)
             
             # 触发所有注册策略的定时检查
             for strategy in self.strategies:
@@ -250,9 +244,14 @@ class BacktestEngine:
     def _handle_signal_event(self, event: StrategySignalEvent):
         """处理策略信号事件"""
         self.logger.debug(f"处理策略信号: {event.direction} {event.symbol}@{event.price}")
+        
+        # 使用current_index参数（如果存在）或默认使用当前索引
+        idx = getattr(event, 'current_index', self.current_index)
+        
         # 在此处添加信号处理逻辑
         if event.direction in ('BUY', 'SELL'):
-            self.data.loc[event.timestamp, 'signal'] = 1 if event.direction == 'BUY' else -1
+            self.data.loc[idx, 'signal'] = 1 if event.direction == 'BUY' else -1
+            self.logger.debug(f"在索引 {idx} 处记录信号: {event.direction}")
         else:
             self.log_error(f"无效的信号方向: {event.direction}")
 

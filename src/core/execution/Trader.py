@@ -3,11 +3,19 @@ from decimal import Decimal
 from ..data.database import DatabaseManager
 from typing import Dict, Literal, Optional
 import pandas as pd
+import uuid
 # from THS.THSTrader import THSTrader
-from src.event_bus.event_types import FillEvent
+from event_bus.event_types import FillEvent, OrderEvent
 
 from enum import Enum, auto
 from threading import Lock
+from abc import ABC, abstractmethod
+
+class BaseTrader(ABC):
+    """交易执行基类"""
+    @abstractmethod
+    def execute_order(self, order_event) -> FillEvent:
+        pass
 
 class OrderDirection(Enum):
     BUY = "BUY"
@@ -29,10 +37,9 @@ class OrderStatus(Enum):
 class TradeOrderManager:
     """交易订单管理类，负责订单的创建、修改、取消"""
     
-    def __init__(self, db_manager: DatabaseManager, software_dir=None, commission_rate=0.0003):
+    def __init__(self, db_manager: DatabaseManager, trader: BaseTrader, software_dir=None):
         self.db_manager = db_manager
-        self.trader = None
-        self.commission_rate = commission_rate
+        self.trader = trader
         self.pending_orders = []
         self.executed_trades = []
         self._status_lock = Lock()  # 状态变更锁
@@ -72,10 +79,10 @@ class TradeOrderManager:
         self.pending_orders.append(order)
         return await self.get_order(order_id)
 
-    def update_order_status(self, order_id, new_status: OrderStatus):
+    async def update_order_status(self, order_id, new_status: OrderStatus):
         """更新订单状态"""
         with self._status_lock:
-            order = self.get_order(order_id)
+            order = await self.get_order(order_id)
             if not order:
                 raise ValueError(f"Order {order_id} not found")
             
@@ -110,70 +117,105 @@ class TradeOrderManager:
             
             self._db_queue = []
 
-    def process_orders(self, market_data: pd.DataFrame):
-        """处理等待中的订单"""
+    async def process_orders(self, market_data: pd.DataFrame):
+        """处理等待中的订单，使用注入的trader执行订单"""
         executed_trades = []
         with self._db_flush_lock:
             for order in self.pending_orders:
-                trade = self._execute_order(order, market_data)
-                if trade:
-                    executed_trades.append(trade)
-                    self._db_queue.append(('update_status', order['order_id'], OrderStatus.FILLED.name))
+                # 将字典订单转换为OrderEvent
+                order_event = self._convert_to_order_event(order, market_data)
+                if order_event:
+                    # 使用注入的trader执行订单
+                    fill_event = self.trader.execute_order(order_event)
+                    if fill_event:
+                        trade = self._convert_fill_event_to_trade(fill_event, order)
+                        executed_trades.append(trade)
+                        self._db_queue.append(('update_status', order['order_id'], OrderStatus.FILLED.name))
             
             self.executed_trades.extend(executed_trades)
             self.pending_orders = []
             return executed_trades
 
-    def _execute_order(self, order: Dict, market_data: pd.DataFrame) -> Optional[Dict]:
-        """执行单个订单"""
-        symbol = order['symbol']
-        quantity = order['quantity']
-        order_type = order['order_type']
-        
-        if order_type == 'market':
-            price = market_data.loc[market_data['symbol'] == symbol, 'close'].values[0]
-        else:
-            price = order.get('price')
-            if price is None:
-                return None
-        
-        cost = price * quantity
-        commission = cost * self.commission_rate
-        total_cost = cost + commission
-        
-        trade = {
-            'symbol': symbol,
-            'quantity': quantity,
-            'price': price,
-            'order_type': order_type,
-            'commission': commission,
-            'cost': total_cost,
-            'timestamp': market_data['date'].iloc[0]
+    def _convert_to_order_event(self, order_dict: Dict, market_data: pd.DataFrame) -> Optional[OrderEvent]:
+        """将字典订单转换为OrderEvent对象"""
+        try:
+            symbol = order_dict['symbol']
+            
+            # 确定成交价格
+            if order_dict['order_type'].lower() == 'market':
+                # 市价单：使用当前市场价格
+                # 确保market_data是DataFrame且有正确的列
+                if not isinstance(market_data, pd.DataFrame) or 'symbol' not in market_data.columns or 'close' not in market_data.columns:
+                    return None
+                
+                symbol_data = market_data[market_data['symbol'] == symbol]
+                if len(symbol_data) == 0:
+                    return None
+                
+                price = symbol_data['close'].iloc[0]
+            else:
+                # 限价单：使用指定价格
+                price = order_dict.get('price')
+                if price is None:
+                    return None
+            
+            return OrderEvent(
+                strategy_id=order_dict['strategy_id'],
+                symbol=symbol,
+                direction=order_dict['direction'],
+                price=float(price),
+                quantity=int(order_dict['quantity']),
+                order_type=order_dict['order_type'].upper(),
+                order_id=order_dict.get('order_id', '')
+            )
+        except (KeyError, IndexError, ValueError, AttributeError) as e:
+            print(f"Error converting order to OrderEvent: {e}")
+            return None
+
+    def _convert_fill_event_to_trade(self, fill_event: FillEvent, original_order: Dict) -> Dict:
+        """将FillEvent转换为交易记录字典"""
+        return {
+            'symbol': fill_event.symbol,
+            'quantity': fill_event.fill_quantity,
+            'price': fill_event.fill_price,
+            'order_type': original_order['order_type'],
+            'commission': fill_event.commission,
+            'cost': (fill_event.fill_price * fill_event.fill_quantity) + fill_event.commission,
+            'timestamp': fill_event.timestamp,
+            'order_id': fill_event.order_id
         }
-        return trade
         
-    def modify_order(self, order_id, quantity=None, price=None):
+    async def modify_order(self, order_id, quantity=None, price=None):
         """修改已有订单"""
-        order = self.get_order(order_id)
+        order = await self.get_order(order_id)
+        if not order:
+            raise ValueError(f"Order {order_id} not found")
+        
         if quantity:
             order['quantity'] = quantity
         if price:
             order['price'] = price
         self.db_manager.update_order_status(order_id, order['status'])
-        return self.get_order(order_id)
+        return await self.get_order(order_id)
         
-    def cancel_order(self, order_id):
+    async def cancel_order(self, order_id):
         """取消订单"""
-        self.db_manager.update_order_status(order_id, OrderStatus.CANCELLED.name)
-        return self.get_order(order_id)
+        order = await self.get_order(order_id)
+        if not order:
+            raise ValueError(f"Order {order_id} not found")
+        
+        await self.db_manager.update_order_status(order_id, OrderStatus.CANCELLED.name)
+        return await self.get_order(order_id)
         
     async def get_order(self, order_id) -> Optional[Dict]:
         """获取指定订单
         返回:
             Optional[Dict]: 订单字典或None(如果订单不存在)
         """
-        return await self.db_manager.query_orders(order_id)
-
+        orders = await self.db_manager.query_orders(order_id)
+        if orders and len(orders) > 0:
+            return orders[0]  # 返回第一个匹配的订单
+        return None
 
 class TradeExecutionEngine:
     """交易执行引擎类"""
@@ -191,14 +233,14 @@ class TradeExecutionEngine:
         }
         return instruction
         
-    def log_execution(self, instruction, status):
+    async def log_execution(self, instruction, status):
         execution = {
             'order_id': instruction.get('order_id'),
             'exec_price': instruction['price'],
             'exec_quantity': instruction['quantity'],
             'status': status
         }
-        self.db_manager.log_execution(execution)
+        await self.db_manager.log_execution(execution)
         return execution
 
 
@@ -208,48 +250,67 @@ class TradeRecorder:
     def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
         
-    def record_trade(self, execution):
+    async def record_trade(self, execution):
         trade = {
             'symbol': execution['instruction']['symbol'],
             'trade_price': execution['instruction']['price'],
             'trade_quantity': execution['instruction']['quantity'],
             'trade_type': execution['instruction']['action']
         }
-        self.db_manager.record_trade(trade)
+        await self.db_manager.record_trade(trade)
         return trade
         
-    def query_trades(self, symbol=None):
-        return self.db_manager.query_trades(symbol)
-
-
-from abc import ABC, abstractmethod
-
-class BaseTrader(ABC):
-    """交易执行基类"""
-    @abstractmethod
-    def execute_order(self, order_event) -> FillEvent:
-        pass
+    async def query_trades(self, symbol: str = None):
+        return await self.db_manager.query_trades(symbol)
 
 class BacktestTrader(BaseTrader):
-    """回测交易执行"""
+    """回测交易执行类，负责处理OrderEvent到FillEvent的转换"""
     def __init__(self, commission_rate=0.0003):
         self.commission_rate = commission_rate
         
-    def execute_order(self, order_event) -> FillEvent:
+    def execute_order(self, order_event: OrderEvent) -> FillEvent:
+        """执行订单并返回成交事件
+        
+        Args:
+            order_event: 订单事件对象
+            
+        Returns:
+            FillEvent: 成交回报事件
+        """
+        # 生成订单ID（如果OrderEvent中没有order_id）
+        order_id = order_event.order_id
+        if not order_id:
+            order_id = self._generate_order_id()
+            
         fill_price = self._simulate_market_impact(order_event)
+        commission = self._calculate_commission(order_event)
+        
         return FillEvent(
-            order_id=order_event.order_id,
+            order_id=order_id,
             symbol=order_event.symbol,
             fill_price=fill_price,
             fill_quantity=order_event.quantity,
-            commission=self._calculate_commission(order_event)
+            commission=commission,
+            timestamp=datetime.now()
         )
         
-    def _simulate_market_impact(self, order_event):
-        return order_event.price * 1.0005
+    def _simulate_market_impact(self, order_event: OrderEvent) -> float:
+        """模拟市场冲击，返回成交价格"""
+        # 简单模拟：市价单按当前价格成交，限价单按指定价格成交
+        if order_event.order_type == "MARKET":
+            # 市价单：添加微小滑点
+            return order_event.price * 1.0005
+        else:
+            # 限价单：按指定价格成交
+            return order_event.price
         
-    def _calculate_commission(self, order_event):
+    def _calculate_commission(self, order_event: OrderEvent) -> float:
+        """计算交易佣金"""
         return abs(order_event.quantity) * order_event.price * self.commission_rate
+        
+    def _generate_order_id(self) -> str:
+        """生成唯一订单ID"""
+        return f"order_{uuid.uuid4().hex[:8]}"
 
 class LiveTrader(BaseTrader):
     """实盘交易执行"""
@@ -262,5 +323,6 @@ class LiveTrader(BaseTrader):
             symbol=order_event.symbol,
             fill_price=order_event.price,
             fill_quantity=order_event.quantity,
-            commission=0
+            commission=0,
+            timestamp=datetime.now()
         )

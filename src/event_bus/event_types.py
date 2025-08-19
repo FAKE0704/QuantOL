@@ -42,6 +42,7 @@ class OrderEvent:
     price: float
     quantity: int
     order_type: str = "LIMIT"  # LIMIT/MARKET
+    order_id: str = ""  # 订单唯一标识符
 
 @dataclass
 class FillEvent:
@@ -88,13 +89,27 @@ class StrategyScheduleEvent(BaseEvent):
     """策略定时任务事件"""
     schedule_type: str  # 
     symbol: str
-    parameters: Dict[str, Any]
     timestamp: datetime
     current_index: int  # 新增：当前数据索引位置
     engine: Any = None  # 添加engine字段保持兼容性
+    parameters: Optional[Dict[str, Any]] = None
 
 @dataclass
 class TradingDayEvent(BaseEvent):
     """交易日事件"""
     timestamp: datetime
     is_first_day: bool = False
+
+@dataclass
+class PortfolioPositionUpdateEvent(BaseEvent):
+    """投资组合持仓更新事件"""
+    timestamp: datetime
+    symbol: str
+    quantity: float
+    avg_cost: float
+    current_value: float
+    cash_balance: float
+    portfolio_value: float
+    update_type: str = "SINGLE"  # SINGLE/BATCH
+    success: bool = True
+    error_message: Optional[str] = None

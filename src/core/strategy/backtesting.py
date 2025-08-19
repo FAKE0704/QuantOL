@@ -4,14 +4,16 @@ from typing import Optional, Dict, Any, List, Type
 from core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy
 from core.strategy.indicators import IndicatorService  # 新增IndicatorService导入
 from core.strategy.rule_parser import RuleParser  # 新增RuleParser导入
-from event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent, OrderEvent  # 新增OrderEvent导入
+from event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent, OrderEvent, FillEvent  # 新增OrderEvent和FillEvent导入
 from core.risk.risk_manager import RiskManager  # 新增RiskManager导入
-from core.portfolio.portfolio import Portfolio  # 新增Portfolio导入
+from core.portfolio.portfolio import PortfolioManager  # 新增Portfolio导入
+from core.execution.Trader import BacktestTrader, TradeOrderManager  # 新增交易执行组件导入
 import json
+import streamlit as st  # 新增streamlit导入
 from pathlib import Path
 import os
 import pandas as pd
-import streamlit as st
+
 import logging
 from support.log.logger import logger
 logger.setLevel(logging.DEBUG)  # 确保DEBUG级别日志输出
@@ -49,6 +51,10 @@ class BacktestConfig:
 
     def __post_init__(self):
         """参数验证"""
+        # 确保 commission 是 float 类型，避免 decimal.Decimal 和 float 的混合运算
+        self.commission = float(self.commission)
+        self.slippage = float(self.slippage)
+        
         if self.initial_capital <= 0:
             raise ValueError("初始资金必须大于0")
         if self.commission < 0:
@@ -132,6 +138,11 @@ class BacktestEngine:
         self.position_strategy = None  # 仓位策略id
         self.current_month = None  # 跟踪当前月份
         
+        # 初始化交易执行组件
+        self.backtest_trader = BacktestTrader(commission_rate=config.commission)
+        # TradeOrderManager需要DatabaseManager和Trader
+        self.trade_order_manager = TradeOrderManager(st.session_state.db, self.backtest_trader)
+        
         # 初始化Portfolio接口和RiskManager
         self.portfolio = self._create_portfolio()
         self.risk_manager = RiskManager(self.portfolio)
@@ -142,18 +153,27 @@ class BacktestEngine:
         # 注册OrderEvent处理器
         self.register_handler(OrderEvent, self._handle_order_event)
         
+        # 注册FillEvent处理器
+        self.register_handler(FillEvent, self._handle_fill_event)
+        
         self.position_meta = {
-            'quantity': 0,
+            'quantity': 0.0,  # 使用float类型支持小数股
             'avg_price': 0.0,
             'direction': 0  # 1: 多头, -1: 空头
         }
         self.strategy_holdings = {}  # 策略持仓状态 {strategy_id: holdings}
-        self.position_records = {}  # 记录持仓时间 {strategy_id: {'entry_time': datetime, 'quantity': int}}
+        self.position_records = {}  # 记录持仓时间 {strategy_id: {'entry_time': datetime, 'quantity': float}}
 
     def _create_portfolio(self):
-        """创建Portfolio实例"""
-        # 创建简单的Portfolio适配器，提供RiskManager所需的接口
-        class BacktestPortfolio:
+        """创建Portfolio适配器实例，提供RiskManager所需的接口"""
+        # 创建仓位策略
+        position_strategy = FixedPercentStrategy(
+            account_value=self.config.initial_capital,
+            percent=0.1  # 默认10%仓位
+        )
+        
+        # 创建Portfolio适配器，提供RiskManager所需的接口
+        class BacktestPortfolioAdapter:
             def __init__(self, engine):
                 self.engine = engine
                 
@@ -164,7 +184,7 @@ class BacktestEngine:
             @property
             def total_value(self):
                 # 计算总资产价值 = 现金 + 持仓价值
-                position_value = self.engine.position_meta['quantity'] * self.engine.current_price
+                position_value = float(self.engine.position_meta['quantity']) * self.engine.current_price
                 return self.engine.current_capital + position_value
                 
             def get_position(self, symbol):
@@ -175,8 +195,17 @@ class BacktestEngine:
                 # 返回策略的最大持仓比例（默认20%）
                 return 0.2
                 
-        portfolio_adapter = BacktestPortfolio(self)
-        risk_manager = RiskManager(portfolio_adapter)
+        # 创建并返回适配器实例
+        portfolio_adapter = BacktestPortfolioAdapter(self)
+        
+        # 创建真正的PortfolioManager用于其他用途（如果需要）
+        self._real_portfolio_manager = PortfolioManager(
+            initial_capital=self.config.initial_capital,
+            position_strategy=position_strategy,
+            risk_manager=None,  # 在回测中不使用RiskManager
+            event_bus=None  # 回测中不使用事件总线
+        )
+        
         return portfolio_adapter
         
     def update_rule_parser_data(self):
@@ -227,7 +256,7 @@ class BacktestEngine:
             current_time = self.data.iloc[idx]['combined_time']
             self.current_time = current_time
             self.current_index = idx
-            
+            self.current_price = self.data.loc[self.current_index,'close']
             # 系统初始化（首个交易日）
             if idx == 0:
                 self._initialize_backtest_system()
@@ -291,7 +320,7 @@ class BacktestEngine:
         
         # 在此处添加信号处理逻辑
         if event.direction in ('BUY', 'SELL'):
-            print("信号只是没有被更新"*5)
+            
             self.data.loc[idx, 'signal'] = 1 if event.direction == 'BUY' else -1
             self.logger.debug(f"在索引 {idx} 处记录信号: {event.direction}")
             
@@ -301,34 +330,93 @@ class BacktestEngine:
             self.log_error(f"无效的信号方向: {event.direction}")
             
     def _create_order_from_signal(self, event: StrategySignalEvent):
-        """从策略信号创建订单事件（直接执行，不加入队列）"""
+        """从策略信号创建订单事件（通过TradeOrderManager处理）"""
         try:
+            # 确保价格是float类型，避免decimal.Decimal和float的混合运算
+            self.logger.debug(f"[DEBUG] event.price 原始类型: {type(event.price)}, 值: {event.price}")
+            price = float(event.price)
+            self.logger.debug(f"[DEBUG] price 转换后类型: {type(price)}, 值: {price}")
+            self.logger.debug(f"开始处理策略信号: {event.direction} {event.symbol}@{price}")
+            
             # 1. 使用仓位策略计算仓位金额
             position_amount = self._calculate_position_amount(event)
+            self.logger.debug(f"计算仓位金额: {position_amount:.2f} (当前资金: {self.current_capital:.2f})")
             
             # 2. 计算订单数量
-            quantity = self._calculate_order_quantity(position_amount, event.price)
+            quantity = self._calculate_order_quantity(position_amount, price)
+            self.logger.debug(f"计算订单数量: {quantity} 股 (价格: {price:.2f}, 仓位金额: {position_amount:.2f})")
             
             # 3. 创建OrderEvent
             order_event = OrderEvent(
                 strategy_id=event.strategy_id,
                 symbol=event.symbol,
                 direction=event.direction,
-                price=event.price,
+                price=price,
                 quantity=quantity,
                 order_type="LIMIT"
             )
+            self.logger.debug(f"创建订单事件: {order_event}")
             
             # 4. 风险检查
-            if self._validate_order_risk(order_event):
-                # 直接处理订单事件，不加入队列（追求回测效率）
-                self._handle_order_event(order_event)
-                self.logger.debug(f"创建并执行订单事件: {order_event}")
+            risk_check_result = self._validate_order_risk(order_event)
+            self.logger.debug(f"风险检查结果: {'通过' if risk_check_result else '失败'}")
+            
+            if risk_check_result:
+                # 5. 通过TradeOrderManager创建订单并处理
+                self.logger.debug("风险检查通过，开始处理订单...")
+                self._process_order_through_trade_manager(order_event)
+                self.logger.debug(f"订单处理完成: {order_event.direction} {order_event.quantity}@{order_event.price}")
             else:
                 self.logger.warning(f"订单风险检查失败: {order_event}")
                 
         except Exception as e:
             self.log_error(f"创建订单失败: {str(e)}")
+            
+    def _process_order_through_trade_manager(self, order_event: OrderEvent):
+        """在回测环境中处理订单（直接生成模拟的FillEvent）"""
+        try:
+            self.logger.debug(f"[DEBUG] order_event.quantity 类型: {type(order_event.quantity)}, 值: {order_event.quantity}")
+            self.logger.debug(f"[DEBUG] order_event.price 类型: {type(order_event.price)}, 值: {order_event.price}")
+            self.logger.debug(f"[DEBUG] self.config.commission 类型: {type(self.config.commission)}, 值: {self.config.commission}")
+            
+            self.logger.debug(f"开始处理回测订单: {order_event.direction} {order_event.quantity}@{order_event.price}")
+            
+            # 在回测环境中，我们不需要依赖外部交易接口
+            # 直接假设订单立即成交，生成模拟的FillEvent
+            
+            # 计算手续费（确保类型兼容）
+            commission_amount = float(order_event.quantity) * float(order_event.price) * float(self.config.commission)
+            self.logger.debug(f"[DEBUG] commission_amount 计算后类型: {type(commission_amount)}, 值: {commission_amount:.2f}")
+            self.logger.debug(f"计算手续费: {commission_amount:.2f} (费率: {self.config.commission:.4f})")
+            
+            # 创建模拟的FillEvent（根据FillEvent的实际构造函数参数）
+            order_id = f"backtest_order_{len(self.trades)}"
+            
+            # 确保timestamp是datetime类型（pandas Timestamp需要转换）
+            if self.current_time is not None and hasattr(self.current_time, 'to_pydatetime'):
+                timestamp = self.current_time.to_pydatetime()
+            elif self.current_time is not None and isinstance(self.current_time, datetime):
+                timestamp = self.current_time
+            else:
+                timestamp = datetime.now()
+                
+            fill_event = FillEvent(
+                order_id=order_id,
+                symbol=order_event.symbol,
+                fill_price=order_event.price,  # 假设按订单价格成交
+                fill_quantity=order_event.quantity,  # 假设全部成交
+                commission=commission_amount,
+                timestamp=timestamp
+            )
+            self.logger.debug(f"创建模拟成交回报: 订单ID={order_id}, 成交价={order_event.price:.2f}, 数量={order_event.quantity}")
+            
+            # 处理成交回报
+            self.logger.debug("开始处理成交回报事件...")
+            self._handle_fill_event(fill_event)
+            self.logger.debug(f"回测订单执行成功: {order_event.direction} {order_event.quantity}@{order_event.price}")
+                
+        except Exception as e:
+            self.log_error(f"处理回测订单失败: {str(e)}")
             
     def _calculate_position_amount(self, event: StrategySignalEvent) -> float:
         """计算仓位金额"""
@@ -363,9 +451,9 @@ class BacktestEngine:
         self.logger.debug(f"处理订单事件: {event}")
         
         try:
-            # 计算订单总金额（包含手续费）
-            order_amount = event.quantity * event.price
-            commission = order_amount * self.config.commission
+            # 计算订单总金额（包含手续费），确保类型一致性
+            order_amount = float(event.quantity) * float(event.price)
+            commission = order_amount * float(self.config.commission)
             total_cost = order_amount + commission
             
             # 根据订单方向执行交易
@@ -639,5 +727,102 @@ class BacktestEngine:
             else:
                 self.logger.warning(f"未找到事件处理器: {type(event).__name__}")
 
+    def _handle_fill_event(self, event: FillEvent):
+        """处理成交回报事件，更新资金和持仓"""
+        self.logger.debug(f"处理成交回报事件: {event}")
+        
+        # 添加详细的类型检查调试日志
+        self.logger.debug(f"[DEBUG] FillEvent.fill_price 类型: {type(event.fill_price)}, 值: {event.fill_price}")
+        self.logger.debug(f"[DEBUG] FillEvent.fill_quantity 类型: {type(event.fill_quantity)}, 值: {event.fill_quantity}")
+        self.logger.debug(f"[DEBUG] FillEvent.commission 类型: {type(event.commission)}, 值: {event.commission}")
+        
+        try:
+            # 计算成交金额，确保类型一致性
+            fill_price = float(event.fill_price)
+            fill_quantity = float(event.fill_quantity)
+            commission = float(event.commission)
+            
+            self.logger.debug(f"[DEBUG] fill_price 转换后类型: {type(fill_price)}, 值: {fill_price}")
+            self.logger.debug(f"[DEBUG] fill_quantity 转换后类型: {type(fill_quantity)}, 值: {fill_quantity}")
+            self.logger.debug(f"[DEBUG] commission 转换后类型: {type(commission)}, 值: {commission}")
+            
+            # 在计算前添加更多调试信息
+            self.logger.debug(f"[DEBUG] 开始计算 fill_amount = fill_price * fill_quantity")
+            self.logger.debug(f"[DEBUG] fill_price: {fill_price} (type: {type(fill_price)})")
+            self.logger.debug(f"[DEBUG] fill_quantity: {fill_quantity} (type: {type(fill_quantity)})")
+            
+            fill_amount = fill_price * fill_quantity
+            self.logger.debug(f"[DEBUG] fill_amount 计算结果: {fill_amount} (type: {type(fill_amount)})")
+            
+            self.logger.debug(f"[DEBUG] 开始计算 total_cost = fill_amount + commission")
+            self.logger.debug(f"[DEBUG] fill_amount: {fill_amount} (type: {type(fill_amount)})")
+            self.logger.debug(f"[DEBUG] commission: {commission} (type: {type(commission)})")
+            
+            total_cost = fill_amount + commission
+            self.logger.debug(f"[DEBUG] total_cost 计算结果: {total_cost} (type: {type(total_cost)})")
+            
+            # 由于FillEvent不包含方向信息，我们需要根据订单ID或上下文推断方向
+            # 这里简化处理：根据成交金额对资金的影响推断方向
+            # 如果资金减少，说明是买入；如果资金增加，说明是卖出
+            
+            # 记录交易前资金
+            prev_capital = self.current_capital
+            self.logger.debug(f"[DEBUG] 交易前资金: {prev_capital} (type: {type(prev_capital)})")
+            
+            # 更新资金（买入减少资金，卖出增加资金）
+            # 这里简化逻辑：假设所有成交都是买入
+            # 在实际实现中，应该通过订单记录获取方向信息
+            self.current_capital -= total_cost
+            
+            # 根据资金变化推断方向
+            direction = 'BUY' if self.current_capital < prev_capital else 'SELL'
+            
+            # 更新持仓
+            if direction == 'BUY':
+                if self.position_meta['quantity'] == 0:
+                    # 新开仓
+                    self.position_meta = {
+                        'quantity': event.fill_quantity,
+                        'avg_price': event.fill_price,
+                        'direction': 1  # 多头
+                    }
+                else:
+                    # 加仓
+                    total_quantity = self.position_meta['quantity'] + event.fill_quantity
+                    total_value = (self.position_meta['quantity'] * self.position_meta['avg_price'] + 
+                                 event.fill_quantity * event.fill_price)
+                    self.position_meta['avg_price'] = total_value / total_quantity
+                    self.position_meta['quantity'] = total_quantity
+            else:
+                # 卖出逻辑
+                self.position_meta['quantity'] -= event.fill_quantity
+                if self.position_meta['quantity'] == 0:
+                    # 清仓
+                    self.position_meta = {
+                        'quantity': 0,
+                        'avg_price': 0.0,
+                        'direction': 0
+                    }
+            
+            # 记录交易
+            trade_record = {
+                'timestamp': event.timestamp,
+                'symbol': event.symbol,
+                'direction': direction,
+                'price': event.fill_price,
+                'quantity': event.fill_quantity,
+                'commission': event.commission,
+                'total_cost': total_cost if direction == 'BUY' else -total_cost
+            }
+            self.trades.append(trade_record)
+            
+            self.logger.info(f"成交回报处理完成: {direction} {event.fill_quantity}@{event.fill_price}, 手续费: {event.commission:.2f}")
+            
+        except Exception as e:
+            self.log_error(f"处理成交回报事件失败: {str(e)}")
+            # 添加更详细的错误信息
+            import traceback
+            self.log_error(f"详细错误信息: {traceback.format_exc()}")
+            
     # 保留其他原有方法不变...
     # (get_results, create_order等)

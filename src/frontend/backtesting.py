@@ -177,8 +177,18 @@ async def show_backtesting_page():
     #     oversold = st.slider("超卖阈值", min_value=10, max_value=40, value=30)
     
     # 回测参数
-    initial_capital = st.number_input("初始资金(元)", min_value=10000, value=100000, key="initial_capital_input")
-    commission_rate = st.number_input("交易佣金(%)", min_value=0.0, max_value=1.0, value=0.03, key="commission_rate_input")
+    # 使用session_state记住用户的上次设置
+    if 'last_initial_capital' not in st.session_state:
+        st.session_state.last_initial_capital = 100000
+    if 'last_commission_rate' not in st.session_state:
+        st.session_state.last_commission_rate = 0.03
+    
+    initial_capital = st.number_input("初始资金(元)", min_value=10000, value=st.session_state.last_initial_capital, key="initial_capital_input")
+    commission_rate = st.number_input("交易佣金(%)", min_value=0.0, max_value=1.0, value=st.session_state.last_commission_rate, key="commission_rate_input")
+    
+    # 更新session_state中的值
+    st.session_state.last_initial_capital = initial_capital
+    st.session_state.last_commission_rate = commission_rate
     
     # 初始化按钮状态
     if 'start_backtest_clicked' not in st.session_state:
@@ -198,12 +208,12 @@ async def show_backtesting_page():
 
         # 初始化回测参数BacktestConfig
         backtest_config = BacktestConfig( # 设置回测参数
-            start_date=start_date.strftime("%Y%m%d"),  # BacktestConfig仍需要字符串格式
+            start_date=start_date.strftime("%Y%m%d"),  # BacktestConfig需要YYYYMMDD格式
             end_date=end_date.strftime("%Y%m%d"),
             frequency=frequency,
             target_symbol=symbol,
             initial_capital=initial_capital,
-            commission=commission_rate
+            commission=commission_rate / 100  # 将百分比转换为小数
         )
         
         # 初始化事件引擎BacktestEngine
@@ -215,11 +225,7 @@ async def show_backtesting_page():
         st.write("回测使用的数据") 
         st.write(data) 
 
-        # 注册事件处理器
-        engine.register_handler(StrategyScheduleEvent, handle_schedule)
-        engine.register_handler(StrategySignalEvent, handle_signal)
-        
-        # 确保事件处理器能访问当前索引
+        # 确保事件处理器能访问当前索引和方向
         def handle_schedule_with_index(event: StrategyScheduleEvent):
             event.current_index = engine.current_index
             return handle_schedule(event)
@@ -228,6 +234,7 @@ async def show_backtesting_page():
             event.direction = 'BUY' if event.confidence > 0 else 'SELL'
             return handle_signal(event)
             
+        # 注册增强版的事件处理器（包含上下文信息）
         engine.register_handler(StrategyScheduleEvent, handle_schedule_with_index)
         engine.register_handler(StrategySignalEvent, handle_signal_with_direction)
         
@@ -284,71 +291,152 @@ async def show_backtesting_page():
             st.success("回测完成！")
             engine.logger.debug("回测完成！")
             
-            # 显示买卖信号
-            st.subheader("买卖信号")
-            # st.dataframe(engine.data[['combined_time', 'close', 'signal']])
-            st.dataframe(engine.data)
+            # 使用标签页组织显示内容
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["回测摘要", "交易记录", "仓位明细", "净值曲线", "原始数据"])
             
-            # 显示回测结果
-            st.subheader("回测结果")
-            st.dataframe(results["summary"])
+            with tab1:
+                # 格式化显示回测摘要
+                st.subheader("📊 回测摘要")
+                summary = results["summary"]
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("初始资金", f"¥{summary['initial_capital']:,.2f}")
+                    st.metric("最终资金", f"¥{summary['final_capital']:,.2f}")
+                    profit = summary['final_capital'] - summary['initial_capital']
+                    profit_pct = (profit / summary['initial_capital']) * 100
+                    st.metric("总收益", f"¥{profit:,.2f}", f"{profit_pct:.2f}%")
+                
+                with col2:
+                    st.metric("总交易次数", summary['total_trades'])
+                    win_rate_pct = summary['win_rate'] * 100
+                    st.metric("胜率", f"{win_rate_pct:.2f}%")
+                    st.metric("最大回撤", f"{summary['max_drawdown'] * 100:.2f}%")
+                
+                with col3:
+                    # 计算年化收益率（简化计算）
+                    if len(engine.equity_records) > 1:
+                        days = (engine.equity_records['timestamp'].iloc[-1] - engine.equity_records['timestamp'].iloc[0]).days
+                        if days > 0:
+                            annual_return = (profit_pct / days) * 365
+                            st.metric("年化收益率", f"{annual_return:.2f}%")
+                        else:
+                            st.metric("年化收益率", "N/A")
+                    else:
+                        st.metric("年化收益率", "N/A")
             
-            # 绘制净值曲线vs收盘价曲线
+            with tab2:
+                # 显示交易记录
+                st.subheader("💱 交易记录")
+                if results["trades"]:
+                    trades_df = pd.DataFrame(results["trades"])
+                    # 格式化时间显示
+                    if 'timestamp' in trades_df.columns:
+                        trades_df['timestamp'] = pd.to_datetime(trades_df['timestamp'])
+                    st.dataframe(trades_df, use_container_width=True)
+                    
+                    # 交易统计
+                    if not trades_df.empty:
+                        st.subheader("交易统计")
+                        buy_trades = trades_df[trades_df['direction'] == 'BUY']
+                        sell_trades = trades_df[trades_df['direction'] == 'SELL']
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("买入交易", len(buy_trades))
+                        with col2:
+                            st.metric("卖出交易", len(sell_trades))
+                        with col3:
+                            total_commission = trades_df['commission'].sum()
+                            st.metric("总手续费", f"¥{total_commission:,.2f}")
+                else:
+                    st.info("暂无交易记录")
+            
+            with tab3:
+                # 显示仓位明细
+                st.subheader("📈 仓位明细")
+                if not engine.equity_records.empty:
+                    # 创建仓位历史表格
+                    position_history = engine.equity_records.copy()
+                    position_history['timestamp'] = pd.to_datetime(position_history['timestamp'])
+                    
+                    # 添加持仓价值计算
+                    position_history['position_value'] = position_history['position'] * position_history['price']
+                    position_history['position_pct'] = (position_history['position_value'] / position_history['total_value']) * 100
+                    
+                    # 格式化显示
+                    display_cols = ['timestamp', 'price', 'position', 'position_value', 'position_pct', 'cash', 'total_value']
+                    st.dataframe(position_history[display_cols], use_container_width=True)
+                    
+                    # 仓位统计
+                    st.subheader("仓位统计")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        max_position = position_history['position'].max()
+                        st.metric("最大持仓数量", f"{max_position:,.0f}")
+                    with col2:
+                        avg_position_pct = position_history['position_pct'].mean()
+                        st.metric("平均仓位占比", f"{avg_position_pct:.2f}%")
+                    with col3:
+                        final_position = position_history['position'].iloc[-1]
+                        st.metric("最终持仓", f"{final_position:,.0f}")
+                else:
+                    st.info("暂无仓位记录")
+            
+            with tab4:
+                # 绘制净值曲线
+                st.subheader("📈 净值曲线")
+                
+                # 会话级缓存ChartService实例
+                @st.cache_resource(ttl=3600, show_spinner=False)
+                def init_chart_service(raw_data, transaction_data):
+                    raw_data['open'] = raw_data['open'].astype(float)
+                    raw_data['high'] = raw_data['high'].astype(float)
+                    raw_data['low'] = raw_data['low'].astype(float)
+                    raw_data['close'] = raw_data['close'].astype(float)
+                    raw_data['combined_time'] = pd.to_datetime(raw_data['combined_time'])
+                    # 作图前时间排序
+                    raw_data = raw_data.sort_values(by = 'combined_time') 
+                    transaction_data = transaction_data.sort_values(by = 'timestamp')
+                    databundle = DataBundle(raw_data,transaction_data, capital_flow_data=None)
+                    return ChartService(databundle)
+                
+                if 'chart_service' not in st.session_state:
+                    st.session_state.chart_service = init_chart_service(data, equity_data)
+                    st.session_state.chart_instance_id = id(st.session_state.chart_service)
 
-            st.subheader("净值曲线")
-            
-            
-
-            # 会话级缓存ChartService实例
-            @st.cache_resource(ttl=3600, show_spinner=False)
-            def init_chart_service(raw_data, transaction_data):
-                raw_data['open'] = raw_data['open'].astype(float)
-                raw_data['high'] = raw_data['high'].astype(float)
-                raw_data['low'] = raw_data['low'].astype(float)
-                raw_data['close'] = raw_data['close'].astype(float)
-                raw_data['combined_time'] = pd.to_datetime(raw_data['combined_time'])
-                # 作图前时间排序
-                raw_data = raw_data.sort_values(by = 'combined_time') 
-                transaction_data = transaction_data.sort_values(by = 'timestamp')
-                databundle = DataBundle(raw_data,transaction_data, capital_flow_data=None)
-                return ChartService(databundle)
-            
-            
-            if 'chart_service' not in st.session_state: # 如果缓存没有chart_service，就新建个
-                st.session_state.chart_service = init_chart_service(data,equity_data)
-                # debug
-                # st.write(st.session_state.chart_service.data_bundle.kline_data.index)
-                st.session_state.chart_instance_id = id(st.session_state.chart_service)
-
-            chart_service = st.session_state.chart_service
-            
-            # 初始化回测曲线参数config_key
-            config_key = f"chart_config_{st.session_state.chart_instance_id}"
-            if config_key not in st.session_state:
-                st.session_state[config_key] = {
-                    'main_chart': {
-                        'type': 'K线图',
-                        'fields': ['close'],
-                        'components': {}
-                    },
-                    'sub_chart': {
-                        'show': True,
-                        'type': '柱状图',
-                        'fields': ['volume'],
-                        'components': {}
+                chart_service = st.session_state.chart_service
+                
+                # 初始化回测曲线参数config_key
+                config_key = f"chart_config_{st.session_state.chart_instance_id}"
+                if config_key not in st.session_state:
+                    st.session_state[config_key] = {
+                        'main_chart': {
+                            'type': 'K线图',
+                            'fields': ['close'],
+                            'components': {}
+                        },
+                        'sub_chart': {
+                            'show': True,
+                            'type': '柱状图',
+                            'fields': ['volume'],
+                            'components': {}
+                        }
                     }
-                }
 
-            chart_service.render_chart_controls()  # 作图配置
-            # st.write(chart_service.data_bundle.kline_data)# debug
-            # st.write(chart_service.data_bundle.trade_records)# debug
-            chart_service.render_chart_button(st.session_state[config_key]) # 作图按钮
-
+                chart_service.render_chart_controls()
+                chart_service.render_chart_button(st.session_state[config_key])
             
-            # 显示交易记录
-            st.subheader("交易记录")
-            st.subheader("仓位明细")
-            st.dataframe(equity_data)
+            with tab5:
+                # 显示原始数据
+                st.subheader("📋 原始数据")
+                st.dataframe(engine.data)
+                
+                # 显示买卖信号
+                st.subheader("📶 买卖信号")
+                signal_data = engine.data[['combined_time', 'close', 'signal']].copy()
+                signal_data['signal_text'] = signal_data['signal'].map({0: '无信号', 1: '买入', -1: '卖出'})
+                st.dataframe(signal_data, use_container_width=True)
 
 
         else:

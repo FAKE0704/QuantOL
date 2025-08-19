@@ -4,7 +4,13 @@ import numpy as np
 import pandas as pd
 
 class PositionStrategy(ABC):
-    """仓位策略基类"""
+    """仓位策略基类
+    职责：
+    - 计算理论仓位大小
+    - 根据策略信号确定仓位比例
+    注意：
+    - 实际仓位限制检查由RiskManager负责
+    """
     
     def __init__(self, account_value: float):
         """初始化策略
@@ -24,7 +30,11 @@ class PositionStrategy(ABC):
         pass
 
 class FixedPercentStrategy(PositionStrategy):
-    """固定比例仓位策略"""
+    """固定比例仓位策略
+    职责：
+    - 按固定比例计算仓位
+    - 不考虑风险限制(由RiskManager处理)
+    """
     
     def __init__(self, account_value: float, percent: float = 0.1):
         """初始化策略
@@ -49,7 +59,12 @@ class FixedPercentStrategy(PositionStrategy):
         return self.account_value * self.percent * signal_strength
 
 class KellyStrategy(PositionStrategy):
-    """凯利公式仓位策略"""
+    """凯利公式仓位策略
+    职责：
+    - 根据凯利公式计算最优仓位
+    - 最大仓位限制仅为公式计算上限
+    - 实际执行需通过RiskManager验证
+    """
     
     def __init__(self, 
                  account_value: float,

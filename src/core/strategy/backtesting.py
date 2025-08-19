@@ -4,7 +4,9 @@ from typing import Optional, Dict, Any, List, Type
 from core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy
 from core.strategy.indicators import IndicatorService  # 新增IndicatorService导入
 from core.strategy.rule_parser import RuleParser  # 新增RuleParser导入
-from event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent  # 新增事件类型导入
+from event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent, OrderEvent  # 新增OrderEvent导入
+from core.risk.risk_manager import RiskManager  # 新增RiskManager导入
+from core.portfolio.portfolio import Portfolio  # 新增Portfolio导入
 import json
 from pathlib import Path
 import os
@@ -130,8 +132,15 @@ class BacktestEngine:
         self.position_strategy = None  # 仓位策略id
         self.current_month = None  # 跟踪当前月份
         
+        # 初始化Portfolio接口和RiskManager
+        self.portfolio = self._create_portfolio()
+        self.risk_manager = RiskManager(self.portfolio)
+        
         # 注册StrategySignalEvent处理器
         self.register_handler(StrategySignalEvent, self._handle_signal_event)
+        
+        # 注册OrderEvent处理器
+        self.register_handler(OrderEvent, self._handle_order_event)
         
         self.position_meta = {
             'quantity': 0,
@@ -141,6 +150,35 @@ class BacktestEngine:
         self.strategy_holdings = {}  # 策略持仓状态 {strategy_id: holdings}
         self.position_records = {}  # 记录持仓时间 {strategy_id: {'entry_time': datetime, 'quantity': int}}
 
+    def _create_portfolio(self):
+        """创建Portfolio实例"""
+        # 创建简单的Portfolio适配器，提供RiskManager所需的接口
+        class BacktestPortfolio:
+            def __init__(self, engine):
+                self.engine = engine
+                
+            @property
+            def available_cash(self):
+                return self.engine.current_capital
+                
+            @property
+            def total_value(self):
+                # 计算总资产价值 = 现金 + 持仓价值
+                position_value = self.engine.position_meta['quantity'] * self.engine.current_price
+                return self.engine.current_capital + position_value
+                
+            def get_position(self, symbol):
+                # 返回当前持仓数量
+                return self.engine.position_meta['quantity']
+                
+            def get_strategy_limit(self, strategy_id):
+                # 返回策略的最大持仓比例（默认20%）
+                return 0.2
+                
+        portfolio_adapter = BacktestPortfolio(self)
+        risk_manager = RiskManager(portfolio_adapter)
+        return portfolio_adapter
+        
     def update_rule_parser_data(self):
         """更新RuleParser的数据引用"""
         self.rule_parser.data = self.data
@@ -205,6 +243,9 @@ class BacktestEngine:
                 strategy.on_schedule(self)
             # logger.debug(f"已触发策略数量: {len(self.strategies)}")
 
+            # 处理事件队列（处理非StrategySignalEvent和OrderEvent的其他事件）
+            self._process_event_queue()
+
             # 添加详细调试日志
             # logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
             
@@ -253,8 +294,157 @@ class BacktestEngine:
             print("信号只是没有被更新"*5)
             self.data.loc[idx, 'signal'] = 1 if event.direction == 'BUY' else -1
             self.logger.debug(f"在索引 {idx} 处记录信号: {event.direction}")
+            
+            # 创建OrderEvent
+            self._create_order_from_signal(event)
         else:
             self.log_error(f"无效的信号方向: {event.direction}")
+            
+    def _create_order_from_signal(self, event: StrategySignalEvent):
+        """从策略信号创建订单事件（直接执行，不加入队列）"""
+        try:
+            # 1. 使用仓位策略计算仓位金额
+            position_amount = self._calculate_position_amount(event)
+            
+            # 2. 计算订单数量
+            quantity = self._calculate_order_quantity(position_amount, event.price)
+            
+            # 3. 创建OrderEvent
+            order_event = OrderEvent(
+                strategy_id=event.strategy_id,
+                symbol=event.symbol,
+                direction=event.direction,
+                price=event.price,
+                quantity=quantity,
+                order_type="LIMIT"
+            )
+            
+            # 4. 风险检查
+            if self._validate_order_risk(order_event):
+                # 直接处理订单事件，不加入队列（追求回测效率）
+                self._handle_order_event(order_event)
+                self.logger.debug(f"创建并执行订单事件: {order_event}")
+            else:
+                self.logger.warning(f"订单风险检查失败: {order_event}")
+                
+        except Exception as e:
+            self.log_error(f"创建订单失败: {str(e)}")
+            
+    def _calculate_position_amount(self, event: StrategySignalEvent) -> float:
+        """计算仓位金额"""
+        # 使用默认仓位策略（FixedPercentStrategy 10%）
+        if not self.position_strategy:
+            self.position_strategy = FixedPercentStrategy(
+                account_value=self.current_capital,
+                percent=0.1
+            )
+        
+        # 使用信号强度（如果有）或默认1.0
+        signal_strength = getattr(event, 'confidence', 1.0)
+        return self.position_strategy.calculate_position(signal_strength)
+        
+    def _calculate_order_quantity(self, position_amount: float, price: float) -> int:
+        """计算订单数量"""
+        if price <= 0:
+            raise ValueError("价格必须大于0")
+        quantity = int(position_amount / price)
+        return max(100, quantity)  # 最小交易100股
+        
+    def _validate_order_risk(self, order_event: OrderEvent) -> bool:
+        """验证订单风险（使用已初始化的RiskManager）"""
+        # 使用已初始化的RiskManager进行完整的风险检查
+        if not self.risk_manager.validate_order(order_event):
+            self.logger.warning(f"订单风险检查失败: {order_event}")
+            return False
+        return True
+        
+    def _handle_order_event(self, event: OrderEvent):
+        """处理订单事件 - 执行订单并更新持仓和资金"""
+        self.logger.debug(f"处理订单事件: {event}")
+        
+        try:
+            # 计算订单总金额（包含手续费）
+            order_amount = event.quantity * event.price
+            commission = order_amount * self.config.commission
+            total_cost = order_amount + commission
+            
+            # 根据订单方向执行交易
+            if event.direction == 'BUY':
+                # 买入逻辑
+                if total_cost > self.current_capital:
+                    self.log_error(f"资金不足，无法执行买入订单: 需要{total_cost:.2f}, 当前{self.current_capital:.2f}")
+                    return
+                    
+                # 更新资金
+                self.current_capital -= total_cost
+                
+                # 更新持仓
+                if self.position_meta['quantity'] == 0:
+                    # 新开仓
+                    self.position_meta = {
+                        'quantity': event.quantity,
+                        'avg_price': event.price,
+                        'direction': 1  # 多头
+                    }
+                else:
+                    # 加仓
+                    total_quantity = self.position_meta['quantity'] + event.quantity
+                    total_value = (self.position_meta['quantity'] * self.position_meta['avg_price'] + 
+                                 event.quantity * event.price)
+                    self.position_meta['avg_price'] = total_value / total_quantity
+                    self.position_meta['quantity'] = total_quantity
+                    
+                # 记录交易
+                trade_record = {
+                    'timestamp': self.current_time,
+                    'symbol': event.symbol,
+                    'direction': 'BUY',
+                    'price': event.price,
+                    'quantity': event.quantity,
+                    'commission': commission,
+                    'total_cost': total_cost
+                }
+                self.trades.append(trade_record)
+                
+            elif event.direction == 'SELL':
+                # 卖出逻辑
+                if event.quantity > self.position_meta['quantity']:
+                    self.log_error(f"持仓不足，无法执行卖出订单: 需要{event.quantity}, 当前{self.position_meta['quantity']}")
+                    return
+                    
+                # 更新资金
+                self.current_capital += (order_amount - commission)
+                
+                # 更新持仓
+                self.position_meta['quantity'] -= event.quantity
+                if self.position_meta['quantity'] == 0:
+                    # 清仓
+                    self.position_meta = {
+                        'quantity': 0,
+                        'avg_price': 0.0,
+                        'direction': 0
+                    }
+                    
+                # 记录交易
+                trade_record = {
+                    'timestamp': self.current_time,
+                    'symbol': event.symbol,
+                    'direction': 'SELL',
+                    'price': event.price,
+                    'quantity': event.quantity,
+                    'commission': commission,
+                    'total_cost': -total_cost  # 负数表示收入
+                }
+                self.trades.append(trade_record)
+                
+            else:
+                self.log_error(f"无效的订单方向: {event.direction}")
+                return
+                
+            self.logger.info(f"订单执行成功: {event.direction} {event.quantity}@{event.price}, 手续费: {commission:.2f}")
+            
+        except Exception as e:
+            self.log_error(f"订单执行失败: {str(e)}")
 
     def log_error(self, message: str):
         """记录错误信息"""
@@ -421,5 +611,33 @@ class BacktestEngine:
                 pd.DataFrame([record])
             ], ignore_index=True)
 
+    def _process_event_queue(self):
+        """处理事件队列中的事件（处理非StrategySignalEvent和OrderEvent的其他事件）"""
+        if not self.event_queue:
+            return
+            
+        self.logger.debug(f"处理事件队列，当前队列长度: {len(self.event_queue)}")
+        
+        # 处理队列中的所有事件
+        while self.event_queue:
+            event = self.event_queue.pop(0)
+            handler = self.handlers.get(type(event))
+            
+            if handler:
+                try:
+                    # 跳过StrategySignalEvent和OrderEvent，因为它们已经直接处理
+                    if isinstance(event, (StrategySignalEvent, OrderEvent)):
+                        self.logger.debug(f"跳过直接处理的事件类型: {type(event).__name__}")
+                        continue
+                        
+                    # 处理其他类型的事件
+                    handler(event)
+                    self.logger.debug(f"成功处理事件: {type(event).__name__}")
+                    
+                except Exception as e:
+                    self.log_error(f"处理事件失败: {type(event).__name__} - {str(e)}")
+            else:
+                self.logger.warning(f"未找到事件处理器: {type(event).__name__}")
+
     # 保留其他原有方法不变...
-    # (_update_equity, get_results, create_order等)
+    # (get_results, create_order等)

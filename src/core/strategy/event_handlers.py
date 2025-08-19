@@ -1,8 +1,6 @@
 from typing import Any, Dict, Optional
 from event_bus.event_types import StrategySignalEvent, StrategyScheduleEvent
 
-
-
 def handle_signal(event: StrategySignalEvent):
     """处理策略信号事件"""
     try:

@@ -843,3 +843,182 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"获取distinct值失败: {str(e)}")
             return {'types': [], 'years': []}
+
+    # 交易相关方法
+    async def _init_trade_tables(self):
+        """Initialize trade-related tables"""
+        try:
+            async with self.pool.acquire() as conn:
+                # Create Orders table
+                await conn.execute("""
+                    CREATE TABLE IF NOT EXISTS Orders (
+                        order_id SERIAL PRIMARY KEY,
+                        symbol VARCHAR(20) NOT NULL,
+                        order_type VARCHAR(20) NOT NULL,
+                        quantity NUMERIC NOT NULL,
+                        price NUMERIC,
+                        status VARCHAR(20) NOT NULL,
+                        create_time TIMESTAMP NOT NULL,
+                        update_time TIMESTAMP
+                    );
+                """)
+                
+                # Create Executions table
+                await conn.execute("""
+                    CREATE TABLE IF NOT EXISTS Executions (
+                        execution_id SERIAL PRIMARY KEY,
+                        order_id INTEGER REFERENCES Orders(order_id),
+                        exec_price NUMERIC,
+                        exec_quantity NUMERIC,
+                        exec_time TIMESTAMP,
+                        status VARCHAR(20) NOT NULL
+                    );
+                """)
+                
+                # Create TradeHistory table
+                await conn.execute("""
+                    CREATE TABLE IF NOT EXISTS TradeHistory (
+                        trade_id SERIAL PRIMARY KEY,
+                        symbol VARCHAR(20) NOT NULL,
+                        trade_time TIMESTAMP NOT NULL,
+                        trade_price NUMERIC NOT NULL,
+                        trade_quantity NUMERIC NOT NULL,
+                        trade_type VARCHAR(10) NOT NULL
+                    );
+                """)
+                
+                self.logger.info("Trade tables initialized successfully")
+                
+        except Exception as e:
+            self.logger.error(f"Failed to initialize trade tables: {str(e)}")
+            raise
+
+    async def save_order(self, order: dict) -> int:
+        """Save an order to database"""
+        try:
+            async with self.pool.acquire() as conn:
+                order_id = await conn.fetchval("""
+                    INSERT INTO Orders 
+                    (symbol, order_type, quantity, price, status, create_time)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    RETURNING order_id
+                """, 
+                    order['symbol'],
+                    order['order_type'],
+                    order['quantity'],
+                    order['price'],
+                    order['status'],
+                    datetime.now()
+                )
+                return order_id
+        except Exception as e:
+            self.logger.error(f"Failed to save order: {str(e)}")
+            raise
+
+    async def update_order_status(self, order_id: int, status: str) -> bool:
+        """Update order status"""
+        try:
+            async with self.pool.acquire() as conn:
+                await conn.execute("""
+                    UPDATE Orders
+                    SET status = $1, update_time = $2
+                    WHERE order_id = $3
+                """, status, datetime.now(), order_id)
+                return True
+        except Exception as e:
+            self.logger.error(f"Failed to update order status: {str(e)}")
+            raise
+
+    async def log_execution(self, execution: dict) -> int:
+        """Log execution result"""
+        try:
+            async with self.pool.acquire() as conn:
+                execution_id = await conn.fetchval("""
+                    INSERT INTO Executions
+                    (order_id, exec_price, exec_quantity, exec_time, status)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING execution_id
+                """,
+                    execution['order_id'],
+                    execution['exec_price'],
+                    execution['exec_quantity'],
+                    datetime.now(),
+                    execution['status']
+                )
+                return execution_id
+        except Exception as e:
+            self.logger.error(f"Failed to log execution: {str(e)}")
+            raise
+
+    async def record_trade(self, trade: dict) -> int:
+        """Record a trade"""
+        try:
+            async with self.pool.acquire() as conn:
+                trade_id = await conn.fetchval("""
+                    INSERT INTO TradeHistory
+                    (symbol, trade_time, trade_price, trade_quantity, trade_type)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING trade_id
+                """,
+                    trade['symbol'],
+                    datetime.now(),
+                    trade['trade_price'],
+                    trade['trade_quantity'],
+                    trade['trade_type']
+                )
+                return trade_id
+        except Exception as e:
+            self.logger.error(f"Failed to record trade: {str(e)}")
+            raise
+
+    async def query_orders(self, symbol: str = None) -> list:
+        """Query orders"""
+        try:
+            async with self.pool.acquire() as conn:
+                if symbol:
+                    rows = await conn.fetch("""
+                        SELECT * FROM Orders WHERE symbol = $1
+                    """, symbol)
+                else:
+                    rows = await conn.fetch("SELECT * FROM Orders")
+                return rows
+        except Exception as e:
+            self.logger.error(f"Failed to query orders: {str(e)}")
+            raise
+
+    async def query_trades(self, symbol: str = None) -> list:
+        """Query trade history"""
+        try:
+            async with self.pool.acquire() as conn:
+                if symbol:
+                    rows = await conn.fetch("""
+                        SELECT * FROM TradeHistory WHERE symbol = $1
+                    """, symbol)
+                else:
+                    rows = await conn.fetch("SELECT * FROM TradeHistory")
+                return rows
+        except Exception as e:
+            self.logger.error(f"Failed to query trades: {str(e)}")
+            raise
+
+    async def batch_update_order_status(self, updates: list) -> bool:
+        """批量更新订单状态
+        Args:
+            updates: [(order_id, new_status), ...]
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            async with self.pool.acquire() as conn:
+                # 使用事务批量更新
+                async with conn.transaction():
+                    for order_id, status in updates:
+                        await conn.execute("""
+                            UPDATE Orders
+                            SET status = $1, update_time = $2
+                            WHERE order_id = $3
+                        """, status, datetime.now(), order_id)
+                return True
+        except Exception as e:
+            self.logger.error(f"批量更新订单状态失败: {str(e)}")
+            raise

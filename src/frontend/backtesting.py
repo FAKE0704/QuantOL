@@ -496,7 +496,97 @@ async def show_backtesting_page():
             
             with tab4:
                 st.subheader("📈 净值曲线")
-
+                
+                # 检查净值数据是否存在
+                if equity_data is not None and not equity_data.empty:
+                    # 尝试识别净值数据列名
+                    equity_col = None
+                    timestamp_col = None
+                    
+                    # 查找可能的净值列名
+                    possible_equity_cols = ['portfolio_value', 'equity', 'balance', 'total_value', 'net_value']
+                    for col in possible_equity_cols:
+                        if col in equity_data.columns:
+                            equity_col = col
+                            break
+                    
+                    # 查找时间戳列
+                    possible_time_cols = ['timestamp', 'time', 'date', 'datetime', 'combined_time']
+                    for col in possible_time_cols:
+                        if col in equity_data.columns:
+                            timestamp_col = col
+                            break
+                    
+                    if equity_col and timestamp_col:
+                        # 确保时间列是datetime类型
+                        equity_data = equity_data.copy()
+                        equity_data[timestamp_col] = pd.to_datetime(equity_data[timestamp_col])
+                        
+                        # 按时间排序
+                        equity_data = equity_data.sort_values(timestamp_col)
+                        
+                        # 计算收益率
+                        initial_value = equity_data[equity_col].iloc[0]
+                        equity_data['return_pct'] = ((equity_data[equity_col] - initial_value) / initial_value) * 100
+                        
+                        # 创建净值曲线图表
+                        fig = px.line(
+                            equity_data, 
+                            x=timestamp_col, 
+                            y=equity_col,
+                            title='📈 净值曲线',
+                            labels={
+                                equity_col: '净值 (元)',
+                                timestamp_col: '时间'
+                            }
+                        )
+                        
+                        # 添加样式
+                        fig.update_layout(
+                            xaxis_title='时间',
+                            yaxis_title='净值 (元)',
+                            hovermode='x unified',
+                            showlegend=True,
+                            height=500
+                        )
+                        
+                        # 添加初始资金参考线
+                        fig.add_hline(
+                            y=initial_value, 
+                            line_dash="dash", 
+                            line_color="green",
+                            annotation_text=f"初始资金: ¥{initial_value:,.2f}",
+                            annotation_position="bottom right"
+                        )
+                        
+                        # 显示图表
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        # 显示净值统计信息
+                        final_value = equity_data[equity_col].iloc[-1]
+                        total_return = final_value - initial_value
+                        total_return_pct = (total_return / initial_value) * 100
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("初始净值", f"¥{initial_value:,.2f}")
+                        with col2:
+                            st.metric("最终净值", f"¥{final_value:,.2f}")
+                        with col3:
+                            st.metric("总收益率", f"{total_return_pct:.2f}%", f"¥{total_return:,.2f}")
+                        
+                        # 显示净值数据表格
+                        with st.expander("查看净值数据明细"):
+                            st.dataframe(equity_data[[timestamp_col, equity_col, 'return_pct']].rename(columns={
+                                timestamp_col: '时间',
+                                equity_col: '净值',
+                                'return_pct': '收益率%'
+                            }), use_container_width=True)
+                    else:
+                        st.warning("无法识别净值数据列名，请检查数据格式")
+                        st.write("可用列名:", equity_data.columns.tolist())
+                else:
+                    st.info("暂无净值数据，请先运行回测")
             
             with tab5:
                 # 显示原始数据

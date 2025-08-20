@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Dict, Any
 import numpy as np
 import pandas as pd
 
@@ -105,3 +105,47 @@ class KellyStrategy(PositionStrategy):
         kelly_fraction = max(0, min(kelly_fraction, self.max_percent))  # 限制范围
         
         return self.account_value * kelly_fraction * signal_strength
+
+
+class PositionStrategyFactory:
+    """仓位策略工厂类
+    职责：
+    - 根据配置创建相应的仓位策略实例
+    - 提供统一的策略创建接口
+    """
+    
+    @staticmethod
+    def create_strategy(strategy_type: str, account_value: float, params: Dict[str, Any]) -> PositionStrategy:
+        """创建仓位策略实例
+        
+        Args:
+            strategy_type: 策略类型名称
+            account_value: 账户当前净值
+            params: 策略参数字典
+            
+        Returns:
+            PositionStrategy: 仓位策略实例
+            
+        Raises:
+            ValueError: 当策略类型未知或参数无效时抛出
+        """
+        if strategy_type == "fixed_percent":
+            percent = params.get("percent", 0.1)
+            if not (0 < percent <= 1):
+                raise ValueError("fixed_percent策略的percent参数必须在0到1之间")
+            return FixedPercentStrategy(account_value, percent)
+        elif strategy_type == "kelly":
+            win_rate = params.get("win_rate", 0.5)
+            win_loss_ratio = params.get("win_loss_ratio", 2.0)
+            max_percent = params.get("max_percent", 0.25)
+            
+            if not (0 < win_rate <= 1):
+                raise ValueError("kelly策略的win_rate参数必须在0到1之间")
+            if win_loss_ratio <= 0:
+                raise ValueError("kelly策略的win_loss_ratio参数必须大于0")
+            if not (0 < max_percent <= 1):
+                raise ValueError("kelly策略的max_percent参数必须在0到1之间")
+                
+            return KellyStrategy(account_value, win_rate, win_loss_ratio, max_percent)
+        else:
+            raise ValueError(f"未知的仓位策略类型: {strategy_type}")

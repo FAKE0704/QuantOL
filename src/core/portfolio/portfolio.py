@@ -1,26 +1,12 @@
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
 import time
 from functools import lru_cache
 from datetime import datetime
-from ..data.stock import Stock
 from ..strategy.position_strategy import PositionStrategy
-from ..risk.risk_manager import RiskManager
+from .portfolio_interface import IPortfolio, Position
 from event_bus.event_types import PortfolioPositionUpdateEvent
 
-@dataclass
-class Position:
-    """持仓数据结构
-    要求Stock类实现以下属性:
-    - symbol: 股票代码
-    - last_price: 最新价格
-    """
-    stock: Stock
-    quantity: float
-    avg_cost: float
-    current_value: float
-
-class PortfolioManager:
+class PortfolioManager(IPortfolio):
     """投资组合管理类
     
     职责：
@@ -35,21 +21,19 @@ class PortfolioManager:
     def __init__(self, 
                  initial_capital: float,
                  position_strategy: PositionStrategy,
-                 risk_manager: RiskManager,
                  event_bus: Optional[Any] = None):
         """初始化组合
         Args:
             initial_capital: 初始资金
             position_strategy: 仓位策略
-            risk_manager: 风控管理器
             event_bus: 事件总线实例，可选
         """
         self.initial_capital = initial_capital
         self.current_cash = initial_capital
         self.position_strategy = position_strategy
-        self.risk_manager = risk_manager
         self.event_bus = event_bus
         self.positions: Dict[str, Position] = {}
+        
         
         # 缓存相关属性
         self._portfolio_value_cache: Optional[float] = None
@@ -132,7 +116,7 @@ class PortfolioManager:
         return True
         
     def update_position_for_backtest(self, symbol: str, quantity: float, price: float) -> bool:
-        """回测专用的更新持仓方法（不需要Stock对象）
+        """回测专用的更新持仓方法
         
         Args:
             symbol: 股票代码
@@ -254,6 +238,20 @@ class PortfolioManager:
             持仓字典 {symbol: Position}
         """
         return self.positions.copy()
+
+    def get_available_cash(self) -> float:
+        """获取可用现金余额
+        Returns:
+            可用现金余额
+        """
+        return self.current_cash
+
+    def get_position_amount(self) -> float:
+        """获取持仓总金额
+        Returns:
+            持仓总金额
+        """
+        return sum(pos.current_value for pos in self.positions.values())
 
     def get_cash_balance(self) -> float:
         """获取当前现金余额

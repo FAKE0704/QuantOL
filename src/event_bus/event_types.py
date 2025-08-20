@@ -49,6 +49,7 @@ class FillEvent:
     """成交回报事件"""
     order_id: str
     symbol: str
+    direction: str  # BUY/SELL
     fill_price: float
     fill_quantity: int
     commission: float

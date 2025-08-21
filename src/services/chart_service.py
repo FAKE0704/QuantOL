@@ -16,7 +16,6 @@ import time
 import logging
 logger = logging.getLogger(__name__)
 
-
 class LayoutConfig:
     def __init__(self):
         self.type = "vertical"
@@ -1099,23 +1098,80 @@ class ChartService:
         
         return fig
 
-    def draw_equity(self) -> go.Figure:
-        """绘制净值曲线图（包含回撤）"""
-        if not hasattr(self, 'figure'):
-            self.figure = go.Figure()
-        if self.data_bundle.trade_records is None:
+    def draw_equity_and_allocation(self, equity_data: Optional[pd.DataFrame] = None) -> go.Figure:
+        """绘制净值与资产配置比例单轴图表
+        
+        Args:
+            equity_data: 净值数据DataFrame，包含timestamp, total_value, total_cost, total_profit列
+            
+        Returns:
+            go.Figure: 配置好的单轴图表
+        """
+        
+        # 数据准备：使用传入数据或默认数据源
+        data = equity_data if equity_data is not None else self.data_bundle.trade_records
+        
+        # 数据验证和预处理
+        if data is None or data.empty:
             raise ValueError("缺少净值数据")
-
-        self.figure.add_trace(
+        
+        required_cols = {'timestamp', 'total_value', 'total_cost', 'total_profit'}
+        if not required_cols.issubset(data.columns):
+            raise ValueError(f"净值数据缺少必要列，需要: {required_cols}")
+        
+        # 计算净值百分比变化（相对于初始值）
+        initial_value = data['total_value'].iloc[0]
+        data = data.copy()
+        data['return_pct'] = ((data['total_value'] - initial_value) / initial_value) * 100
+        
+        # 计算资产配置比例 (总成本/总收益 × 100%)
+        data['allocation_pct'] = (data['total_cost'] / data['total_profit']) * 100
+        
+        # 创建单轴图表
+        fig = go.Figure()
+        
+        # 净值百分比变化
+        fig.add_trace(
             go.Scatter(
-                x=self.data_bundle.trade_records["timestamp"],
-                y=self.data_bundle.trade_records["total_value"],
-                name="净值曲线",
+                x=data['timestamp'],
+                y=data['return_pct'],
+                name="净值变化 (%)",
                 line=dict(color="#1f77b4", width=2),
+                hovertemplate="%{x}<br>净值: %{y:.2f}%<extra></extra>"
             )
         )
-
-        return self.figure
+        
+        # 资产配置比例
+        fig.add_trace(
+            go.Scatter(
+                x=data['timestamp'],
+                y=data['allocation_pct'],
+                name="资产配置比例 (%)",
+                line=dict(color="#ff7f0e", width=2),
+                hovertemplate="%{x}<br>配置比例: %{y:.2f}%<extra></extra>"
+            )
+        )
+        
+        # 配置图表布局
+        fig.update_layout(
+            title="📊 净值与资产配置分析",
+            xaxis_title="时间",
+            yaxis_title="百分比 (%)",
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            height=500
+        )
+        
+        # 添加30%激进策略警戒线
+        fig.add_hline(y=30, line_dash="dash", line_color="red", 
+                     annotation_text="激进策略警戒线 (30%)", 
+                     annotation_position="bottom right")
+        
+        # 添加零线参考
+        fig.add_hline(y=0, line_dash="dash", line_color="green", 
+                     annotation_text="盈亏平衡线")
+        
+        return fig
 
     def drawMA(self, data: Optional[DataFrame], periods: List[int]) -> List[go.Scatter]:
         """绘制均线"""

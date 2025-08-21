@@ -26,13 +26,13 @@ class RiskManager:
         # logger.debug(f"需求资金：{required_cash}") # 运行正常
         if order_event.direction == 'BUY':
             available_cash = self.portfolio.get_available_cash()
-            logger.debug(f"资金检查：尝试买入：{required_cash}；当前available_cash:{available_cash}") # 运行正常
-            logger.debug(f"{available_cash >= required_cash}") # 运行正常
+            # logger.debug(f"资金检查：尝试买入：{required_cash}；当前available_cash:{available_cash}") # 运行正常
+            # logger.debug(f"{available_cash >= required_cash}") # 运行正常
             return available_cash >= required_cash
         else:
             position_amount = self.portfolio.get_position_amount()
-            logger.debug(f"资金检查：尝试卖出：{required_cash}；当前position_amount:{position_amount}") # 运行正常
-            logger.debug(f"{position_amount >= required_cash}") # 运行正常
+            # logger.debug(f"资金检查：尝试卖出：{required_cash}；当前position_amount:{position_amount}") # 运行正常
+            # logger.debug(f"{position_amount >= required_cash}") # 运行正常
             return position_amount >= required_cash # 持仓金额>=卖出金额
         
     def _check_position(self, order_event):
@@ -41,9 +41,8 @@ class RiskManager:
         if current_position is None:
             # 没有持仓，直接返回True
             return True
-            
-        new_position = current_position.quantity + float(order_event.quantity)
         
+        new_position = current_position.quantity + float(order_event.quantity)
         # 检查是否超过最大持仓比例
         # TODO: 需要从策略配置获取限制比例
         max_percent = 0.1  # 默认10%限制

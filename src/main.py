@@ -15,8 +15,9 @@ import asyncio, platform
 async def init_global_services():
     """初始化全局服务并存储在session_state"""
     if "_loop" not in st.session_state:
-        st.session_state._loop = None  # 初始化为空
+        st.session_state._loop = None
 
+    # 初始化db_manager对象
     if 'db' not in st.session_state:
         db_manager = get_db_manager()
         await db_manager.initialize()

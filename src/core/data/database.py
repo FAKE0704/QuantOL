@@ -1,5 +1,5 @@
 import asyncpg
-from typing import Optional
+from typing import Optional, List, Dict
 import pandas as pd
 import chinese_calendar as calendar
 import streamlit as st
@@ -84,7 +84,7 @@ class DatabaseManager:
                     max_queries=10_000
                 )
                 self._loop = self.pool._loop
-                logger.debug(f"连接池初始化成功, 循环ID: {id(self.pool._loop)}")
+                # logger.debug(f"连接池初始化成功, 循环ID: {id(self.pool._loop)}")
             except Exception as e:
                 logger.error(f"连接池初始化失败: {str(e)}")
                 raise
@@ -495,9 +495,20 @@ class DatabaseManager:
         invalid_rows = []
             
         try:
+            # 首先验证所有数据行
+            for _, row in df.iterrows():
+                try:
+                    validated_row = await self._validate_stock_info(row)
+                    valid_data.append(validated_row)
+                except Exception as e:
+                    invalid_rows.append((row.to_dict(), str(e)))
+            
+            # 如果没有有效数据，提前返回
+            if not valid_data:
+                logger.warning("没有有效数据可插入StockInfo表")
+                return 0, len(invalid_rows)
             
             async with self.pool.acquire() as conn:
-            
                 # 清空现有数据
                 logger.debug("Truncating StockInfo table")
                 await conn.execute("TRUNCATE TABLE StockInfo")
@@ -1013,3 +1024,29 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"批量更新订单状态失败: {str(e)}")
             raise
+
+    async def load_multiple_stock_data(self, symbols: List[str], start_date: date, end_date: date, frequency: str) -> Dict[str, pd.DataFrame]:
+        """批量加载多个股票的数据
+        Args:
+            symbols: 股票代码列表
+            start_date: 开始日期(date对象)
+            end_date: 结束日期(date对象)
+            frequency: 数据频率
+        Returns:
+            字典，键为股票代码，值为对应的DataFrame
+        """
+        import asyncio
+        
+        async def load_single(symbol):
+            try:
+                data = await self.load_stock_data(symbol, start_date, end_date, frequency)
+                return symbol, data
+            except Exception as e:
+                logger.error(f"Failed to load data for {symbol}: {e}")
+                return symbol, pd.DataFrame()
+        
+        # 并行加载所有股票数据
+        tasks = [load_single(symbol) for symbol in symbols]
+        results = await asyncio.gather(*tasks)
+        
+        return {symbol: data for symbol, data in results if not data.empty}

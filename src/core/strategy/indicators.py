@@ -67,6 +67,8 @@ class IndicatorService:
 
     def _rsi(self, series: pd.Series, current_index: int, period: int = 14) -> float:
         """计算相对强弱指数（当前索引值）"""
+        # 确保period是整数
+        period = int(period)
         if current_index < period:
             return 50.0  # RSI默认值
         

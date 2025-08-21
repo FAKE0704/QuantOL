@@ -30,6 +30,7 @@ class BacktestConfig:
         start_date (str): 回测开始日期，格式'YYYY-MM-DD'
         end_date (str): 回测结束日期，格式'YYYY-MM-DD'
         target_symbol (str): 目标交易标的代码
+        target_symbols (List[str]): 多标的交易代码列表
         frequency (str): 数据频率
         
         stop_loss (Optional[float]): 止损比例，None表示不启用
@@ -47,6 +48,7 @@ class BacktestConfig:
     end_date: str
     target_symbol: str
     frequency: str
+    target_symbols: List[str] = field(default_factory=list)
     
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
@@ -62,6 +64,18 @@ class BacktestConfig:
         """参数验证"""
         self.commission_rate = self.commission_rate
         self.slippage = float(self.slippage)
+        
+        # 确保target_symbols和target_symbol的兼容性
+        if self.target_symbols and self.target_symbol:
+            # 如果同时设置了target_symbols和target_symbol，检查是否重复
+            if self.target_symbol not in self.target_symbols:
+                self.target_symbols.insert(0, self.target_symbol)
+            self.target_symbol = self.target_symbols[0]
+        elif self.target_symbol and not self.target_symbols:
+            # 只有target_symbol时，转换为target_symbols
+            self.target_symbols = [self.target_symbol]
+        elif not self.target_symbol and not self.target_symbols:
+            raise ValueError("必须指定至少一个交易标的")
         
         if self.initial_capital <= 0:
             raise ValueError("初始资金必须大于0")
@@ -104,6 +118,7 @@ class BacktestConfig:
             "start_date": self.start_date,
             "end_date": self.end_date,
             "target_symbol": self.target_symbol,
+        "target_symbols": self.target_symbols,
             "frequency": self.frequency,
             
             "stop_loss": self.stop_loss,
@@ -141,7 +156,21 @@ class BacktestEngine:
         self.current_index = None
         self.handlers = {}  # 事件处理器字典 {event_type: handler}
         self.strategies = []  # 支持多个策略
-        self.data = data  # 回测数据
+        
+        # 支持单符号和多符号数据
+        if isinstance(data, dict):
+            # 多符号模式：data是字典 {symbol: dataframe}
+            self.multi_symbol_mode = True
+            self.data_dict = data
+            # 使用第一个符号的数据作为主时间轴
+            first_symbol = next(iter(data.keys()))
+            self.data = data[first_symbol]
+        else:
+            # 单符号模式：data是DataFrame
+            self.multi_symbol_mode = False
+            self.data_dict = {config.target_symbol: data}
+            self.data = data
+        
         # 初始化指标服务和规则解析器
         self.indicator_service = IndicatorService()
         self.rule_parser = RuleParser(self.data, self.indicator_service)
@@ -182,7 +211,7 @@ class BacktestEngine:
         self.trade_order_manager = TradeOrderManager(st.session_state.db, self.backtest_trader)
         
         # 初始化Portfolio接口和RiskManager
-        self.portfolio = self._create_portfolio()
+        self.portfolio = self.portfolio_manager  # PortfolioManager 实现了 IPortfolio 接口
         self.risk_manager = RiskManager(self.portfolio, self.config.commission_rate)
         
         # 注册StrategySignalEvent处理器
@@ -193,11 +222,6 @@ class BacktestEngine:
         
         # 注册FillEvent处理器
         self.register_handler(FillEvent, self._handle_fill_event)
-
-    def _create_portfolio(self):
-        """创建Portfolio实例，提供RiskManager所需的接口"""
-        # 直接返回PortfolioManager实例，因为它已经实现了IPortfolio接口
-        return self.portfolio_manager
         
     def update_rule_parser_data(self):
         """更新RuleParser的数据引用"""
@@ -245,9 +269,8 @@ class BacktestEngine:
             self.current_index = idx
             self.current_price = self.data.loc[self.current_index,'close']
             
-            # 更新仓位策略资金（在每次循环开始时更新）
-            if self.position_strategy:
-                self.position_strategy.account_value = self.portfolio_manager.get_portfolio_value()
+            # 仓位策略的资金更新现在通过PortfolioManager接口进行
+            # 在_calculate_position_amount方法中实时获取账户价值，确保状态一致性
             
             # 系统初始化（首个交易日）
             if idx == 0:
@@ -267,10 +290,15 @@ class BacktestEngine:
             # 处理事件队列（处理非StrategySignalEvent和OrderEvent的其他事件）
             self._process_event_queue()
 
+            # 在每个数据点通过PortfolioManager记录净值历史
+            price_data = {
+                'close': self.current_price
+            }
+            self.portfolio_manager.record_equity_history(current_time, price_data)
+
             # 添加详细调试日志
             # logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
-            
-        logger.debug("回测完成")
+        
 
     def handle_trading_day_event(self, event):
         """处理交易日事件"""
@@ -348,7 +376,7 @@ class BacktestEngine:
             if risk_check_result:
                 # 5. 通过TradeOrderManager创建订单并处理
                 self._process_order_through_trade_manager(order_event)
-                logger.debug(f"订单处理完成: {order_event.direction} {order_event.quantity}@{order_event.price}")
+               
             else:
                 # logger.warning(f"订单风险检查失败: {order_event}")
                 pass
@@ -359,14 +387,14 @@ class BacktestEngine:
     def _process_order_through_trade_manager(self, order_event: OrderEvent):
         """在回测环境中处理订单（直接生成模拟的FillEvent）"""
         try:
-            logger.debug(f"开始处理回测订单: {order_event.direction} {order_event.quantity}@{order_event.price}")
+            # logger.debug(f"开始处理回测订单: {order_event.direction} {order_event.quantity}@{order_event.price}")
             
             # 在回测环境中，我们不需要依赖外部交易接口
             # 直接假设订单立即成交，生成模拟的FillEvent
             
             # 计算手续费（确保类型兼容）
             commission_amount = float(order_event.quantity) * float(order_event.price) * float(self.config.commission_rate)
-            logger.debug(f"计算手续费: {commission_amount:.2f} (费率: {self.config.commission_rate:.4f})")
+            # logger.debug(f"计算手续费: {commission_amount:.2f} (费率: {self.config.commission_rate:.4f})")
             
             # 创建模拟的FillEvent（根据FillEvent的实际构造函数参数）
             order_id = f"backtest_order_{len(self.trades)}"
@@ -388,20 +416,26 @@ class BacktestEngine:
                 commission=commission_amount,
                 timestamp=timestamp
             )
-            logger.debug(f"创建模拟成交回报: 订单ID={order_id}, 成交价={order_event.price:.2f}, 数量={order_event.quantity}")
-            
+
             # 处理成交回报
-            logger.debug("开始处理成交回报事件...")
+            
             self._handle_fill_event(fill_event)
-            logger.debug(f"回测订单执行成功: {order_event.direction} {order_event.quantity}@{order_event.price}")
-                
+                 
         except Exception as e:
             self.log_error(f"处理回测订单失败: {str(e)}")
             
     def _calculate_position_amount(self, event: StrategySignalEvent) -> float:
-        """计算仓位金额"""
-        # 使用配置的仓位策略
+        """计算仓位金额
+        通过PortfolioManager接口获取当前账户价值，确保状态一致性
+        """
         signal_strength = getattr(event, 'confidence', 1.0)
+        
+        # 获取当前账户价值
+        current_account_value = self.portfolio_manager.get_portfolio_value()
+        
+        # 更新仓位策略的账户价值
+        self.position_strategy.account_value = current_account_value
+        
         return self.position_strategy.calculate_position(signal_strength)
         
     def _calculate_order_quantity(self, position_amount: float, price: float) -> int:
@@ -415,7 +449,7 @@ class BacktestEngine:
         """验证订单风险"""
         
         if not self.risk_manager.validate_order(order_event):
-            logger.warning(f"订单风险检查失败: 拒绝操作！")
+            # logger.warning(f"订单风险检查失败: 拒绝操作！")
             return False
         return True
         
@@ -429,60 +463,32 @@ class BacktestEngine:
             commission = order_amount * self.config.commission_rate
             total_cost = order_amount + commission
             
-            # 根据订单方向执行交易
-            if event.direction == 'BUY':
-                # 使用PortfolioManager更新持仓
-                success = self.portfolio_manager.update_position(
-                    symbol=event.symbol,
-                    quantity=event.quantity,
-                    price=event.price
-                )
-                
-                if not success:
-                    self.log_error(f"买入订单执行失败: 资金不足或验证失败")
-                    return
-                    
-                # 记录交易
-                trade_record = {
-                    'timestamp': self.current_time,
-                    'symbol': event.symbol,
-                    'direction': 'BUY',
-                    'price': event.price,
-                    'quantity': event.quantity,
-                    'commission': commission,
-                    'total_cost': total_cost
-                }
-                self.trades.append(trade_record)
-                
-            elif event.direction == 'SELL':
-                # 使用PortfolioManager更新持仓（卖出为负数）
-                success = self.portfolio_manager.update_position(
-                    symbol=event.symbol,
-                    quantity=-event.quantity,
-                    price=event.price
-                )
-                
-                if not success:
-                    self.log_error(f"卖出订单执行失败: 持仓不足或验证失败")
-                    return
-                    
-                # 记录交易
-                trade_record = {
-                    'timestamp': self.current_time,
-                    'symbol': event.symbol,
-                    'direction': 'SELL',
-                    'price': event.price,
-                    'quantity': event.quantity,
-                    'commission': commission,
-                    'total_cost': -total_cost  # 负数表示收入
-                }
-                self.trades.append(trade_record)
-                
-            else:
-                self.log_error(f"无效的订单方向: {event.direction}")
+            # 根据订单方向确定仓位更新数量
+            quantity = event.quantity if event.direction == 'BUY' else -event.quantity
+            
+            # 使用PortfolioManager更新持仓
+            success = self.portfolio_manager.update_position(
+                symbol=event.symbol,
+                quantity=quantity,
+                price=event.price
+            )
+            
+            if not success:
+                self.log_error(f"订单执行失败: {event.direction} {event.quantity}@{event.price}")
                 return
                 
-            logger.info(f"订单执行成功: {event.direction} {event.quantity}@{event.price}, 手续费: {commission:.2f}")
+            # 记录交易
+            trade_record = {
+                'timestamp': self.current_time,
+                'symbol': event.symbol,
+                'direction': event.direction,
+                'price': event.price,
+                'quantity': event.quantity,
+                'commission': commission,
+                'total_cost': total_cost if event.direction == 'BUY' else -total_cost
+            }
+            self.trades.append(trade_record)
+                
             
         except Exception as e:
             self.log_error(f"订单执行失败: {str(e)}")
@@ -554,22 +560,34 @@ class BacktestEngine:
 
     def get_results(self) -> Dict:
         """获取回测结果"""
+        
+        if self.multi_symbol_mode and hasattr(self, 'results') and self.results:
+            # 多符号模式，返回组合结果
+            return self.results
+        
+        # 单符号模式
+        # 使用PortfolioManager的性能指标
+        performance_metrics = self.portfolio_manager.get_performance_metrics()
+        
         return {
             "summary": {
                 "initial_capital": self.config.initial_capital,
                 "final_capital": self.portfolio_manager.get_portfolio_value(),
                 "total_trades": len(self.trades),
                 "win_rate": self._calculate_win_rate(),
-                "max_drawdown": self._calculate_max_drawdown(),
+                "max_drawdown": performance_metrics['max_drawdown_pct'],
+                "total_return": performance_metrics['total_return_pct'],
+                "current_drawdown": performance_metrics['current_drawdown_pct'],
                 "position_strategy_type": self.config.position_strategy_type
             },
             "trades": self.trades,
             "errors": self.errors,
-            "equity_records": self.equity_records.to_dict('records'),
+            "equity_records": self.portfolio_manager.get_equity_history(),
             "position_strategy_config": {
                 "type": self.config.position_strategy_type,
                 "params": self.config.position_strategy_params
-            }
+            },
+            "performance_metrics": performance_metrics
         }
 
     def _calculate_win_rate(self) -> float:
@@ -601,7 +619,7 @@ class BacktestEngine:
         for strategy in self.strategies:
             if hasattr(strategy, 'initialize'):
                 strategy.initialize(self.data)
-            logger.info(f"策略初始化完成: {strategy.strategy_id}")
+            # logger.info(f"策略初始化完成: {strategy.strategy_id}")
         
         # 3. 设置仓位管理策略
         # if not self.position_strategy:
@@ -623,13 +641,13 @@ class BacktestEngine:
             
         try:
             close_price = float(market_data['close'])
-            # 使用PortfolioManager获取当前资金
+            # 使用PortfolioManager接口获取当前资金
             current_capital = float(self.portfolio_manager.get_available_cash())
         except (TypeError, ValueError) as e:
             self.log_error(f"净值更新参数类型错误: {str(e)}")
             return
             
-        # 计算持仓价值 - 从PortfolioManager获取持仓信息
+        # 计算持仓价值 - 通过PortfolioManager接口获取持仓信息
         all_positions = self.portfolio_manager.get_all_positions()
         position_quantity = 0.0
         if self.config.target_symbol in all_positions:
@@ -686,7 +704,6 @@ class BacktestEngine:
 
     def _handle_fill_event(self, event: FillEvent):
         """处理成交回报事件，使用PortfolioManager更新资金和持仓"""
-        logger.debug(f"处理成交回报事件: {event}")
         
         try:
             # 计算成交金额，确保类型一致性
@@ -720,7 +737,6 @@ class BacktestEngine:
             }
             self.trades.append(trade_record)
             
-            logger.info(f"成交回报处理完成: {event.direction} {event.fill_quantity}@{event.fill_price}, 手续费: {event.commission:.2f}")
             
         except Exception as e:
             self.log_error(f"处理成交回报事件失败: {str(e)}")
@@ -730,3 +746,78 @@ class BacktestEngine:
             
     # 保留其他原有方法不变...
     # (get_results, create_order等)
+
+    def run_multi_symbol(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
+        """执行多符号回测
+        
+        对于每个符号，运行单独的回测，然后组合结果
+        """
+        if not self.multi_symbol_mode:
+            # 单符号模式，直接运行普通回测
+            self.run(start_date, end_date)
+            return self.get_results()
+        
+        # 多符号模式
+        all_results = {}
+        individual_results = {}
+        
+        # 为每个符号运行单独的回测
+        for symbol, data in self.data_dict.items():
+            logger.info(f"Running backtest for symbol: {symbol}")
+            
+            # 为每个符号创建单独的配置
+            symbol_config = BacktestConfig(
+                start_date=self.config.start_date,
+                end_date=self.config.end_date,
+                target_symbol=symbol,
+                frequency=self.config.frequency,
+                initial_capital=self.config.initial_capital / len(self.data_dict),  # 平均分配资金
+                commission_rate=self.config.commission_rate,
+                position_strategy_type=self.config.position_strategy_type,
+                position_strategy_params=self.config.position_strategy_params
+            )
+            
+            # 创建并运行单独的引擎
+            symbol_engine = BacktestEngine(symbol_config, data)
+            
+            # 注册相同的策略
+            for strategy in self.strategies:
+                symbol_engine.register_strategy(strategy)
+            
+            # 运行回测
+            symbol_engine.run(start_date, end_date)
+            
+            # 存储单个符号的结果
+            individual_results[symbol] = symbol_engine.get_results()
+            
+            # 合并交易记录
+            self.trades.extend(symbol_engine.trades)
+            
+            # 合并错误
+            self.errors.extend(symbol_engine.errors)
+        
+        # 创建组合结果
+        all_results["individual"] = individual_results
+        all_results["trades"] = self.trades
+        all_results["errors"] = self.errors
+        
+        # 计算组合净值曲线（简单相加）
+        combined_equity = pd.DataFrame()
+        for symbol, results in individual_results.items():
+            if "equity_records" in results:
+                equity_data = pd.DataFrame(results["equity_records"])
+                if combined_equity.empty:
+                    combined_equity = equity_data[['timestamp', 'total_value']].copy()
+                    combined_equity.rename(columns={'total_value': symbol}, inplace=True)
+                else:
+                    # 合并时间对齐的净值数据
+                    equity_data = equity_data[['timestamp', 'total_value']].rename(columns={'total_value': symbol})
+                    combined_equity = combined_equity.merge(equity_data, on='timestamp', how='outer')
+        
+        # 计算组合总净值
+        if not combined_equity.empty:
+            combined_equity['total_value'] = combined_equity.drop('timestamp', axis=1).sum(axis=1)
+            all_results["combined_equity"] = combined_equity
+        
+        self.results = all_results
+        return all_results

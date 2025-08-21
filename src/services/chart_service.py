@@ -1102,7 +1102,7 @@ class ChartService:
         """绘制净值与资产配置比例单轴图表
         
         Args:
-            equity_data: 净值数据DataFrame，包含timestamp, total_value, total_cost, total_profit列
+            equity_data: 净值数据DataFrame，包含timestamp, total_value, positions_value列
             
         Returns:
             go.Figure: 配置好的单轴图表
@@ -1115,7 +1115,7 @@ class ChartService:
         if data is None or data.empty:
             raise ValueError("缺少净值数据")
         
-        required_cols = {'timestamp', 'total_value', 'total_cost', 'total_profit'}
+        required_cols = {'timestamp', 'total_value', 'positions_value'}
         if not required_cols.issubset(data.columns):
             raise ValueError(f"净值数据缺少必要列，需要: {required_cols}")
         
@@ -1124,8 +1124,8 @@ class ChartService:
         data = data.copy()
         data['return_pct'] = ((data['total_value'] - initial_value) / initial_value) * 100
         
-        # 计算资产配置比例 (总成本/总收益 × 100%)
-        data['allocation_pct'] = (data['total_cost'] / data['total_profit']) * 100
+        # 计算资产配置比例 (持仓市值 / 总资产 × 100%)
+        data['allocation_pct'] = (data['positions_value'] / data['total_value']) * 100
         
         # 创建单轴图表
         fig = go.Figure()

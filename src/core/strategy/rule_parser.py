@@ -46,6 +46,8 @@ class RuleParser:
         ast.Gt: op.gt, 
         ast.Lt: op.lt,
         ast.Eq: op.eq,
+        ast.GtE: op.ge,
+        ast.LtE: op.le,
         ast.And: op.and_,
         ast.BitAnd: op.and_,
         ast.Or: op.or_,
@@ -60,13 +62,19 @@ class RuleParser:
         """
         self.data = data_provider
         self.indicator_service = indicator_service
-        # 只保留REF指标的特殊处理
+        # 注册支持的指标函数
         self._indicators = {
             'REF': IndicatorFunction(
                 name='REF',
                 func=self._ref,
                 params={'expr': str, 'period': int},
                 description='引用前n期数据: REF(expr, period)'
+            ),
+            'RSI': IndicatorFunction(
+                name='RSI',
+                func=lambda series, period: self.indicator_service.calculate_indicator('rsi', series, self.current_index, period),
+                params={'series': pd.Series, 'period': int},
+                description='相对强弱指数: RSI(series, period)'
             )
         }
         self.series_cache = {}  # 序列缓存字典

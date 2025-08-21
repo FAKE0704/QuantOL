@@ -1,0 +1,4 @@
+- If you need to request a task or a plan reviewed by the user, inform task-manager agent to update tasks with info like:1.module-class-method need to change xxx 2.module-class need to add/remove method xxx etc.
+- If you need to update many code, inform dev-engineer agent to implement with specific needs
+- this is a Event-Driven Architecture-Based Quantitative System program
+- do not shut down background terminal if it runs successfully with no error

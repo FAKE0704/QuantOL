@@ -320,9 +320,11 @@ async def show_backtesting_page():
             st.info(f"已加载 {len(data)} 只股票数据")
         else:
             # 单符号模式（保持向后兼容）
+            
             data = await st.session_state.db.load_stock_data(
                 backtest_config.target_symbol, start_date, end_date, backtest_config.frequency
             )
+
         
         engine = BacktestEngine(config=backtest_config, data=data)
         
@@ -362,12 +364,16 @@ async def show_backtesting_page():
                 st.session_state.indicator_service = IndicatorService()
             
             # 实例化自定义策略
+            # 优先使用手动输入的规则，其次使用规则组加载的规则
+            buy_rule = st.session_state.get('buy_rule_input', st.session_state.get('buy_rule_expr', ""))
+            sell_rule = st.session_state.get('sell_rule_input', st.session_state.get('sell_rule_expr', ""))
+            
             rule_strategy = RuleBasedStrategy(
                 Data=data,
                 name="自定义规则策略",
                 indicator_service=st.session_state.indicator_service,
-                buy_rule_expr=st.session_state.get('buy_rule_expr', ""),
-                sell_rule_expr=st.session_state.get('sell_rule_expr', "")
+                buy_rule_expr=buy_rule,
+                sell_rule_expr=sell_rule
             )
             # 注册策略实例
             engine.register_strategy(rule_strategy)
@@ -838,7 +844,13 @@ async def show_backtesting_page():
                             total_trades = len(trades_df)
                             total_investment = abs(trades_df['total_cost'].sum())
                             avg_trade_amount = total_investment / total_trades if total_trades > 0 else 0
-                            avg_position_pct = (avg_trade_amount / summary['initial_capital']) * 100
+                            
+                            # 获取初始资金（从回测配置或结果中）
+                            initial_capital = backtest_config.initial_capital
+                            if "summary" in results:
+                                initial_capital = results["summary"].get('initial_capital', backtest_config.initial_capital)
+                            
+                            avg_position_pct = (avg_trade_amount / initial_capital) * 100
                             
                             col1, col2, col3 = st.columns(3)
                             with col1:
@@ -848,7 +860,7 @@ async def show_backtesting_page():
                             with col3:
                                 # 计算仓位利用率
                                 max_position_value = equity_data['total_value'].max() if 'total_value' in equity_data.columns else 0
-                                position_utilization = (max_position_value / summary['initial_capital']) * 100
+                                position_utilization = (max_position_value / initial_capital) * 100
                                 st.metric("最大仓位利用率", f"{position_utilization:.2f}%")
                 else:
                     st.info("暂无仓位策略配置信息")

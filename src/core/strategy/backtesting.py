@@ -234,6 +234,7 @@ class BacktestEngine:
         # 更新RuleParser数据引用
         self.update_rule_parser_data()
         
+        
         # 根据数据频率处理时间字段
         if self.config.frequency.lower() == 'd':
             logger.debug(f"识别数据频率为：日线")
@@ -241,16 +242,19 @@ class BacktestEngine:
             # 为日线数据添加默认时间
             self.data['time'] = '00:00:00'
         else:
+            
             if 'time' not in self.data.columns:
                 raise ValueError("分钟线数据必须包含time字段")
-            self.data['combined_time'] = pd.to_datetime(
-                self.data['date'].astype(str) + ' ' + self.data['time'].astype(str),
-                format='%Y-%m-%d %H:%M:%S'
-            )
+            
+            print(self.data[self.data['time'].isnull()])
+            print("debug250")
+            
+            print("debug255")
+        
         
         # 初始化signal列
         self.data['signal'] = 0  # 0:无信号, 1:买入, -1:卖出
-        
+        print("debug"*20)
         # 初始化净值记录
         self._update_equity({
             'datetime': start_date,

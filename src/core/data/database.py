@@ -286,8 +286,9 @@ class DatabaseManager:
             包含股票数据的DataFrame
         """
         try:
+            
             logger.info(f"Loading stock data for {symbol} from {start_date} to {end_date}")
-
+            print("291#"*20)
             # the date that data lack of  # 
             missing_ranges = await self.check_data_completeness(symbol, start_date, end_date,frequency)
             
@@ -315,7 +316,7 @@ class DatabaseManager:
 
             # Load complete data from database
             query = """
-                SELECT date, time, code, open, high, low, close, volume, amount, adjustflag
+                SELECT date, time, code, open, high, low, close, volume, amount, adjustflag, frequency
                 FROM StockData
                 WHERE code = $1
                 AND date BETWEEN $2 AND $3
@@ -340,8 +341,9 @@ class DatabaseManager:
                     )
                     return pd.DataFrame()
                 data = [dict(row) for row in rows]
-                df = pd.DataFrame(data, columns=['date', 'time', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount', 'adjustflag'])
+                df = pd.DataFrame(data, columns=['date', 'time', 'code', 'open', 'high', 'low', 'close', 'volume', 'amount', 'adjustflag', 'frequency'])
                 df = self._transform_data(df)
+                
                 
                 logger.info(f"Successfully loaded {len(df)} rows for {symbol}")
                 return df
@@ -352,15 +354,83 @@ class DatabaseManager:
 
     def _transform_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """标准化数据格式"""
+        
         if 'date' in data.columns:
             data['date'] = pd.to_datetime(data['date'])
             data['date'] = data['date'].dt.strftime('%Y-%m-%d')
+        
+        # 处理time列，确保格式正确
         if 'time' in data.columns:
+            # 检查time列是否包含NaT值
+            if data['time'].isna().any():
+                logger.warning(f"发现 {data['time'].isna().sum()} 个NaT值在time列")
+                # 对于NaT值，使用默认时间
+                data.loc[data['time'].isna(), 'time'] = '00:00:00'
+            
+            # 确保time列是字符串格式
             data['time'] = data['time'].astype(str)
-            data['time'] = pd.to_datetime(
-                data['time'].str[9:14],
-                format="%H%M%S"
-            ).dt.time
+            
+            # 处理可能的异常格式
+            data['time'] = data['time'].apply(lambda x: x if len(x) >= 8 else '00:00:00')
+
+        # 处理frequency列，确保格式正确
+        if 'frequency' in data.columns:
+            # 检查frequency列是否包含NaN值
+            if data['frequency'].isna().any():
+                logger.warning(f"发现 {data['frequency'].isna().sum()} 个NaN值在frequency列")
+                # 对于NaN值，使用默认频率
+                data.loc[data['frequency'].isna(), 'frequency'] = 'd'
+
+        # 创建combined_time列用于回测
+        if 'date' in data.columns and 'time' in data.columns:
+            try:
+                # 确保date和time列都是字符串格式
+                data['date'] = data['date'].astype(str)
+                data['time'] = data['time'].astype(str)
+                
+                # 创建combined_time列
+                data['combined_time'] = data['date'] + ' ' + data['time']
+                
+                # 转换为datetime格式，处理可能的格式错误
+                data['combined_time'] = pd.to_datetime(
+                    data['combined_time'], 
+                    format='%Y-%m-%d %H:%M:%S', 
+                    errors='coerce'
+                )
+                
+                # 检查是否有转换失败的记录
+                if data['combined_time'].isna().any():
+                    failed_count = data['combined_time'].isna().sum()
+                    logger.warning(f"发现 {failed_count} 个combined_time转换失败")
+                    
+                    # 对于转换失败的记录，使用date + 默认时间
+                    mask = data['combined_time'].isna()
+                    data.loc[mask, 'combined_time'] = pd.to_datetime(
+                        data.loc[mask, 'date'] + ' 00:00:00', 
+                        format='%Y-%m-%d %H:%M:%S'
+                    )
+                    
+            except Exception as e:
+                logger.error(f"创建combined_time列失败: {str(e)}")
+                # 回退方案：只使用date列
+                data['combined_time'] = pd.to_datetime(data['date'])
+
+        # 调试信息：检查time和frequency列是否有空值
+        time_nulls = 0
+        freq_nulls = 0
+        
+        if 'time' in data.columns:
+            time_nulls = data['time'].isna().sum()
+            if time_nulls > 0:
+                logger.warning(f"time列包含 {time_nulls} 个空值")
+                
+        if 'frequency' in data.columns:
+            freq_nulls = data['frequency'].isna().sum()
+            if freq_nulls > 0:
+                logger.warning(f"frequency列包含 {freq_nulls} 个空值")
+                
+        # 记录数据转换后的状态
+        logger.debug(f"数据转换完成 - 行数: {len(data)}, time列空值: {time_nulls}, frequency列空值: {freq_nulls}")
 
         return data
 

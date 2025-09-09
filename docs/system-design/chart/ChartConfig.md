@@ -1,4 +1,5 @@
-# 类 ChartConfigManager## 职责
+# 类 ChartConfigManager
+## 职责
 
 ChartConfig类负责管理图表的所有配置项，包括：
 

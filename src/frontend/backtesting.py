@@ -1,26 +1,43 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from core.strategy.backtesting import  BacktestEngine
 from core.strategy.backtesting import  BacktestConfig
 from services.chart_service import  ChartService, DataBundle
 from event_bus.event_types import StrategyScheduleEvent, StrategySignalEvent
-from core.strategy.event_handlers import handle_schedule, handle_signal
+from core.strategy.event_handlers import  handle_signal
 from core.strategy.strategy import FixedInvestmentStrategy
 from core.data.database import DatabaseManager
 from services.progress_service import progress_service
 from typing import cast
 import time
+from support.log.logger import logger
 
 async def show_backtesting_page():
     # 初始化策略ID
     if 'strategy_id' not in st.session_state:
         import uuid
         st.session_state.strategy_id = str(uuid.uuid4())
+    
+    # 初始化回测配置对象
+    if 'backtest_config' not in st.session_state:
+        # 创建默认配置
+        st.session_state.backtest_config = BacktestConfig(
+            start_date="20250401",
+            end_date="20250430",
+            target_symbol="sh.600000",
+            frequency="d",
+            initial_capital=100000,
+            commission_rate=0.0003,
+            position_strategy_type="fixed_percent",
+            position_strategy_params={"percent": 0.1}
+        )
 
     st.title("策略回测")
 
-    # 股票搜索（带筛选的下拉框）
+    # 股票搜索（多选模式）
     col1, col2 = st.columns([3, 1])
     with col1:
         # 初始化缓存
@@ -34,14 +51,26 @@ async def show_backtesting_page():
                     st.error(f"加载股票列表失败: {str(e)}")
                     st.session_state.stock_cache = []
         
-        selected = st.selectbox(
-            "搜索并选择股票",
+        # 多选股票组件
+        selected_options = st.multiselect(
+            "选择股票（可多选）",
             options=st.session_state.stock_cache,
             format_func=lambda x: f"{x[0]} {x[1]}",
-            help="输入股票代码或名称进行筛选",
+            help="选择多个股票进行组合回测",
             key="stock_select",
-            index = 20
+            default=[st.session_state.stock_cache[20]] if st.session_state.stock_cache else []
         )
+        
+        # 更新配置对象中的股票代码
+        if selected_options:
+            selected_symbols = [symbol[0] for symbol in selected_options]
+            st.session_state.backtest_config.target_symbol = selected_symbols[0]  # 保持向后兼容
+            st.session_state.backtest_config.target_symbols = selected_symbols  # 多符号支持
+        
+        # 显示已选股票
+        if selected_options:
+            st.info(f"已选择 {len(selected_options)} 只股票: {', '.join([f'{s[0]}' for s in selected_options])}")
+    
     with col2:
         if st.button("🔄 刷新列表", help="点击手动更新股票列表", key="refresh_button"):
             if 'stock_cache' in st.session_state:
@@ -52,8 +81,12 @@ async def show_backtesting_page():
     col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input("开始日期", key="start_date_input", value= "2025-04-01")
+        # 更新配置对象中的开始日期
+        st.session_state.backtest_config.start_date = start_date.strftime("%Y%m%d")
     with col2:
         end_date = st.date_input("结束日期", key="end_date_input")
+        # 更新配置对象中的结束日期
+        st.session_state.backtest_config.end_date = end_date.strftime("%Y%m%d")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -80,6 +113,8 @@ async def show_backtesting_page():
             options=list(frequency_options.keys()),
             format_func=lambda x: frequency_options[x]
         )
+        # 更新配置对象中的频率
+        st.session_state.backtest_config.frequency = frequency
     
     
 
@@ -136,6 +171,10 @@ async def show_backtesting_page():
                         '金叉死叉': {
                             'buy_rule': '(REF(SMA(close,5), 1) < REF(SMA(close,7), 1)) & (SMA(close,5) > SMA(close,7))',
                             'sell_rule': '(REF(SMA(close,5), 1) > REF(SMA(close,7), 1)) & (SMA(close,5) < SMA(close,7))'
+                        },
+                        '相对强度': {
+                            'buy_rule': '(REF(RSI(close,5), 1) < 30) & (RSI(close,5) >= 30)',
+                            'sell_rule': '(REF(RSI(close,5), 1) >= 60) & (RSI(close,5) < 60)'
                         }
                     }
                 
@@ -177,8 +216,82 @@ async def show_backtesting_page():
     #     oversold = st.slider("超卖阈值", min_value=10, max_value=40, value=30)
     
     # 回测参数
-    initial_capital = st.number_input("初始资金(元)", min_value=10000, value=100000, key="initial_capital_input")
-    commission_rate = st.number_input("交易佣金(%)", min_value=0.0, max_value=1.0, value=0.03, key="commission_rate_input")
+    # 使用session_state记住用户的上次设置
+    if 'last_initial_capital' not in st.session_state:
+        st.session_state.last_initial_capital = 100000
+    if 'last_commission_rate' not in st.session_state:
+        st.session_state.last_commission_rate = 0.03
+    
+    initial_capital = st.number_input("初始资金(元)", min_value=10000, value=st.session_state.last_initial_capital, key="initial_capital_input")
+    # 更新配置对象中的初始资金
+    st.session_state.backtest_config.initial_capital = initial_capital
+    
+    commission_rate = st.number_input("交易佣金(%)", min_value=0.0, max_value=1.0, value=st.session_state.last_commission_rate, key="commission_rate_input")
+    # 更新配置对象中的佣金率（转换为小数）
+    st.session_state.backtest_config.commission_rate = commission_rate / 100
+    
+    # 更新session_state中的值
+    st.session_state.last_initial_capital = initial_capital
+    st.session_state.last_commission_rate = commission_rate
+    
+    # 仓位策略配置
+    st.subheader("📊 仓位策略配置")
+    
+    # 仓位策略类型选择
+    position_strategy_type = st.selectbox(
+        "仓位策略类型",
+        options=["fixed_percent", "kelly"],
+        format_func=lambda x: "固定比例" if x == "fixed_percent" else "凯利公式",
+        key="position_strategy_select"
+    )
+    # 更新配置对象中的仓位策略类型
+    st.session_state.backtest_config.position_strategy_type = position_strategy_type
+    
+    # 根据策略类型显示不同的参数配置
+    if position_strategy_type == "fixed_percent":
+        percent = st.slider(
+            "固定仓位比例(%)",
+            min_value=1,
+            max_value=100,
+            value=10,
+            key="fixed_percent_slider"
+        )
+        # 更新配置对象中的仓位策略参数
+        st.session_state.backtest_config.position_strategy_params = {"percent": percent / 100}
+        
+    elif position_strategy_type == "kelly":
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            win_rate = st.slider(
+                "策略胜率(%)",
+                min_value=1,
+                max_value=99,
+                value=50,
+                key="kelly_win_rate"
+            )
+        with col2:
+            win_loss_ratio = st.slider(
+                "盈亏比",
+                min_value=0.1,
+                max_value=10.0,
+                value=2.0,
+                step=0.1,
+                key="kelly_win_loss_ratio"
+            )
+        with col3:
+            max_percent = st.slider(
+                "最大仓位限制(%)",
+                min_value=1,
+                max_value=100,
+                value=25,
+                key="kelly_max_percent"
+            )
+        # 更新配置对象中的仓位策略参数
+        st.session_state.backtest_config.position_strategy_params = {
+            "win_rate": win_rate / 100,
+            "win_loss_ratio": win_loss_ratio,
+            "max_percent": max_percent / 100
+        }
     
     # 初始化按钮状态
     if 'start_backtest_clicked' not in st.session_state:
@@ -193,42 +306,43 @@ async def show_backtesting_page():
         key="start_backtest",
         on_click=on_backtest_click
     ):
-        # 初始化回测配置
-        symbol = selected[0] # 股票代号
-
-        # 初始化回测参数BacktestConfig
-        backtest_config = BacktestConfig( # 设置回测参数
-            start_date=start_date.strftime("%Y%m%d"),  # BacktestConfig仍需要字符串格式
-            end_date=end_date.strftime("%Y%m%d"),
-            frequency=frequency,
-            target_symbol=symbol,
-            initial_capital=initial_capital,
-            commission=commission_rate
-        )
+        # 使用存储在session_state中的配置对象
+        backtest_config = st.session_state.backtest_config
         
         # 初始化事件引擎BacktestEngine
-        db = cast(DatabaseManager, st.session_state.db)
-        data = await db.load_stock_data(symbol, start_date, end_date, frequency)  # 直接传递date对象
+        
+        # 多符号数据加载
+        if hasattr(backtest_config, 'target_symbols') and len(backtest_config.target_symbols) > 1:
+            # 多符号模式
+            data = await st.session_state.db.load_multiple_stock_data(
+                backtest_config.target_symbols, start_date, end_date, backtest_config.frequency
+            )
+            st.info(f"已加载 {len(data)} 只股票数据")
+        else:
+            # 单符号模式（保持向后兼容）
+            
+            data = await st.session_state.db.load_stock_data(
+                backtest_config.target_symbol, start_date, end_date, backtest_config.frequency
+            )
+
+        
         engine = BacktestEngine(config=backtest_config, data=data)
         
         
         st.write("回测使用的数据") 
         st.write(data) 
 
-        # 注册事件处理器
-        engine.register_handler(StrategyScheduleEvent, handle_schedule)
-        engine.register_handler(StrategySignalEvent, handle_signal)
-        
-        # 确保事件处理器能访问当前索引
-        def handle_schedule_with_index(event: StrategyScheduleEvent):
-            event.current_index = engine.current_index
-            return handle_schedule(event)
+        # 确保事件处理器能访问当前索引和方向
+        # def handle_schedule_with_index(event: StrategyScheduleEvent):
+        #     event.current_index = engine.current_index
+        #     return handle_schedule(event)
             
         def handle_signal_with_direction(event: StrategySignalEvent):
             event.direction = 'BUY' if event.confidence > 0 else 'SELL'
             return handle_signal(event)
             
-        engine.register_handler(StrategyScheduleEvent, handle_schedule_with_index)
+        # 注册增强版的事件处理器（包含上下文信息）
+        # engine.register_handler(StrategyScheduleEvent, handle_schedule_with_index)
         engine.register_handler(StrategySignalEvent, handle_signal_with_direction)
         
         # 初始化策略
@@ -250,12 +364,16 @@ async def show_backtesting_page():
                 st.session_state.indicator_service = IndicatorService()
             
             # 实例化自定义策略
+            # 优先使用手动输入的规则，其次使用规则组加载的规则
+            buy_rule = st.session_state.get('buy_rule_input', st.session_state.get('buy_rule_expr', ""))
+            sell_rule = st.session_state.get('sell_rule_input', st.session_state.get('sell_rule_expr', ""))
+            
             rule_strategy = RuleBasedStrategy(
                 Data=data,
                 name="自定义规则策略",
                 indicator_service=st.session_state.indicator_service,
-                buy_rule_expr=st.session_state.get('buy_rule_expr', ""),
-                sell_rule_expr=st.session_state.get('sell_rule_expr', "")
+                buy_rule_expr=buy_rule,
+                sell_rule_expr=sell_rule
             )
             # 注册策略实例
             engine.register_strategy(rule_strategy)
@@ -268,88 +386,484 @@ async def show_backtesting_page():
         # for i in range(100):
         #     # time.sleep(0.1)  # 模拟回测过程
         #     progress_service.update_progress(task_id, (i + 1) / 100)
-        
-        engine.logger.debug("开始回测...")
 
         # 回测运行（engine中已有策略实例和所有数据）
-        engine.run(pd.to_datetime(start_date), pd.to_datetime(end_date))
+        if hasattr(backtest_config, 'target_symbols') and len(backtest_config.target_symbols) > 1:
+            # 多符号回测
+            engine.run_multi_symbol(pd.to_datetime(start_date), pd.to_datetime(end_date))
+        else:
+            # 单符号回测
+            engine.run(pd.to_datetime(start_date), pd.to_datetime(end_date))
         # progress_service.end_task(task_id)
         
         # 获取回测结果
         results = engine.get_results()
         data = engine.data
-        equity_data = engine.equity_records
+        
+        # 处理多符号和单符号的净值数据
+        if "combined_equity" in results:
+            # 多符号模式
+            equity_data = results["combined_equity"]
+            individual_results = results["individual"]
+        else:
+            # 单符号模式
+            equity_data = pd.DataFrame(results["equity_records"])
+
+        # 初始化ChartService（在所有标签页之前）
+        @st.cache_resource(ttl=3600, show_spinner=False)
+        def init_chart_service(raw_data, transaction_data):
+            if isinstance(raw_data, dict):
+                # 多符号模式：使用第一个符号的数据作为主数据
+                first_symbol = next(iter(raw_data.keys()))
+                raw_data = raw_data[first_symbol]
+            
+            raw_data['open'] = raw_data['open'].astype(float)
+            raw_data['high'] = raw_data['high'].astype(float)
+            raw_data['low'] = raw_data['low'].astype(float)
+            raw_data['close'] = raw_data['close'].astype(float)
+            raw_data['combined_time'] = pd.to_datetime(raw_data['combined_time'])
+            # 作图前时间排序
+            raw_data = raw_data.sort_values(by = 'combined_time') 
+            transaction_data = transaction_data.sort_values(by = 'timestamp')
+            databundle = DataBundle(raw_data,transaction_data, capital_flow_data=None)
+            return ChartService(databundle)
+        
+        if 'chart_service' not in st.session_state:
+            st.session_state.chart_service = init_chart_service(data, equity_data)
+            st.session_state.chart_instance_id = id(st.session_state.chart_service)
 
         if results:
             st.success("回测完成！")
-            engine.logger.debug("回测完成！")
             
-            # 显示买卖信号
-            st.subheader("买卖信号")
-            # st.dataframe(engine.data[['combined_time', 'close', 'signal']])
-            st.dataframe(engine.data)
+            # 使用标签页组织显示内容
+            tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+                "回测摘要", "交易记录", "仓位明细", "净值曲线", "原始数据", "自定义图表", "仓位策略"
+            ])
             
-            # 显示回测结果
-            st.subheader("回测结果")
-            st.dataframe(results["summary"])
+            with tab1:
+                # 格式化显示回测摘要
+                st.subheader("📊 回测摘要")
+                
+                if "combined_equity" in results:
+                    # 多符号模式
+                    st.info(f"组合回测 - {len(backtest_config.target_symbols)} 只股票")
+                    
+                    # 计算组合性能指标
+                    combined_equity = results["combined_equity"]
+                    initial_capital = backtest_config.initial_capital
+                    final_capital = combined_equity['total_value'].iloc[-1] if not combined_equity.empty else initial_capital
+                    profit = final_capital - initial_capital
+                    profit_pct = (profit / initial_capital) * 100
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("初始资金", f"¥{initial_capital:,.2f}")
+                        st.metric("最终资金", f"¥{final_capital:,.2f}")
+                        st.metric("总收益", f"¥{profit:,.2f}", f"{profit_pct:.2f}%")
+                    
+                    with col2:
+                        total_trades = len(results["trades"])
+                        st.metric("总交易次数", total_trades)
+                        # 简化显示，多符号模式下胜率计算较复杂
+                        st.metric("胜率", "多符号模式")
+                        st.metric("最大回撤", "多符号模式")
+                    
+                    with col3:
+                        # 计算年化收益率
+                        if len(combined_equity) > 1:
+                            days = (combined_equity['timestamp'].iloc[-1] - combined_equity['timestamp'].iloc[0]).days
+                            if days > 0:
+                                annual_return = (profit_pct / days) * 365
+                                st.metric("年化收益率", f"{annual_return:.2f}%")
+                            else:
+                                st.metric("年化收益率", "N/A")
+                        else:
+                            st.metric("年化收益率", "N/A")
+                    
+                    # 显示各股票表现
+                    st.subheader("各股票表现")
+                    for symbol, symbol_results in results["individual"].items():
+                        symbol_summary = symbol_results["summary"]
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric(f"{symbol} 初始资金", f"¥{symbol_summary['initial_capital']:,.2f}")
+                        with col2:
+                            st.metric(f"{symbol} 最终资金", f"¥{symbol_summary['final_capital']:,.2f}")
+                        with col3:
+                            symbol_profit = symbol_summary['final_capital'] - symbol_summary['initial_capital']
+                            symbol_profit_pct = (symbol_profit / symbol_summary['initial_capital']) * 100
+                            st.metric(f"{symbol} 收益", f"¥{symbol_profit:,.2f}", f"{symbol_profit_pct:.2f}%")
+                
+                else:
+                    # 单符号模式
+                    summary = results["summary"]
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("初始资金", f"¥{summary['initial_capital']:,.2f}")
+                        st.metric("最终资金", f"¥{summary['final_capital']:,.2f}")
+                        profit = summary['final_capital'] - summary['initial_capital']
+                        profit_pct = (profit / summary['initial_capital']) * 100
+                        st.metric("总收益", f"¥{profit:,.2f}", f"{profit_pct:.2f}%")
+                    
+                    with col2:
+                        st.metric("总交易次数", summary['total_trades'])
+                        win_rate_pct = summary['win_rate'] * 100
+                        st.metric("胜率", f"{win_rate_pct:.2f}%")
+                        st.metric("最大回撤", f"{summary['max_drawdown'] * 100:.2f}%")
+                    
+                    with col3:
+                        # 计算年化收益率（简化计算）
+                        if len(equity_data) > 1:
+                            days = (equity_data['timestamp'].iloc[-1] - equity_data['timestamp'].iloc[0]).days
+                            if days > 0:
+                                annual_return = (profit_pct / days) * 365
+                                st.metric("年化收益率", f"{annual_return:.2f}%")
+                            else:
+                                st.metric("年化收益率", "N/A")
+                        else:
+                            st.metric("年化收益率", "N/A")
             
-            # 绘制净值曲线vs收盘价曲线
-
-            st.subheader("净值曲线")
+            with tab2:
+                # 显示交易记录
+                st.subheader("💱 交易记录")
+                if results["trades"]:
+                    trades_df = pd.DataFrame(results["trades"])
+                    # 格式化时间显示
+                    if 'timestamp' in trades_df.columns:
+                        trades_df['timestamp'] = pd.to_datetime(trades_df['timestamp'])
+                    st.dataframe(trades_df, use_container_width=True)
+                    
+                    # 交易统计
+                    if not trades_df.empty:
+                        st.subheader("交易统计")
+                        buy_trades = trades_df[trades_df['direction'] == 'BUY']
+                        sell_trades = trades_df[trades_df['direction'] == 'SELL']
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("买入交易", len(buy_trades))
+                        with col2:
+                            st.metric("卖出交易", len(sell_trades))
+                        with col3:
+                            total_commission = trades_df['commission'].sum()
+                            st.metric("总手续费", f"¥{total_commission:,.2f}")
+                else:
+                    st.info("暂无交易记录")
             
+            with tab3:
+                # 显示仓位明细 - 使用PortfolioManager获取持仓信息
+                st.subheader("📈 仓位明细")
+                
+                # 获取当前持仓信息
+                portfolio_manager = engine.portfolio_manager
+                all_positions = portfolio_manager.get_all_positions()
+                
+                if all_positions:
+                    # 创建持仓信息表格
+                    position_data = []
+                    for symbol, position in all_positions.items():
+                        position_data.append({
+                            '标的代码': symbol,
+                            '持仓数量': position.quantity,
+                            '平均成本': position.avg_cost,
+                            '当前价值': position.current_value,
+                            '当前价格': position.stock.last_price if hasattr(position.stock, 'last_price') else 0
+                        })
+                    
+                    positions_df = pd.DataFrame(position_data)
+                    
+                    # 计算持仓权重
+                    total_value = portfolio_manager.get_portfolio_value()
+                    if total_value > 0:
+                        positions_df['持仓权重'] = (positions_df['当前价值'] / total_value) * 100
+                    
+                    st.dataframe(positions_df, use_container_width=True)
+                    
+                    # 仓位统计
+                    st.subheader("仓位统计")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        total_position_value = positions_df['当前价值'].sum()
+                        st.metric("持仓总价值", f"¥{total_position_value:,.2f}")
+                    with col2:
+                        cash_balance = portfolio_manager.get_cash_balance()
+                        st.metric("现金余额", f"¥{cash_balance:,.2f}")
+                    with col3:
+                        portfolio_value = portfolio_manager.get_portfolio_value()
+                        st.metric("组合总价值", f"¥{portfolio_value:,.2f}")
+                        
+                    # 持仓分布饼图
+                    if not positions_df.empty and total_value > 0:
+                        st.subheader("持仓分布")
+                        fig = px.pie(positions_df, values='当前价值', names='标的代码', 
+                                    title='持仓价值分布')
+                        st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("暂无持仓记录")
+                    
+                    # 显示现金信息
+                    cash_balance = portfolio_manager.get_cash_balance()
+                    portfolio_value = portfolio_manager.get_portfolio_value()
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("现金余额", f"¥{cash_balance:,.2f}")
+                    with col2:
+                        st.metric("组合总价值", f"¥{portfolio_value:,.2f}")
             
-
-            # 会话级缓存ChartService实例
-            @st.cache_resource(ttl=3600, show_spinner=False)
-            def init_chart_service(raw_data, transaction_data):
-                raw_data['open'] = raw_data['open'].astype(float)
-                raw_data['high'] = raw_data['high'].astype(float)
-                raw_data['low'] = raw_data['low'].astype(float)
-                raw_data['close'] = raw_data['close'].astype(float)
-                raw_data['combined_time'] = pd.to_datetime(raw_data['combined_time'])
-                # 作图前时间排序
-                raw_data = raw_data.sort_values(by = 'combined_time') 
-                transaction_data = transaction_data.sort_values(by = 'timestamp')
-                databundle = DataBundle(raw_data,transaction_data, capital_flow_data=None)
-                return ChartService(databundle)
+            with tab4:
+                st.subheader("📈 净值曲线")
+                
+                # 检查净值数据是否存在
+                if equity_data is not None and not equity_data.empty:
+                    
+                    if "combined_equity" in results:
+                        # 多符号模式 - 使用子图显示各股票净值曲线
+                        combined_equity = results["combined_equity"]
+                        
+                        # 确保时间列是datetime类型
+                        combined_equity = combined_equity.copy()
+                        combined_equity['timestamp'] = pd.to_datetime(combined_equity['timestamp'])
+                        combined_equity = combined_equity.sort_values('timestamp')
+                        
+                        # 创建子图
+                        
+                        # 计算行数：1行组合净值 + N行个股净值
+                        num_symbols = len(backtest_config.target_symbols)
+                        fig = make_subplots(
+                            rows=num_symbols + 1, cols=1,
+                            subplot_titles=["组合净值"] + [f"{symbol} 净值" for symbol in backtest_config.target_symbols],
+                            vertical_spacing=0.05
+                        )
+                        
+                        # 添加组合净值曲线
+                        fig.add_trace(
+                            go.Scatter(x=combined_equity['timestamp'], y=combined_equity['total_value'], 
+                                      name="组合净值", line=dict(color='blue')),
+                            row=1, col=1
+                        )
+                        
+                        # 添加各股票净值曲线
+                        for i, symbol in enumerate(backtest_config.target_symbols, 2):
+                            if symbol in combined_equity.columns:
+                                fig.add_trace(
+                                    go.Scatter(x=combined_equity['timestamp'], y=combined_equity[symbol], 
+                                              name=f"{symbol} 净值", line=dict(color='green')),
+                                    row=i, col=1
+                                )
+                        
+                        fig.update_layout(height=300 * (num_symbols + 1), showlegend=True)
+                        fig.update_xaxes(title_text="时间", row=num_symbols + 1, col=1)
+                        fig.update_yaxes(title_text="净值", row=(num_symbols + 2) // 2, col=1)
+                        
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        # 显示组合净值统计
+                        initial_value = combined_equity['total_value'].iloc[0]
+                        final_value = combined_equity['total_value'].iloc[-1]
+                        total_return = final_value - initial_value
+                        total_return_pct = (total_return / initial_value) * 100
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("组合初始净值", f"¥{initial_value:,.2f}")
+                        with col2:
+                            st.metric("组合最终净值", f"¥{final_value:,.2f}")
+                        with col3:
+                            st.metric("组合总收益率", f"{total_return_pct:.2f}%", f"¥{total_return:,.2f}")
+                        
+                    else:
+                        # 单符号模式
+                        equity_col = 'total_value'
+                        timestamp_col = 'timestamp'
+                        
+                        if equity_col and timestamp_col:
+                            # 确保时间列是datetime类型
+                            equity_data = equity_data.copy()
+                            logger.debug(f"净值数据行数{equity_data.shape[0]}")
+                            equity_data[timestamp_col] = pd.to_datetime(equity_data[timestamp_col])
+                            
+                            # 按时间排序
+                            equity_data = equity_data.sort_values(timestamp_col)
+                            
+                            # 计算收益率
+                            initial_value = equity_data[equity_col].iloc[0]
+                            equity_data['return_pct'] = ((equity_data[equity_col] - initial_value) / initial_value) * 100
+                            
+                            # 使用新的资产配置图表方法
+                            fig = st.session_state.chart_service.draw_equity_and_allocation(equity_data)
+                            
+                            # 显示图表
+                            st.plotly_chart(fig, use_container_width=True)
+                            
+                            # 显示净值统计信息
+                            final_value = equity_data[equity_col].iloc[-1]
+                            total_return = final_value - initial_value
+                            total_return_pct = (total_return / initial_value) * 100
+                            
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("初始净值", f"¥{initial_value:,.2f}")
+                            with col2:
+                                st.metric("最终净值", f"¥{final_value:,.2f}")
+                            with col3:
+                                st.metric("总收益率", f"{total_return_pct:.2f}%", f"¥{total_return:,.2f}")
+                            
+                            # 显示净值数据表格
+                            with st.expander("查看净值数据明细"):
+                                st.dataframe(equity_data[[timestamp_col, equity_col, 'return_pct']].rename(
+                                    columns={
+                                        timestamp_col: '时间',
+                                        equity_col: '净值',
+                                        'return_pct': '收益率%'
+                                    }), use_container_width=True)
+                        else:
+                            st.error("❌ 净值数据格式错误，无法显示净值曲线")
+                            st.warning("无法识别净值数据列名，请检查数据格式")
+                            st.write("可用列名:", equity_data.columns.tolist())
+                            st.write("前5行数据:")
+                            st.dataframe(equity_data.head())
+                            
+                            # 提供调试信息
+                            st.info("调试信息:")
+                            st.write(f"净值数据形状: {equity_data.shape}")
+                            st.write(f"净值数据类型: {type(equity_data)}")
+                            if hasattr(equity_data, 'columns'):
+                                st.write("列名详情:")
+                                for col in equity_data.columns:
+                                    st.write(f"- {col}: {equity_data[col].dtype}")
+                else:
+                    st.error("❌ 净值数据不存在或为空，无法显示净值曲线")
+                    st.info("可能的原因:")
+                    st.write("1. 回测过程中没有记录净值历史")
+                    st.write("2. PortfolioManager的record_equity_history方法未被调用")
+                    st.write("3. 净值数据格式转换失败")
+                    
+                    # 显示回测结果结构信息
+                    if results:
+                        st.write("回测结果包含的键:", list(results.keys()))
+                        if "equity_records" in results:
+                            st.write("equity_records类型:", type(results["equity_records"]))
+                            if hasattr(results["equity_records"], '__len__'):
+                                st.write("equity_records长度:", len(results["equity_records"]))
             
-            
-            if 'chart_service' not in st.session_state: # 如果缓存没有chart_service，就新建个
-                st.session_state.chart_service = init_chart_service(data,equity_data)
-                # debug
-                # st.write(st.session_state.chart_service.data_bundle.kline_data.index)
-                st.session_state.chart_instance_id = id(st.session_state.chart_service)
-
-            chart_service = st.session_state.chart_service
-            
-            # 初始化回测曲线参数config_key
-            config_key = f"chart_config_{st.session_state.chart_instance_id}"
-            if config_key not in st.session_state:
-                st.session_state[config_key] = {
-                    'main_chart': {
-                        'type': 'K线图',
-                        'fields': ['close'],
-                        'components': {}
-                    },
-                    'sub_chart': {
-                        'show': True,
-                        'type': '柱状图',
-                        'fields': ['volume'],
-                        'components': {}
+            with tab5:
+                # 显示原始数据
+                st.subheader("📋 原始数据")
+                st.dataframe(engine.data)
+                
+                # 显示买卖信号
+                st.subheader("📶 买卖信号")
+                signal_data = engine.data.loc[engine.data['signal']!=0,['combined_time', 'close', 'signal']].copy()
+                signal_data['signal_text'] = signal_data['signal'].map({0: '无信号', 1: '买入', -1: '卖出'})
+                st.dataframe(signal_data, use_container_width=True)
+            with tab6:
+                # 绘制净值曲线
+                st.subheader("📈 自定义图表")
+                
+                chart_service = st.session_state.chart_service
+                
+                # 初始化回测曲线参数config_key
+                config_key = f"chart_config_{st.session_state.chart_instance_id}"
+                if config_key not in st.session_state:
+                    st.session_state[config_key] = {
+                        'main_chart': {
+                            'type': 'K线图',
+                            'fields': ['close'],
+                            'components': {}
+                        },
+                        'sub_chart': {
+                            'show': True,
+                            'type': '柱状图',
+                            'fields': ['volume'],
+                            'components': {}
+                        }
                     }
-                }
 
-            chart_service.render_chart_controls()  # 作图配置
-            # st.write(chart_service.data_bundle.kline_data)# debug
-            # st.write(chart_service.data_bundle.trade_records)# debug
-            chart_service.render_chart_button(st.session_state[config_key]) # 作图按钮
-
+                chart_service.render_chart_controls()
+                chart_service.render_chart_button(st.session_state[config_key])
             
-            # 显示交易记录
-            st.subheader("交易记录")
-            st.subheader("仓位明细")
-            st.dataframe(equity_data)
-
+            with tab7:
+                # 显示仓位策略配置信息
+                st.subheader("📊 仓位策略配置")
+                
+                if 'position_strategy_config' in results:
+                    strategy_config = results['position_strategy_config']
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.metric("策略类型", 
+                                 "固定比例" if strategy_config['type'] == 'fixed_percent' else "凯利公式")
+                        
+                        # 显示具体参数
+                        st.subheader("策略参数")
+                        params = strategy_config['params']
+                        
+                        if strategy_config['type'] == 'fixed_percent':
+                            percent = params.get('percent', 0.1) * 100
+                            st.metric("固定仓位比例", f"{percent:.1f}%")
+                            
+                        elif strategy_config['type'] == 'kelly':
+                            win_rate = params.get('win_rate', 0.5) * 100
+                            win_loss_ratio = params.get('win_loss_ratio', 2.0)
+                            max_percent = params.get('max_percent', 0.25) * 100
+                            
+                            st.metric("策略胜率", f"{win_rate:.1f}%")
+                            st.metric("盈亏比", f"{win_loss_ratio:.2f}")
+                            st.metric("最大仓位限制", f"{max_percent:.1f}%")
+                    
+                    with col2:
+                        # 显示策略说明
+                        st.subheader("策略说明")
+                        if strategy_config['type'] == 'fixed_percent':
+                            st.info("""
+                            **固定比例仓位策略**
+                            - 每次交易使用固定比例的资金
+                            - 简单易用，风险控制稳定
+                            - 适合趋势跟踪和震荡策略
+                            """)
+                        else:
+                            st.info("""
+                            **凯利公式仓位策略**
+                            - 根据策略胜率和盈亏比动态调整仓位
+                            - 理论上最优的资金管理方法
+                            - 适合高胜率或高盈亏比的策略
+                            """)
+                    
+                    # 显示策略性能影响分析
+                    st.subheader("策略性能影响")
+                    
+                    # 计算仓位策略对交易的影响
+                    if results["trades"]:
+                        trades_df = pd.DataFrame(results["trades"])
+                        if not trades_df.empty:
+                            # 计算平均单笔交易金额占比
+                            total_trades = len(trades_df)
+                            total_investment = abs(trades_df['total_cost'].sum())
+                            avg_trade_amount = total_investment / total_trades if total_trades > 0 else 0
+                            
+                            # 获取初始资金（从回测配置或结果中）
+                            initial_capital = backtest_config.initial_capital
+                            if "summary" in results:
+                                initial_capital = results["summary"].get('initial_capital', backtest_config.initial_capital)
+                            
+                            avg_position_pct = (avg_trade_amount / initial_capital) * 100
+                            
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("平均单笔交易金额", f"¥{avg_trade_amount:,.0f}")
+                            with col2:
+                                st.metric("平均仓位占比", f"{avg_position_pct:.2f}%")
+                            with col3:
+                                # 计算仓位利用率
+                                max_position_value = equity_data['total_value'].max() if 'total_value' in equity_data.columns else 0
+                                position_utilization = (max_position_value / initial_capital) * 100
+                                st.metric("最大仓位利用率", f"{position_utilization:.2f}%")
+                else:
+                    st.info("暂无仓位策略配置信息")
 
         else:
             st.error("回测失败，请检查输入参数")

@@ -7,7 +7,7 @@ logger.setLevel(logging.DEBUG)
 
 # 创建文件处理器
 # 验证日志文件路径可写
-log_path = 'd:/VSC/awesome-Qsys/src/database.log'
+log_path = '../src/database.log'
 try:
     with open(log_path, 'a') as f:
         f.write('')  # 测试写入权限

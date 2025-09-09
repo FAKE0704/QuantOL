@@ -46,6 +46,8 @@ class RuleParser:
         ast.Gt: op.gt, 
         ast.Lt: op.lt,
         ast.Eq: op.eq,
+        ast.GtE: op.ge,
+        ast.LtE: op.le,
         ast.And: op.and_,
         ast.BitAnd: op.and_,
         ast.Or: op.or_,
@@ -60,13 +62,19 @@ class RuleParser:
         """
         self.data = data_provider
         self.indicator_service = indicator_service
-        # 只保留REF指标的特殊处理
+        # 注册支持的指标函数
         self._indicators = {
             'REF': IndicatorFunction(
                 name='REF',
                 func=self._ref,
                 params={'expr': str, 'period': int},
                 description='引用前n期数据: REF(expr, period)'
+            ),
+            'RSI': IndicatorFunction(
+                name='RSI',
+                func=lambda series, period: self.indicator_service.calculate_indicator('rsi', series, self.current_index, period),
+                params={'series': pd.Series, 'period': int},
+                description='相对强弱指数: RSI(series, period)'
             )
         }
         self.series_cache = {}  # 序列缓存字典
@@ -111,7 +119,8 @@ class RuleParser:
             result = self._eval(tree.body)
             final_result = bool(result) if mode == 'rule' else result
             if mode == 'rule':
-                logger.info(f"[RULE_RESULT] {rule} = {final_result}")
+                pass
+                # logger.info(f"[RULE_RESULT] {rule} = {final_result}")
             return final_result
         except RecursionError:
             raise RecursionError("递归深度超过限制，请简化规则表达式")
@@ -304,14 +313,11 @@ class RuleParser:
                 period_val = self._eval(node.args[1]) if len(node.args) > 1 else 5
                 period = int(period_val) if isinstance(period_val, (int, float)) else 5
                 data_column = self._node_to_expr(node.args[0]).strip('\"\'')
-                logger.info(f"[SMA_RESULT] SMA({data_column},{period})={cached_value}")
+                # logger.info(f"[SMA_RESULT] SMA({data_column},{period})={cached_value}")
             return cached_value
         
         # 计算并缓存结果
         self.cache_misses += 1
-        logger.debug(f"计算指标 {func_name} 开始, 当前索引: {self.current_index}")
-        logger.debug(f"数据列: {data_column}, 参数: {remaining_args_str}")
-        logger.debug(f"缓存键: {cache_key}")
         
         # 验证指标参数（特别是周期类参数）
         for arg_node in remaining_args:
@@ -337,11 +343,11 @@ class RuleParser:
                 period = int(period_val) if isinstance(period_val, (int, float)) else 5
                 start_idx = max(0, int(self.current_index) - period + 1)
                 end_idx = int(self.current_index) + 1
-                logger.debug(
-                    f"SMA计算详情: 周期={period}, "
-                    f"数据范围={start_idx}:{end_idx}, "
-                    f"当前值={series.iloc[self.current_index]}"
-                )
+                # logger.debug(
+                #     f"SMA计算详情: 周期={period}, "
+                #     f"数据范围={start_idx}:{end_idx}, "
+                #     f"当前值={series.iloc[self.current_index]}"
+                # )
             
             # 确保current_index是整数
             current_index = int(self.current_index) if not isinstance(self.current_index, int) else self.current_index
@@ -354,9 +360,10 @@ class RuleParser:
                 *[self._eval(arg) for arg in remaining_args]  # 评估所有参数
             )
             
-            logger.debug(f"指标计算结果: {func_name}={result}")
+            
             if func_name.upper() == 'SMA':
-                logger.debug(f"SMA计算详情: {data_column},{period}={result}")
+                pass
+                # logger.debug(f"SMA计算详情: {data_column},{period}={result}")
         except AttributeError as e:
             logging.error(f"不支持的指标函数: {func_name}, 错误: {str(e)}")
             raise ValueError(f"不支持的指标函数: {func_name}") from e
@@ -383,7 +390,6 @@ class RuleParser:
         self.value_cache[cache_key] = result_float
         # 存储指标计算结果到engine.data
         col_name = f"{func_name}({args_str})"
-        logger.debug(f"准备存储指标 {col_name} 到索引 {self.current_index}, 值: {result_float}")
         
         # 严格检查列是否存在（包括属性和注释）
         col_exists = (
@@ -400,7 +406,7 @@ class RuleParser:
         # 确保当前索引有效
         if 0 <= self.current_index < len(self.data):
             self.data.at[self.current_index, col_name] = result_float
-            logger.debug(f"存储指标 {col_name}[{self.current_index}] = {result_float}")
+            
         else:
             logger.error(f"无效索引 {self.current_index} 无法存储指标 {col_name}")
         
@@ -493,7 +499,7 @@ class RuleParser:
         1. 计算原始指标并存储
         2. 计算REF指标并存储
         """
-        logger.debug(f"[REF] 开始计算REF(expr={expr}, period={period})")
+        # logger.debug(f"[REF] 开始计算REF(expr={expr}, period={period})")
         
         # 先计算并存储原始指标
         if "(" in expr and ")" in expr:  # 如果是指标表达式
@@ -518,7 +524,7 @@ class RuleParser:
         period_int = int(period) if period is not None else 0
         target_index = max(0, min(int(original_index) - period_int, len(self.data)-1))
         target_index = int(target_index)  # 确保转换为整数
-        logger.debug(f"[REF] 目标索引位置: {target_index} (当前索引: {original_index}, 回溯周期: {period})")
+        # logger.debug(f"[REF] 目标索引位置: {target_index} (当前索引: {original_index}, 回溯周期: {period})")
         
         # 回溯到历史位置计算表达式
         self.current_index = target_index
@@ -545,7 +551,7 @@ class RuleParser:
                 self.data.at[original_index, nested_col] = result_numeric
             
             self.value_cache[cache_key] = result_numeric
-            logger.info(f"[REF_RESULT] REF({expr},{period})={result_numeric} (from index {target_index})")
+            # logger.info(f"[REF_RESULT] REF({expr},{period})={result_numeric} (from index {target_index})")
             return result_numeric
         except Exception as e:
             raise ValueError(f"REF函数计算失败: {str(e)}") from e

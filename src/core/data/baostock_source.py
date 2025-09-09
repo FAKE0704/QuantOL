@@ -57,7 +57,6 @@ class BaostockDataSource(DataSource):
                 frequency=freq,
                 adjustflag="3"
             ) # 日期格式需要为 20250202
-
         else:
             # 转换为baostock需要的日期格式
             start_date_str = start_date.strftime("%Y-%m-%d")
@@ -93,7 +92,7 @@ class BaostockDataSource(DataSource):
             raise DataSourceError(
                 f"未获取到数据, symbol: {symbol}, "
                 f"start_date:{start_date_str}, "
-                f"end_date:{end_date_str}, "
+                f"end_date:{end_date}, " # 如果报错可能来自这
                 f"frequency: {freq}"
             )
             

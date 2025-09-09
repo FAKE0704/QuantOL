@@ -51,17 +51,26 @@ class RuleParser:
         ast.And: op.and_,
         ast.BitAnd: op.and_,
         ast.Or: op.or_,
-        ast.Not: op.not_
+        ast.Not: op.not_,
+        ast.Add: op.add,
+        ast.Sub: op.sub,
+        ast.Mult: op.mul,
+        ast.Div: op.truediv,
+        ast.FloorDiv: op.floordiv,
+        ast.Mod: op.mod,
+        ast.Pow: op.pow
     }
     
-    def __init__(self, data_provider: pd.DataFrame, indicator_service: IndicatorService):
+    def __init__(self, data_provider: pd.DataFrame, indicator_service: IndicatorService, portfolio_manager: Any = None):
         """初始化解析器
         Args:
             data_provider: 提供OHLCV等市场数据的DataFrame
             indicator_service: 指标计算服务
+            portfolio_manager: 投资组合管理器，用于获取COST、POSITION等变量
         """
         self.data = data_provider
         self.indicator_service = indicator_service
+        self.portfolio_manager = portfolio_manager
         # 注册支持的指标函数
         self._indicators = {
             'REF': IndicatorFunction(
@@ -202,12 +211,37 @@ class RuleParser:
         elif isinstance(node, ast.BinOp):
             left = self._eval(node.left)
             right = self._eval(node.right)
+            
+            # 处理除零错误
+            if isinstance(node.op, (ast.Div, ast.FloorDiv)) and right == 0:
+                # 获取当前时间信息
+                current_time = ""
+                if hasattr(self, 'data') and 'combined_time' in self.data.columns and 0 <= self.current_index < len(self.data):
+                    current_time = self.data['combined_time'].iloc[self.current_index]
+                
+                # 打印除零错误信息
+                logger.warning(f"除零错误: 索引 {self.current_index}, 时间 {current_time}, 表达式: {self._node_to_expr(node)}")
+                return 0.0  # 除零时返回0
+                
             return self.OPERATORS[type(node.op)](left, right)
         elif isinstance(node, ast.Constant):
             try:
                 return float(node.value)
             except (TypeError, ValueError):
                 return 0.0
+        elif isinstance(node, ast.UnaryOp):
+            # 处理一元运算符（如 -5, +10 等）
+            operand = self._eval(node.operand)
+            if isinstance(node.op, ast.USub):  # 负号
+                return -operand
+            elif isinstance(node.op, ast.UAdd):  # 正号
+                return +operand
+            elif isinstance(node.op, ast.Not):  # 逻辑非
+                return not operand
+            elif isinstance(node.op, ast.Invert):  # 按位取反 ~
+                return ~int(operand) if operand is not None else None
+            else:
+                raise ValueError(f"不支持的一元运算符: {type(node.op)}")
         else:
             raise ValueError(f"不支持的AST节点类型: {type(node)}")
 
@@ -223,10 +257,26 @@ class RuleParser:
         return result
     
     def _eval_variable(self, node) -> float:
-        """评估变量(从数据源获取)"""
-        if node.id not in self.data.columns:
-            raise ValueError(f"数据中不存在列: {node.id}")
-        value = self.data[node.id].iloc[self.current_index]
+        """评估变量(从数据源获取或从portfolio_manager获取)"""
+        var_name = node.id
+        
+        # 处理投资组合相关变量
+        if var_name == 'COST' and self.portfolio_manager:
+            # 获取持仓总成本
+            return self.portfolio_manager.get_total_cost()
+        elif var_name == 'POSITION' and self.portfolio_manager:
+            # 获取当前标的的持仓数量
+            # 需要从数据中获取当前标的代码
+            if not self.data.empty and 'code' in self.data.columns:
+                current_symbol = self.data['code'].iloc[self.current_index]
+                position = self.portfolio_manager.get_position(current_symbol)
+                return position.quantity if position else 0.0
+            return 0.0
+        
+        # 处理数据列变量
+        if var_name not in self.data.columns:
+            raise ValueError(f"数据中不存在列: {var_name}")
+        value = self.data[var_name].iloc[self.current_index]
         if pd.isna(value):
             return 0.0  # 空值处理
         return float(value)

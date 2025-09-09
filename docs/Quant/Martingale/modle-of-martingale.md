@@ -124,9 +124,18 @@ $$
 $loss=M*p_{now}-C$
 
 ## 归因
-假设n次加仓后止盈，那么总盈利是
->
-
+假设$m$次加仓后止盈，那么总盈利是
+> **总仓位**$$
+M_{total} = \sum\limits_{n=0}^{m}M_n=M_0\cdot\sum\limits_{n=0}^{m}k^n=M_0\cdot\frac{k^{m+1} - 1}{k - 1}
+$$
+**总成本**$$
+C_{total} = \sum\limits_{n=0}^{m}M_n\cdot p_{T(n)}=M_0\cdot\sum\limits_{n=0}^{m}k^n\cdot p_{T(n)}
+$$
+总盈利
+$$
+M_0\cdot \alpha \cdot\sum\limits_{n=0}^{m}k^n
+$$
+- $\alpha$为目标盈利百分比
 
 # 其他
 \[

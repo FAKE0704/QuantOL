@@ -3,7 +3,7 @@ from core.strategy.rule_parser import RuleParser
 from core.strategy.strategy import BaseStrategy
 from event_bus.event_types import StrategySignalEvent
 from core.strategy.indicators import IndicatorService
-from typing import Optional
+from typing import Optional, Any
 import pandas as pd
 from support.log.logger import logger
 
@@ -12,7 +12,8 @@ class RuleBasedStrategy(BaseStrategy):
     
     def __init__(self, Data: pd.DataFrame, name: str, 
                  indicator_service: IndicatorService,
-                 buy_rule_expr: str = "", sell_rule_expr: str = ""):
+                 buy_rule_expr: str = "", sell_rule_expr: str = "",
+                 portfolio_manager: Any = None):
         """
         Args:
             Data: 市场数据DataFrame
@@ -24,7 +25,7 @@ class RuleBasedStrategy(BaseStrategy):
         super().__init__(Data, name)
         self.buy_rule_expr = buy_rule_expr
         self.sell_rule_expr = sell_rule_expr
-        self.parser = RuleParser(Data, indicator_service)
+        self.parser = RuleParser(Data, indicator_service, portfolio_manager)
         
     def generate_signals(self, current_index: int) -> Optional[StrategySignalEvent]:
         """根据买入/卖出规则表达式生成交易信号

@@ -272,6 +272,13 @@ class PortfolioManager(IPortfolio):
         """
         return sum(pos.current_value for pos in self.positions.values())
 
+    def get_total_cost(self) -> float:
+        """获取持仓总成本
+        Returns:
+            持仓总成本（所有持仓的平均成本 * 数量之和）
+        """
+        return sum(pos.avg_cost * pos.quantity for pos in self.positions.values())
+
     def get_cash_balance(self) -> float:
         """获取当前现金余额
         Returns:

@@ -124,46 +124,65 @@ async def show_backtesting_page():
             cols = st.columns([3, 1])
             
             with cols[0]:
-                st.subheader("买入规则")
+                st.subheader("开仓规则")
                 st.text_area(
-                    "买入条件", 
-                    value=st.session_state.get("buy_rule_expr", ""),
-                    height=100,
-                    key="buy_rule_input",
-                    help="输入买入条件表达式，如: SMA(20) > SMA(50)"
+                    "开仓条件", 
+                    value=st.session_state.get("open_rule_expr", ""),
+                    height=80,
+                    key="open_rule_input",
+                    help="输入开仓条件表达式，如: SMA(20) > SMA(50)"
                 )
                 
-                st.subheader("卖出规则") 
+                st.subheader("清仓规则") 
                 st.text_area(
-                    "卖出条件",
+                    "清仓条件",
+                    value=st.session_state.get("close_rule_expr", ""),
+                    height=80,
+                    key="close_rule_input",
+                    help="输入清仓条件表达式，如: SMA(20) < SMA(50)"
+                )
+                
+                st.subheader("加仓规则")
+                st.text_area(
+                    "加仓条件", 
+                    value=st.session_state.get("buy_rule_expr", ""),
+                    height=80,
+                    key="buy_rule_input",
+                    help="输入加仓条件表达式，如: RSI(14) < 30"
+                )
+                
+                st.subheader("平仓规则") 
+                st.text_area(
+                    "平仓条件",
                     value=st.session_state.get("sell_rule_expr", ""),
-                    height=100,
+                    height=80,
                     key="sell_rule_input",
-                    help="输入卖出条件表达式，如: SMA(20) < SMA(50)"
+                    help="输入平仓条件表达式，如: RSI(14) > 70"
                 )
             
             with cols[1]:
                 st.subheader("规则语法校验")
-                if 'buy_rule_expr' in st.session_state and st.session_state.buy_rule_expr:
-                    from core.strategy.rule_parser import RuleParser
-                    valid, msg = RuleParser.validate_syntax(st.session_state.buy_rule_expr)
-                    if valid:
-                        st.success("✓ 买入规则语法正确")
-                        st.code(f"买入: {st.session_state.buy_rule_expr}")
-                    else:
-                        st.error(msg)
                 
-                if 'sell_rule_expr' in st.session_state and st.session_state.sell_rule_expr:
-                    from core.strategy.rule_parser import RuleParser
-                    valid, msg = RuleParser.validate_syntax(st.session_state.sell_rule_expr)
-                    if valid:
-                        st.success("✓ 卖出规则语法正确")
-                        st.code(f"卖出: {st.session_state.sell_rule_expr}")
-                    else:
-                        st.error(msg)
+                # 统一的规则校验函数
+                def validate_rule(rule_key, display_name):
+                    if rule_key in st.session_state and st.session_state[rule_key]:
+                        from core.strategy.rule_parser import RuleParser
+                        valid, msg = RuleParser.validate_syntax(st.session_state[rule_key])
+                        if valid:
+                            st.success(f"✓ {display_name}语法正确")
+                            st.code(f"{display_name}: {st.session_state[rule_key]}")
+                        else:
+                            st.error(f"{display_name}错误: {msg}")
                 
-                if not st.session_state.get('buy_rule_expr') and not st.session_state.get('sell_rule_expr'):
-                    st.info("请输入买入/卖出规则表达式")
+                # 校验所有规则
+                validate_rule("open_rule_expr", "开仓")
+                validate_rule("close_rule_expr", "清仓") 
+                validate_rule("buy_rule_expr", "加仓")
+                validate_rule("sell_rule_expr", "平仓")
+                
+                if not any([st.session_state.get('open_rule_expr'), st.session_state.get('close_rule_expr'), 
+                          st.session_state.get('buy_rule_expr'), st.session_state.get('sell_rule_expr')]):
+                    st.info("请输入开仓/清仓/加仓/平仓规则表达式")
                 
                 # 初始化规则组存储
                 if 'rule_groups' not in st.session_state:
@@ -175,6 +194,12 @@ async def show_backtesting_page():
                         '相对强度': {
                             'buy_rule': '(REF(RSI(close,5), 1) < 30) & (RSI(close,5) >= 30)',
                             'sell_rule': '(REF(RSI(close,5), 1) >= 60) & (RSI(close,5) < 60)'
+                        },
+                        'Martingale': {
+                            'open_rule': '(close < REF(SMA(close,5), 1)) & (close > SMA(close,5))',  # 价格上穿5线开仓
+                            'close_rule': '(close - (COST/POSITION))/(COST/POSITION) * 100 >= 5',  # 价格上涨5%时清仓
+                            'buy_rule': '(close - (COST/POSITION))/(COST/POSITION) * 100 <= -5',   # 价格下跌5%时加仓
+                            'sell_rule': ''    # 只清仓不平仓
                         }
                     }
                 
@@ -189,14 +214,21 @@ async def show_backtesting_page():
                 if st.button("加载规则组"):
                     if selected_group in st.session_state.rule_groups:
                         group = st.session_state.rule_groups[selected_group]
-                        st.session_state.buy_rule_expr = group['buy_rule']
-                        st.session_state.sell_rule_expr = group['sell_rule']
+                        # 加载所有规则类型，保持向后兼容
+                        if 'open_rule' in group:
+                            st.session_state.open_rule_expr = group['open_rule']
+                        if 'close_rule' in group:
+                            st.session_state.close_rule_expr = group['close_rule']
+                        st.session_state.buy_rule_expr = group.get('buy_rule', group.get('add_rule', ''))
+                        st.session_state.sell_rule_expr = group.get('sell_rule', group.get('reduce_rule', ''))
                         st.rerun()
                 
                 if st.button("保存当前规则组"):
                     group_name = st.text_input("输入规则组名称", key="new_rule_group_name")
                     if group_name and group_name.strip():
                         st.session_state.rule_groups[group_name] = {
+                            'open_rule': st.session_state.get('open_rule_expr', ''),
+                            'close_rule': st.session_state.get('close_rule_expr', ''),
                             'buy_rule': st.session_state.get('buy_rule_expr', ''),
                             'sell_rule': st.session_state.get('sell_rule_expr', '')
                         }
@@ -240,8 +272,8 @@ async def show_backtesting_page():
     # 仓位策略类型选择
     position_strategy_type = st.selectbox(
         "仓位策略类型",
-        options=["fixed_percent", "kelly"],
-        format_func=lambda x: "固定比例" if x == "fixed_percent" else "凯利公式",
+        options=["fixed_percent", "kelly", "martingale"],
+        format_func=lambda x: "固定比例" if x == "fixed_percent" else "凯利公式" if x == "kelly" else "马丁策略",
         key="position_strategy_select"
     )
     # 更新配置对象中的仓位策略类型
@@ -291,6 +323,37 @@ async def show_backtesting_page():
             "win_rate": win_rate / 100,
             "win_loss_ratio": win_loss_ratio,
             "max_percent": max_percent / 100
+        }
+    
+    elif position_strategy_type == "martingale":
+        col1, col2 = st.columns(2)
+        with col1:
+            initial_ratio = st.slider(
+                "初始开仓资金比例(%)",
+                min_value=1.0,
+                max_value=10.0,
+                value=0.01,
+                step=0.01,
+                key="martingale_initial_ratio"
+            )
+        with col2:
+            multiplier = st.slider(
+                "加仓倍数",
+                min_value=1.0,
+                max_value=10.0,
+                value=2.0,
+                step=0.1,
+                key="martingale_multiplier"
+            )
+        
+        # 显示仓位计算示例
+        st.info(f"仓位计算示例: 第1次开仓 {initial_ratio}%, 第2次加仓 {initial_ratio * multiplier:.1f}%, 第3次加仓 {initial_ratio * multiplier**2:.1f}%")
+        
+        # 更新配置对象中的仓位策略参数
+        st.session_state.backtest_config.position_strategy_params = {
+            "initial_ratio": initial_ratio / 100,
+            "multiplier": multiplier,
+            "clear_on_insufficient": True  # 资金不足时清仓
         }
     
     # 初始化按钮状态
@@ -373,7 +436,8 @@ async def show_backtesting_page():
                 name="自定义规则策略",
                 indicator_service=st.session_state.indicator_service,
                 buy_rule_expr=buy_rule,
-                sell_rule_expr=sell_rule
+                sell_rule_expr=sell_rule,
+                portfolio_manager=engine.portfolio_manager
             )
             # 注册策略实例
             engine.register_strategy(rule_strategy)
@@ -814,6 +878,15 @@ async def show_backtesting_page():
                             st.metric("策略胜率", f"{win_rate:.1f}%")
                             st.metric("盈亏比", f"{win_loss_ratio:.2f}")
                             st.metric("最大仓位限制", f"{max_percent:.1f}%")
+                        
+                        elif strategy_config['type'] == 'martingale':
+                            initial_ratio = params.get('initial_ratio', 0.1) * 100
+                            multiplier = params.get('multiplier', 2.0)
+                            clear_on_insufficient = params.get('clear_on_insufficient', True)
+                            
+                            st.metric("初始开仓比例", f"{initial_ratio:.2f}%")
+                            st.metric("加仓倍数", f"{multiplier:.1f}")
+                            st.metric("资金不足清仓", "是" if clear_on_insufficient else "否")
                     
                     with col2:
                         # 显示策略说明
@@ -824,6 +897,14 @@ async def show_backtesting_page():
                             - 每次交易使用固定比例的资金
                             - 简单易用，风险控制稳定
                             - 适合趋势跟踪和震荡策略
+                            """)
+                        elif strategy_config['type'] == 'martingale':
+                            st.info("""
+                            **马丁策略 (Martingale)**
+                            - 初始开仓使用固定比例资金
+                            - 每次加仓金额按倍数递增: $x * k^n$
+                            - 资金不足时自动触发清仓
+                            - 适合震荡行情和网格交易
                             """)
                         else:
                             st.info("""

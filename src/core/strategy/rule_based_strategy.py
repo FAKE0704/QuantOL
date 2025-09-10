@@ -13,71 +13,99 @@ class RuleBasedStrategy(BaseStrategy):
     def __init__(self, Data: pd.DataFrame, name: str, 
                  indicator_service: IndicatorService,
                  buy_rule_expr: str = "", sell_rule_expr: str = "",
+                 open_rule_expr: str = "", close_rule_expr: str = "",
                  portfolio_manager: Any = None):
         """
         Args:
             Data: 市场数据DataFrame
             name: 策略名称
             indicator_service: 指标计算服务
-            buy_rule_expr: 买入规则表达式字符串
-            sell_rule_expr: 卖出规则表达式字符串
+            buy_rule_expr: 加仓规则表达式字符串
+            sell_rule_expr: 平仓规则表达式字符串
+            open_rule_expr: 开仓规则表达式字符串
+            close_rule_expr: 清仓规则表达式字符串
         """
         super().__init__(Data, name)
         self.buy_rule_expr = buy_rule_expr
         self.sell_rule_expr = sell_rule_expr
+        self.open_rule_expr = open_rule_expr
+        self.close_rule_expr = close_rule_expr
         self.parser = RuleParser(Data, indicator_service, portfolio_manager)
         
+    def _generate_signal_from_rule(self, rule_expr: str, direction: str, rule_type: str) -> Optional[StrategySignalEvent]:
+        """根据规则表达式生成交易信号（统一处理函数）
+        Args:
+            rule_expr: 规则表达式
+            direction: 交易方向 ('BUY' 或 'SELL')
+            rule_type: 规则类型（用于日志记录）
+        Returns:
+            交易信号事件或None
+        """
+        if not rule_expr:
+            return None
+            
+        try:
+            should_trade = self.parser.parse(rule_expr)
+            # logger.debug(f"{rule_type}规则解析结果: {should_trade}")
+            if should_trade:
+                # logger.debug(f"生成 {direction} 信号")
+                return StrategySignalEvent(
+                    strategy_id=self.strategy_id,
+                    symbol=self.Data['code'].iloc[-1],
+                    direction=direction,
+                    price=float(self.Data.loc[self.parser.current_index,'close']),
+                    quantity=100,  # 默认数量
+                    confidence=1.0,
+                    timestamp=self.Data.loc[self.parser.current_index,'combined_time'],
+                    parameters={'current_index': self.parser.current_index}
+                )
+        except Exception as e:
+            logger.error(f"{rule_type}规则解析失败: {str(e)}")
+        return None
+
     def generate_signals(self, current_index: int) -> Optional[StrategySignalEvent]:
-        """根据买入/卖出规则表达式生成交易信号
+        """根据开仓/清仓/加仓/平仓规则表达式生成交易信号
         Args:
             current_index: 当前数据索引位置
         """
         try:           
             # 更新解析器数据为最新数据
             self.parser.data = self.Data
+            self.parser.current_index = current_index
             
-            if not self.Data.empty:
-                last_row = self.Data.iloc[-1]
+            # 首先评估所有规则以确保列生成（即使不触发信号也要评估）
+            all_rules = [
+                (self.open_rule_expr, 'BUY', '开仓'),
+                (self.close_rule_expr, 'SELL', '清仓'), 
+                (self.buy_rule_expr, 'BUY', '加仓'),
+                (self.sell_rule_expr, 'SELL', '平仓')
+            ]
+            
+            # 评估所有规则以确保列生成
+            for rule_expr, direction, rule_type in all_rules:
+                if rule_expr:
+                    try:
+                        # 评估规则但不生成信号（仅用于列生成）
+                        self.parser.parse(rule_expr)
+                    except Exception as e:
+                        logger.error(f"{rule_type}规则评估失败（列生成）: {str(e)}")
+            
+            # 按优先级顺序检查规则：开仓 > 清仓 > 加仓 > 平仓 （原代码：出现信号即跳出，会导致某些规则没有被解析评估）
+            signal = self._generate_signal_from_rule(self.open_rule_expr, 'BUY', '开仓')
+            if signal:
+                return signal
                 
-                # 记录关键指标值
-                # logger.debug("当前技术指标值: %s", 
-                #     {k: v for k,v in last_row.items() 
-                #      if k in ['ma5', 'ma10', 'macd', 'rsi', 'kdj_k', 'kdj_d']})
-            
-            # 解析买入规则
-            if self.buy_rule_expr:
-                should_buy = self.parser.parse(self.buy_rule_expr)
-                # logger.debug(f"买入规则解析结果: {should_buy}")
-                if should_buy:
-                    # logger.debug("生成 BUY 信号")
-                    return StrategySignalEvent(
-                        strategy_id=self.strategy_id,
-                        symbol=self.Data['code'].iloc[-1],
-                        direction='BUY',
-                        price=float(self.Data.loc[self.parser.current_index,'close']),
-                        quantity=100,  # 默认数量，实际不使用
-                        confidence=1.0,
-                        timestamp=self.Data.loc[current_index,'combined_time'],
-                        parameters={'current_index': current_index}
-                    )
-            
-            # 解析卖出规则
-            if self.sell_rule_expr:
-                should_sell = self.parser.parse(self.sell_rule_expr)
-                # logger.debug(f"卖出规则解析结果: {should_sell}")
-                if should_sell:
-                    # logger.debug("生成 SELL 信号")
-                    return StrategySignalEvent(
-                        strategy_id=self.strategy_id,
-                        symbol=self.Data['code'].iloc[-1],
-                        direction='SELL',
-                        price=float(self.Data.loc[self.parser.current_index,'close']),
-                        quantity=100,  # 默认数量
-                        confidence=1.0,
-                        timestamp=self.Data.loc[current_index,'combined_time'],
-                        parameters={'current_index': current_index}
-                    )
-            
+            signal = self._generate_signal_from_rule(self.close_rule_expr, 'SELL', '清仓')
+            if signal:
+                return signal
+                
+            signal = self._generate_signal_from_rule(self.buy_rule_expr, 'BUY', '加仓')
+            if signal:
+                return signal
+                
+            signal = self._generate_signal_from_rule(self.sell_rule_expr, 'SELL', '平仓')
+            if signal:
+                return signal
             
             return None
                 

@@ -42,6 +42,8 @@ class BacktestConfig:
         position_strategy_params (Dict[str, float]): 仓位策略参数，支持参数包括：
             - fixed_percent: {"percent": 0.1} (10%仓位)
             - kelly: {"max_position_percent": 0.25} (最大25%仓位)
+        
+        min_lot_size (int): 最小交易手数，默认100股（A股市场）
     """
     
     start_date: str
@@ -59,6 +61,7 @@ class BacktestConfig:
     slippage: float = 0.00
     position_strategy_type: str = "fixed_percent"
     position_strategy_params: Dict[str, Any] = field(default_factory=dict)
+    min_lot_size: int = 100
 
     def __post_init__(self):
         """参数验证"""
@@ -93,6 +96,10 @@ class BacktestConfig:
             raise ValueError("最大持仓天数必须大于0")
         if self.extra_params is None:
             self.extra_params = {}
+            
+        # 验证最小交易手数
+        if self.min_lot_size <= 0:
+            raise ValueError("最小交易手数必须大于0")
             
         # 验证仓位策略参数
         self._validate_position_strategy_params()
@@ -214,6 +221,9 @@ class BacktestEngine:
         self.portfolio = self.portfolio_manager  # PortfolioManager 实现了 IPortfolio 接口
         self.risk_manager = RiskManager(self.portfolio, self.config.commission_rate)
         
+        # 更新规则解析器以包含投资组合管理器引用
+        self.rule_parser.portfolio_manager = self.portfolio_manager
+        
         # 注册StrategySignalEvent处理器
         self.register_handler(StrategySignalEvent, self._handle_signal_event)
         
@@ -227,6 +237,7 @@ class BacktestEngine:
         """更新RuleParser的数据引用"""
         self.rule_parser.data = self.data
         self.rule_parser.indicator_service = self.indicator_service
+        self.rule_parser.portfolio_manager = self.portfolio_manager
 
     def run(self, start_date: datetime, end_date: datetime):
         """执行事件驱动的回测"""
@@ -443,11 +454,19 @@ class BacktestEngine:
         return self.position_strategy.calculate_position(signal_strength)
         
     def _calculate_order_quantity(self, position_amount: float, price: float) -> int:
-        """计算订单数量"""
+        """计算订单数量（向下取整到最小交易手数的倍数）"""
         if price <= 0:
             raise ValueError("价格必须大于0")
-        quantity = int(position_amount / price)
-        return max(100, quantity)  # 最小交易100股
+        
+        # 计算理论数量
+        raw_quantity = position_amount / price
+        
+        # 向下取整到最小交易手数的倍数
+        min_lot = self.config.min_lot_size
+        quantity = int(raw_quantity // min_lot) * min_lot
+        
+        # 确保至少是最小手数
+        return max(min_lot, quantity)
         
     def _validate_order_risk(self, order_event: OrderEvent) -> bool:
         """验证订单风险"""

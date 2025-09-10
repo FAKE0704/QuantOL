@@ -156,13 +156,137 @@ class RuleParser:
         return series
     
     def _node_to_expr(self, node) -> str:
-        """将AST节点转换为表达式字符串"""
-        expr = astunparse.unparse(node).strip()
-        # 处理函数调用参数间的多余空格
-        if isinstance(node, ast.Call):
-            # 将"func(arg1, arg2)"格式化为"func(arg1,arg2)"
-            expr = expr.replace(', ', ',')
-        return expr
+        """将AST节点转换为表达式字符串，生成更简洁的列名"""
+        if isinstance(node, ast.Compare):
+            # 对于比较运算，生成更简洁的表达式
+            left = self._node_to_expr_simple(node.left)
+            right = self._node_to_expr_simple(node.comparators[0])
+            op = self._get_operator_symbol(node.ops[0])
+            return f"{left} {op} {right}"
+        elif isinstance(node, ast.BinOp):
+            # 对于二元运算，生成更简洁的表达式
+            left = self._node_to_expr_simple(node.left)
+            right = self._node_to_expr_simple(node.right)
+            op = self._get_operator_symbol(node.op)
+            return f"{left} {op} {right}"
+        elif isinstance(node, ast.UnaryOp):
+            # 对于一元运算
+            operand = self._node_to_expr_simple(node.operand)
+            op = self._get_operator_symbol(node.op)
+            return f"{op}{operand}"
+        else:
+            # 其他情况使用原始方法
+            expr = astunparse.unparse(node).strip()
+            # 处理函数调用参数间的多余空格
+            if isinstance(node, ast.Call):
+                expr = expr.replace(', ', ',')
+            return expr
+    
+    def _node_to_expr_simple(self, node) -> str:
+        """生成更简洁的表达式字符串，用于内部运算"""
+        if isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, ast.Constant):
+            return str(node.value)
+        elif isinstance(node, ast.BinOp):
+            left = self._node_to_expr_simple(node.left)
+            right = self._node_to_expr_simple(node.right)
+            op = self._get_operator_symbol(node.op)
+            
+            # 简化括号逻辑 - 只在真正必要时添加括号
+            left_needs_parens = self._needs_parentheses(node.left, node.op, is_left=True)
+            right_needs_parens = self._needs_parentheses(node.right, node.op, is_left=False)
+            
+            if left_needs_parens:
+                left = f"({left})"
+            if right_needs_parens:
+                right = f"({right})"
+                
+            return f"{left} {op} {right}"
+        elif isinstance(node, ast.UnaryOp):
+            operand = self._node_to_expr_simple(node.operand)
+            op = self._get_operator_symbol(node.op)
+            return f"{op}{operand}"
+        elif isinstance(node, ast.Call):
+            # 函数调用保持原样
+            func_name = node.func.id
+            args = [self._node_to_expr_simple(arg) for arg in node.args]
+            return f"{func_name}({','.join(args)})"
+        else:
+            return astunparse.unparse(node).strip()
+    
+    def _needs_parentheses(self, child_node, parent_op, is_left=True) -> bool:
+        """判断子节点是否需要括号
+        Args:
+            child_node: 子AST节点
+            parent_op: 父节点的操作符
+            is_left: 是否为左操作数
+        Returns:
+            是否需要添加括号
+        """
+        if not isinstance(child_node, ast.BinOp):
+            return False
+            
+        # 获取操作符优先级
+        op_precedence = {
+            ast.Pow: 4,
+            ast.Mult: 3, ast.Div: 3, ast.FloorDiv: 3, ast.Mod: 3,
+            ast.Add: 2, ast.Sub: 2,
+            ast.Gt: 1, ast.Lt: 1, ast.Eq: 1, ast.GtE: 1, ast.LtE: 1
+        }
+        
+        child_op_precedence = op_precedence.get(type(child_node.op), 0)
+        parent_op_precedence = op_precedence.get(type(parent_op), 0)
+        
+        # 如果子操作符优先级更低，需要括号
+        if child_op_precedence < parent_op_precedence:
+            return True
+            
+        # 对于相同优先级的操作符，需要处理结合性
+        if child_op_precedence == parent_op_precedence:
+            # 对于左结合的运算符，右操作数需要括号
+            if not is_left and parent_op_precedence in [2, 3]:  # +-*/等
+                return True
+            # 对于幂运算，左操作数需要括号
+            if is_left and isinstance(parent_op, ast.Pow):
+                return True
+                
+        return False
+    
+    def _get_operator_symbol(self, op_node) -> str:
+        """获取运算符的符号表示"""
+        if isinstance(op_node, ast.Add):
+            return "+"
+        elif isinstance(op_node, ast.Sub):
+            return "-"
+        elif isinstance(op_node, ast.Mult):
+            return "*"
+        elif isinstance(op_node, ast.Div):
+            return "/"
+        elif isinstance(op_node, ast.FloorDiv):
+            return "//"
+        elif isinstance(op_node, ast.Mod):
+            return "%"
+        elif isinstance(op_node, ast.Pow):
+            return "**"
+        elif isinstance(op_node, ast.Gt):
+            return ">"
+        elif isinstance(op_node, ast.Lt):
+            return "<"
+        elif isinstance(op_node, ast.Eq):
+            return "=="
+        elif isinstance(op_node, ast.GtE):
+            return ">="
+        elif isinstance(op_node, ast.LtE):
+            return "<="
+        elif isinstance(op_node, ast.USub):
+            return "-"
+        elif isinstance(op_node, ast.UAdd):
+            return "+"
+        elif isinstance(op_node, ast.Not):
+            return "not "
+        else:
+            return str(op_node)
             
     def _store_expression_result(self, node, result, bool_only=False):
         """存储表达式结果到data
@@ -171,13 +295,29 @@ class RuleParser:
             result: 计算结果
             bool_only: 是否为bool表达式(需要符号替换)
         """
+        # 不存储数字常量（如-5）作为列
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            return
+        
         expr_str = self._node_to_expr(node)
         
         # 生成列名 - 保持原始表达式格式
         col_name = expr_str
         
-        # 检查列是否已存在
-        if col_name not in self.data.columns:
+        # 特殊处理：为COST和POSITION等特殊变量创建单独的列（即使值为0或None）
+        if isinstance(node, ast.Name) and node.id in ['COST', 'POSITION']:
+            # 为特定变量创建单独的列
+            var_name = node.id
+            if var_name not in self.data.columns:
+                self.data[var_name] = [float('nan')] * len(self.data)
+                self.data.attrs[f"{var_name}_expr"] = var_name
+            if 0 <= self.current_index < len(self.data):
+                # 即使result为0或None也存储
+                self.data.at[self.current_index, var_name] = result if result is not None else float('nan')
+            return  # 不继续存储为表达式列
+        
+        # 检查列是否已存在（跳过数字常量）
+        if col_name not in self.data.columns and not (isinstance(node, ast.Constant) and isinstance(node.value, (int, float))):
             # 根据表达式类型初始化列
             if bool_only:
                 self.data[col_name] = [False] * len(self.data)
@@ -186,8 +326,8 @@ class RuleParser:
             # 添加表达式注释
             self.data.attrs[f"{col_name}_expr"] = expr_str
         
-        # 存储结果
-        if 0 <= self.current_index < len(self.data):
+        # 存储结果（跳过数字常量）
+        if 0 <= self.current_index < len(self.data) and not (isinstance(node, ast.Constant) and isinstance(node.value, (int, float))):
             self.data.at[self.current_index, col_name] = bool(result) if bool_only else result
 
     def _eval(self, node):
@@ -198,9 +338,8 @@ class RuleParser:
             result = self.OPERATORS[type(node.ops[0])](left, right)
             # 存储比较运算结果(bool值)
             self._store_expression_result(node, result, bool_only=True)
-            # 存储左右表达式值(非bool)
-            self._store_expression_result(node.left, left)
-            self._store_expression_result(node.comparators[0], right)
+            # 只存储有意义的表达式（避免存储数字常量和中间表达式）
+            # 不存储比较运算的子表达式，只存储最终布尔结果
             return result
         elif isinstance(node, ast.BoolOp):
             return self._eval_bool_op(node)
@@ -219,9 +358,15 @@ class RuleParser:
                 if hasattr(self, 'data') and 'combined_time' in self.data.columns and 0 <= self.current_index < len(self.data):
                     current_time = self.data['combined_time'].iloc[self.current_index]
                 
+                # 获取表达式字符串用于更智能的错误处理
+                expr_str = self._node_to_expr(node)
+                
+                # 特殊处理：对于COST/POSITION表达式，当POSITION为0时返回0.0（不生成信号）
+                if 'COST' in expr_str and 'POSITION' in expr_str:
+                    return 0.0  # 当持仓为0时，返回0.0表示不生成信号
+                
                 # 打印除零错误信息
-                logger.warning(f"除零错误: 索引 {self.current_index}, 时间 {current_time}, 表达式: {self._node_to_expr(node)}")
-                return 0.0  # 除零时返回0
+                return 0.0  # 其他除零情况返回0
                 
             return self.OPERATORS[type(node.op)](left, right)
         elif isinstance(node, ast.Constant):
@@ -251,9 +396,7 @@ class RuleParser:
         result = self.OPERATORS[type(node.op)](*values)
         # 存储布尔运算结果(bool值)
         self._store_expression_result(node, result, bool_only=True)
-        # 存储子表达式结果(非bool)
-        for v in node.values:
-            self._store_expression_result(v, self._eval(v))
+        # 只存储布尔运算结果，不存储子表达式（避免存储中间表达式）
         return result
     
     def _eval_variable(self, node) -> float:
@@ -263,15 +406,22 @@ class RuleParser:
         # 处理投资组合相关变量
         if var_name == 'COST' and self.portfolio_manager:
             # 获取持仓总成本
-            return self.portfolio_manager.get_total_cost()
+            result = self.portfolio_manager.get_total_cost()
+            # 存储COST变量的值到对应列
+            self._store_expression_result(node, result)
+            return result
         elif var_name == 'POSITION' and self.portfolio_manager:
             # 获取当前标的的持仓数量
             # 需要从数据中获取当前标的代码
             if not self.data.empty and 'code' in self.data.columns:
                 current_symbol = self.data['code'].iloc[self.current_index]
                 position = self.portfolio_manager.get_position(current_symbol)
-                return position.quantity if position else 0.0
-            return 0.0
+                result = position.quantity if position else 0.0
+            else:
+                result = 0.0
+            # 存储POSITION变量的值到对应列
+            self._store_expression_result(node, result)
+            return result
         
         # 处理数据列变量
         if var_name not in self.data.columns:

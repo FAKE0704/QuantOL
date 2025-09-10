@@ -288,7 +288,6 @@ class DatabaseManager:
         try:
             
             logger.info(f"Loading stock data for {symbol} from {start_date} to {end_date}")
-            print("291#"*20)
             # the date that data lack of  # 
             missing_ranges = await self.check_data_completeness(symbol, start_date, end_date,frequency)
             
@@ -429,6 +428,10 @@ class DatabaseManager:
             if freq_nulls > 0:
                 logger.warning(f"frequency列包含 {freq_nulls} 个空值")
                 
+        # 确保数据按combined_time排序（修复回测和图表显示问题）
+        if 'combined_time' in data.columns:
+            data = data.sort_values(by='combined_time').reset_index(drop=True)
+        
         # 记录数据转换后的状态
         logger.debug(f"数据转换完成 - 行数: {len(data)}, time列空值: {time_nulls}, frequency列空值: {freq_nulls}")
 

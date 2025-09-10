@@ -1,4 +1,10 @@
-- If you need to request a task or a plan reviewed by the user, inform task-manager agent to update tasks with info like:1.module-class-method need to change xxx 2.module-class need to add/remove method xxx etc.
-- If you need to update many code, inform dev-engineer agent to implement with specific needs
-- this is a Event-Driven Architecture-Based Quantitative System program
-- do not shut down background terminal if it runs successfully with no error
+* this is a Event-Driven Architecture-Based Quantitative System program
+* 该项目使用Streamlit框架，数据库是PostgreSQL
+* 
+
+# 个人偏好设置
+- @~/.claude/my-project-instructions.md
+- 使用中文进行沟通
+
+# 代码测试
+- 需要先运行`.\venvWin\Scripts\activate`进入虚拟环境

@@ -1,5 +1,7 @@
 # 启动应用
 .\venvWin\Scripts\activate
+source 
+
 cd .\src\
 streamlit run main.py
 

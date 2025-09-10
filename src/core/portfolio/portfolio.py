@@ -426,20 +426,27 @@ class PortfolioManager(IPortfolio):
         """
         # 基本验证
         if quantity == 0:
+            logger.warning(f"仓位更新失败: 数量为0 | 标的: {symbol}")
             return False
             
         if price <= 0:
+            logger.warning(f"仓位更新失败: 价格<=0 | 标的: {symbol}, 价格: {price}")
             return False
             
         # 资金验证
         cost = quantity * price
         if quantity > 0 and cost > self.current_cash:
+            logger.warning(f"仓位更新失败: 资金不足 | 标的: {symbol}, 需要: {cost:.2f}, 可用: {self.current_cash:.2f}")
             return False
             
         # 持仓验证（卖出不能超过现有持仓）
         if quantity < 0:
             current_position = self.positions.get(symbol)
-            if not current_position or abs(quantity) > current_position.quantity:
+            if not current_position:
+                logger.warning(f"仓位更新失败: 无持仓可卖 | 标的: {symbol}")
+                return False
+            if abs(quantity) > current_position.quantity:
+                logger.warning(f"仓位更新失败: 卖出数量超过持仓 | 标的: {symbol}, 卖出: {abs(quantity)}, 持仓: {current_position.quantity}")
                 return False
                 
         return True

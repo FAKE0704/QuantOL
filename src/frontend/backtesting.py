@@ -418,7 +418,7 @@ async def show_backtesting_page():
             )
             # 注册策略
             engine.register_strategy(fixed_strategy)
-        elif strategy == "自定义规则" and ('buy_rule_expr' in st.session_state or 'sell_rule_expr' in st.session_state):
+        elif strategy == "自定义规则" and ('buy_rule_expr' in st.session_state or 'sell_rule_expr' in st.session_state or 'open_rule_expr' in st.session_state or 'close_rule_expr' in st.session_state):
             from core.strategy.rule_based_strategy import RuleBasedStrategy
             
             # 指标服务初始化
@@ -437,6 +437,8 @@ async def show_backtesting_page():
                 indicator_service=st.session_state.indicator_service,
                 buy_rule_expr=buy_rule,
                 sell_rule_expr=sell_rule,
+                open_rule_expr=st.session_state.get('open_rule_expr', ''),
+                close_rule_expr=st.session_state.get('close_rule_expr', ''),
                 portfolio_manager=engine.portfolio_manager
             )
             # 注册策略实例

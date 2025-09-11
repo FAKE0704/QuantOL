@@ -8,3 +8,6 @@
 
 # 代码测试
 - 需要先运行`.\venvWin\Scripts\activate`进入虚拟环境
+
+# 系统的所有模块、所有类的members与职责
+@~/docs/system-design/系统职责分工.md

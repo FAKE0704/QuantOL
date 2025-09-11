@@ -401,7 +401,10 @@ async def show_backtesting_page():
         #     return handle_schedule(event)
             
         def handle_signal_with_direction(event: StrategySignalEvent):
-            event.direction = 'BUY' if event.confidence > 0 else 'SELL'
+            # 保持向后兼容性：如果使用旧的direction方式，自动设置signal_type
+            if not hasattr(event, 'signal_type') or event.signal_type is None:
+                from core.strategy.signal_types import SignalType
+                event.signal_type = SignalType.BUY if event.confidence > 0 else SignalType.SELL
             return handle_signal(event)
             
         # 注册增强版的事件处理器（包含上下文信息）

@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any, List, Type
 from core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy, PositionStrategyFactory
 from core.strategy.indicators import IndicatorService  # 新增IndicatorService导入
 from core.strategy.rule_parser import RuleParser  # 新增RuleParser导入
+from core.strategy.signal_types import SignalType  # 新增信号类型导入
 from event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent, OrderEvent, FillEvent  # 新增OrderEvent和FillEvent导入
 from core.risk.risk_manager import RiskManager  
 from core.portfolio.portfolio import PortfolioManager 
@@ -352,33 +353,61 @@ class BacktestEngine:
         # 使用current_index参数（如果存在）或默认使用当前索引
         idx = getattr(event, 'current_index', self.current_index)
         
-        # 在此处添加信号处理逻辑
-        if event.direction in ('BUY', 'SELL'):
-            self.data.loc[idx, 'signal'] = 1 if event.direction == 'BUY' else -1
-            
-            # 创建OrderEvent
+        # 记录信号到数据中
+        if event.signal_type in [SignalType.OPEN, SignalType.BUY]:
+            self.data.loc[idx, 'signal'] = 1
+        elif event.signal_type in [SignalType.SELL, SignalType.CLOSE]:
+            self.data.loc[idx, 'signal'] = -1
+        elif event.signal_type == SignalType.HEDGE:
+            self.data.loc[idx, 'signal'] = 2  # 对冲信号
+        elif event.signal_type == SignalType.REBALANCE:
+            self.data.loc[idx, 'signal'] = 3  # 再平衡信号
+        
+        # 根据不同信号类型创建相应的订单
+        if event.signal_type in [SignalType.OPEN, SignalType.BUY, SignalType.SELL, SignalType.CLOSE]:
             self._create_order_from_signal(event)
-        else:
-            self.log_error(f"无效的信号方向: {event.direction}")
+        elif event.signal_type == SignalType.HEDGE:
+            self._create_hedge_order(event)
+        elif event.signal_type == SignalType.REBALANCE:
+            self._create_rebalance_order(event)
             
     def _create_order_from_signal(self, event: StrategySignalEvent):
         """从策略信号创建订单事件（通过TradeOrderManager处理）"""
         try:
             price = float(event.price)
-            # logger.debug(f"[DEBUG] price 转换后类型: {type(price)}, 值: {price}")
-            # logger.debug(f"开始处理策略信号: {self.data.loc[self.current_index,'combined_time']} | {event.direction} {event.symbol}@{price}")
             
-            # 1. 使用仓位策略计算仓位金额
-            position_amount = self._calculate_position_amount(event)
+            # 确定订单方向
+            if event.signal_type in [SignalType.OPEN, SignalType.BUY]:
+                direction = "BUY"
+            elif event.signal_type in [SignalType.SELL, SignalType.CLOSE]:
+                direction = "SELL"
+            else:
+                self.log_error(f"不支持创建订单的信号类型: {event.signal_type}")
+                return
             
-            # 2. 计算订单数量
-            quantity = self._calculate_order_quantity(position_amount, price)
+            # 计算订单数量
+            if event.quantity > 0:
+                # 如果信号中指定了数量，直接使用
+                quantity = event.quantity
+            else:
+                # 否则使用仓位策略计算
+                position_amount = self._calculate_position_amount(event)
+                quantity = self._calculate_order_quantity(position_amount, price)
+            
+            # 对于CLOSE信号，计算全部持仓数量
+            if event.signal_type == SignalType.CLOSE:
+                current_position = self.portfolio_manager.get_position(event.symbol)
+                if current_position and current_position.quantity > 0:
+                    quantity = current_position.quantity
+                else:
+                    self.log_error(f"无法清仓: {event.symbol} 无持仓")
+                    return
             
             # 3. 创建OrderEvent
             order_event = OrderEvent(
                 strategy_id=event.strategy_id,
                 symbol=event.symbol,
-                direction=event.direction,
+                direction=direction,
                 price=price,
                 quantity=quantity,
                 order_type="LIMIT"
@@ -844,3 +873,77 @@ class BacktestEngine:
         
         self.results = all_results
         return all_results
+
+    def _create_hedge_order(self, event: StrategySignalEvent):
+        """创建对冲订单"""
+        # 对冲逻辑实现 - 创建反向仓位
+        try:
+            price = float(event.price)
+            
+            # 获取当前持仓
+            current_position = self.portfolio_manager.get_position(event.symbol)
+            if not current_position or current_position.quantity == 0:
+                self.log_error(f"无法对冲: {event.symbol} 无持仓")
+                return
+            
+            # 计算对冲数量
+            hedge_ratio = event.hedge_ratio or 0.5  # 默认50%对冲
+            hedge_quantity = int(current_position.quantity * hedge_ratio)
+            
+            # 创建反向订单
+            direction = "SELL" if current_position.quantity > 0 else "BUY"
+            
+            order_event = OrderEvent(
+                strategy_id=event.strategy_id,
+                symbol=event.symbol,
+                direction=direction,
+                price=price,
+                quantity=hedge_quantity,
+                order_type="LIMIT"
+            )
+            
+            if self._validate_order_risk(order_event):
+                self._process_order_through_trade_manager(order_event)
+                
+        except Exception as e:
+            self.log_error(f"创建对冲订单失败: {str(e)}")
+
+    def _create_rebalance_order(self, event: StrategySignalEvent):
+        """创建再平衡订单"""
+        # 再平衡逻辑实现
+        try:
+            price = float(event.price)
+            
+            # 获取当前持仓
+            current_position = self.portfolio_manager.get_position(event.symbol)
+            
+            # 计算目标持仓数量
+            target_percent = event.position_percent or 0.0
+            portfolio_value = self.portfolio_manager.get_portfolio_value()
+            target_value = portfolio_value * target_percent
+            target_quantity = int(target_value / price) if price > 0 else 0
+            
+            # 计算需要调整的数量
+            current_quantity = current_position.quantity if current_position else 0
+            adjust_quantity = target_quantity - current_quantity
+            
+            if adjust_quantity == 0:
+                return  # 无需调整
+            
+            # 确定订单方向
+            direction = "BUY" if adjust_quantity > 0 else "SELL"
+            
+            order_event = OrderEvent(
+                strategy_id=event.strategy_id,
+                symbol=event.symbol,
+                direction=direction,
+                price=price,
+                quantity=abs(adjust_quantity),
+                order_type="LIMIT"
+            )
+            
+            if self._validate_order_risk(order_event):
+                self._process_order_through_trade_manager(order_event)
+                
+        except Exception as e:
+            self.log_error(f"创建再平衡订单失败: {str(e)}")

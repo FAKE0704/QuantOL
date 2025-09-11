@@ -3,6 +3,7 @@ from core.strategy.rule_parser import RuleParser
 from core.strategy.strategy import BaseStrategy
 from event_bus.event_types import StrategySignalEvent
 from core.strategy.indicators import IndicatorService
+from core.strategy.signal_types import SignalType
 from typing import Optional, Any
 import pandas as pd
 from support.log.logger import logger
@@ -32,11 +33,11 @@ class RuleBasedStrategy(BaseStrategy):
         self.close_rule_expr = close_rule_expr
         self.parser = RuleParser(Data, indicator_service, portfolio_manager)
         
-    def _generate_signal_from_rule(self, rule_expr: str, direction: str, rule_type: str) -> Optional[StrategySignalEvent]:
+    def _generate_signal_from_rule(self, rule_expr: str, signal_type: SignalType, rule_type: str) -> Optional[StrategySignalEvent]:
         """根据规则表达式生成交易信号（统一处理函数）
         Args:
             rule_expr: 规则表达式
-            direction: 交易方向 ('BUY' 或 'SELL')
+            signal_type: 信号类型
             rule_type: 规则类型（用于日志记录）
         Returns:
             交易信号事件或None
@@ -48,11 +49,11 @@ class RuleBasedStrategy(BaseStrategy):
             should_trade = self.parser.parse(rule_expr)
             # logger.debug(f"{rule_type}规则解析结果: {should_trade}")
             if should_trade:
-                # logger.debug(f"生成 {direction} 信号")
+                # logger.debug(f"生成 {signal_type.value} 信号")
                 return StrategySignalEvent(
                     strategy_id=self.strategy_id,
                     symbol=self.Data['code'].iloc[-1],
-                    direction=direction,
+                    signal_type=signal_type,
                     price=float(self.Data.loc[self.parser.current_index,'close']),
                     quantity=100,  # 默认数量
                     confidence=1.0,
@@ -75,14 +76,14 @@ class RuleBasedStrategy(BaseStrategy):
             
             # 首先评估所有规则以确保列生成（即使不触发信号也要评估）
             all_rules = [
-                (self.open_rule_expr, 'BUY', '开仓'),
-                (self.close_rule_expr, 'SELL', '清仓'), 
-                (self.buy_rule_expr, 'BUY', '加仓'),
-                (self.sell_rule_expr, 'SELL', '平仓')
+                (self.open_rule_expr, SignalType.OPEN, '开仓'),
+                (self.close_rule_expr, SignalType.CLOSE, '清仓'), 
+                (self.buy_rule_expr, SignalType.BUY, '加仓'),
+                (self.sell_rule_expr, SignalType.SELL, '平仓')
             ]
             
             # 评估所有规则以确保列生成
-            for rule_expr, direction, rule_type in all_rules:
+            for rule_expr, signal_type, rule_type in all_rules:
                 if rule_expr:
                     try:
                         # 评估规则但不生成信号（仅用于列生成）
@@ -91,19 +92,19 @@ class RuleBasedStrategy(BaseStrategy):
                         logger.error(f"{rule_type}规则评估失败（列生成）: {str(e)}")
             
             # 按优先级顺序检查规则：开仓 > 清仓 > 加仓 > 平仓 （原代码：出现信号即跳出，会导致某些规则没有被解析评估）
-            signal = self._generate_signal_from_rule(self.open_rule_expr, 'BUY', '开仓')
+            signal = self._generate_signal_from_rule(self.open_rule_expr, SignalType.OPEN, '开仓')
             if signal:
                 return signal
                 
-            signal = self._generate_signal_from_rule(self.close_rule_expr, 'SELL', '清仓')
+            signal = self._generate_signal_from_rule(self.close_rule_expr, SignalType.CLOSE, '清仓')
             if signal:
                 return signal
                 
-            signal = self._generate_signal_from_rule(self.buy_rule_expr, 'BUY', '加仓')
+            signal = self._generate_signal_from_rule(self.buy_rule_expr, SignalType.BUY, '加仓')
             if signal:
                 return signal
                 
-            signal = self._generate_signal_from_rule(self.sell_rule_expr, 'SELL', '平仓')
+            signal = self._generate_signal_from_rule(self.sell_rule_expr, SignalType.SELL, '平仓')
             if signal:
                 return signal
             

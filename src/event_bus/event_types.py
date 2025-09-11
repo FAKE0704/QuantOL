@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from core.strategy.signal_types import SignalType
 
 class BaseEvent:
     """事件基类"""
@@ -77,13 +78,34 @@ class StrategySignalEvent(BaseEvent):
     """基于自定义规则产生的策略信号事件"""
     strategy_id: str
     symbol: str
-    direction: str  # BUY/SELL
+    signal_type: SignalType  # 信号类型: OPEN/BUY/SELL/CLOSE/HEDGE/REBALANCE
     price: float
-    quantity: int
-    confidence: float
     timestamp: datetime
+    quantity: int = 0  # 交易数量，0表示自动计算
+    confidence: float = 1.0  # 信号置信度
     engine: Any = None
     parameters: Optional[Dict[str, Any]] = None
+    position_percent: Optional[float] = None  # 用于REBALANCE信号的目标仓位比例
+    hedge_ratio: Optional[float] = None  # 用于HEDGE信号的对冲比例
+    
+    # 向后兼容属性
+    @property
+    def direction(self) -> str:
+        """向后兼容的direction属性"""
+        if self.signal_type in [SignalType.OPEN, SignalType.BUY]:
+            return "BUY"
+        elif self.signal_type in [SignalType.SELL, SignalType.CLOSE]:
+            return "SELL"
+        else:
+            return ""
+    
+    @direction.setter
+    def direction(self, value: str):
+        """设置direction时自动转换signal_type"""
+        if value == "BUY":
+            self.signal_type = SignalType.BUY
+        elif value == "SELL":
+            self.signal_type = SignalType.SELL
 
 @dataclass
 class StrategyScheduleEvent(BaseEvent):

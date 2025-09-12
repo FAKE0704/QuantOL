@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any, List, Type
 from core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy, PositionStrategyFactory
 from core.strategy.indicators import IndicatorService  # 新增IndicatorService导入
 from core.strategy.rule_parser import RuleParser  # 新增RuleParser导入
+from core.strategy.rule_based_strategy import RuleBasedStrategy  # 新增RuleBasedStrategy导入
 from core.strategy.signal_types import SignalType  # 新增信号类型导入
 from event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent, OrderEvent, FillEvent  # 新增OrderEvent和FillEvent导入
 from core.risk.risk_manager import RiskManager  
@@ -65,21 +66,30 @@ class BacktestConfig:
     min_lot_size: int = 100
 
     def __post_init__(self):
-        """参数验证"""
+        """参数验证和兼容性处理"""
         self.commission_rate = self.commission_rate
         self.slippage = float(self.slippage)
         
-        # 确保target_symbols和target_symbol的兼容性
-        if self.target_symbols and self.target_symbol:
-            # 如果同时设置了target_symbols和target_symbol，检查是否重复
-            if self.target_symbol not in self.target_symbols:
-                self.target_symbols.insert(0, self.target_symbol)
-            self.target_symbol = self.target_symbols[0]
-        elif self.target_symbol and not self.target_symbols:
-            # 只有target_symbol时，转换为target_symbols
+        # 增强的符号兼容性处理
+        if not self.target_symbols and self.target_symbol:
+            # 只有target_symbol时，自动转换为target_symbols
             self.target_symbols = [self.target_symbol]
+        elif self.target_symbols and not self.target_symbol:
+            # 只有target_symbols时，设置target_symbol为首个符号
+            self.target_symbol = self.target_symbols[0]
+        elif self.target_symbols and self.target_symbol and self.target_symbol not in self.target_symbols:
+            # 如果target_symbol不在target_symbols中，添加到列表开头
+            self.target_symbols.insert(0, self.target_symbol)
+        
+        # 确保target_symbol始终是target_symbols的第一个元素
+        if self.target_symbols and self.target_symbol != self.target_symbols[0]:
+            self.target_symbol = self.target_symbols[0]
         elif not self.target_symbol and not self.target_symbols:
             raise ValueError("必须指定至少一个交易标的")
+        
+        # 资金分配逻辑（多符号模式下）
+        if len(self.target_symbols) > 1:
+            self._distribute_capital()
         
         if self.initial_capital <= 0:
             raise ValueError("初始资金必须大于0")
@@ -93,8 +103,56 @@ class BacktestConfig:
             raise ValueError("止损比例必须在0到1之间")
         if self.take_profit is not None and (self.take_profit <= 0 or self.take_profit >= 1):
             raise ValueError("止盈比例必须在0到1之间")
-        if self.max_holding_days is not None and self.max_holding_days <= 0:
-            raise ValueError("最大持仓天数必须大于0")
+
+    def get_symbols(self) -> List[str]:
+        """统一获取所有交易标的符号列表"""
+        if self.target_symbols:
+            return self.target_symbols
+        elif self.target_symbol:
+            return [self.target_symbol]
+        else:
+            raise ValueError("未指定任何交易标的")
+
+    def is_multi_symbol(self) -> bool:
+        """判断是否为多符号模式"""
+        return len(self.get_symbols()) > 1
+
+    def get_primary_symbol(self) -> str:
+        """获取主符号（用于兼容旧代码）"""
+        symbols = self.get_symbols()
+        return symbols[0] if symbols else None
+
+    def _distribute_capital(self):
+        """多符号模式下的资金分配逻辑"""
+        if not hasattr(self, '_capital_distribution'):
+            # 默认平均分配资金
+            num_symbols = len(self.target_symbols)
+            self._capital_distribution = {
+                symbol: self.initial_capital / num_symbols 
+                for symbol in self.target_symbols
+            }
+        
+        # 支持自定义资金分配比例
+        if self.extra_params and 'capital_weights' in self.extra_params:
+            weights = self.extra_params['capital_weights']
+            total_weight = sum(weights.values())
+            if total_weight > 0:
+                self._capital_distribution = {
+                    symbol: self.initial_capital * (weights.get(symbol, 0) / total_weight)
+                    for symbol in self.target_symbols
+                }
+
+    def get_symbol_capital(self, symbol: str) -> float:
+        """获取指定符号的分配资金"""
+        if not self.is_multi_symbol():
+            return self.initial_capital
+        
+        if hasattr(self, '_capital_distribution'):
+            return self._capital_distribution.get(symbol, 0)
+        
+        # 默认平均分配
+        return self.initial_capital / len(self.target_symbols)
+
         if self.extra_params is None:
             self.extra_params = {}
             
@@ -259,14 +317,10 @@ class BacktestEngine:
                 raise ValueError("分钟线数据必须包含time字段")
             
             print(self.data[self.data['time'].isnull()])
-            print("debug250")
-            
-            print("debug255")
         
         
         # 初始化signal列
         self.data['signal'] = 0  # 0:无信号, 1:买入, -1:卖出
-        print("debug"*20)
         # 初始化净值记录
         self._update_equity({
             'datetime': start_date,
@@ -766,6 +820,11 @@ class BacktestEngine:
             # 根据方向确定仓位更新数量（买入为正，卖出为负）
             quantity = fill_quantity if event.direction == 'BUY' else -fill_quantity
             
+            # 记录交易发生前的现金和持仓状态
+            cash_before = self.portfolio_manager.get_cash_balance()
+            portfolio_value_before = self.portfolio_manager.get_portfolio_value()
+            positions_value_before = portfolio_value_before - cash_before
+            
             # 使用PortfolioManager更新持仓
             success = self.portfolio_manager.update_position(
                 symbol=event.symbol,
@@ -785,7 +844,11 @@ class BacktestEngine:
                 'price': event.fill_price,
                 'quantity': event.fill_quantity,
                 'commission': event.commission,
-                'total_cost': (fill_price * fill_quantity + commission) if event.direction == 'BUY' else -(fill_price * fill_quantity - commission)
+                'total_cost': (fill_price * fill_quantity + commission) if event.direction == 'BUY' else -(fill_price * fill_quantity - commission),
+                'cash_before': cash_before,
+                'positions_value_before': positions_value_before,
+                'cash_after': self.portfolio_manager.get_cash_balance(),
+                'positions_value_after': self.portfolio_manager.get_portfolio_value() - self.portfolio_manager.get_cash_balance()
             }
             self.trades.append(trade_record)
             
@@ -832,9 +895,31 @@ class BacktestEngine:
             # 创建并运行单独的引擎
             symbol_engine = BacktestEngine(symbol_config, data)
             
-            # 注册相同的策略
+            # 为每个符号创建新的策略实例（避免数据引用问题）
             for strategy in self.strategies:
-                symbol_engine.register_strategy(strategy)
+                # 创建策略副本或新实例
+                if hasattr(strategy, 'name') and hasattr(strategy, 'buy_rule_expr'):
+                    # 对于RuleBasedStrategy类型的策略，重新创建实例
+                    # 确保指标服务不为None
+                    indicator_service = getattr(strategy, 'indicator_service', None)
+                    if indicator_service is None:
+                        from core.strategy.indicators import IndicatorService
+                        indicator_service = IndicatorService()
+                    
+                    symbol_strategy = RuleBasedStrategy(
+                        Data=data,  # 使用当前符号的数据
+                        name=f"{getattr(strategy, 'name', 'Unknown')}_{symbol}",
+                        indicator_service=indicator_service,
+                        buy_rule_expr=getattr(strategy, 'buy_rule_expr', ''),
+                        sell_rule_expr=getattr(strategy, 'sell_rule_expr', ''),
+                        open_rule_expr=getattr(strategy, 'open_rule_expr', ''),
+                        close_rule_expr=getattr(strategy, 'close_rule_expr', ''),
+                        portfolio_manager=getattr(strategy, 'portfolio_manager', None)
+                    )
+                else:
+                    # 对于其他类型的策略，使用原策略
+                    symbol_strategy = strategy
+                symbol_engine.register_strategy(symbol_strategy)
             
             # 运行回测
             symbol_engine.run(start_date, end_date)

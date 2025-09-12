@@ -37,7 +37,7 @@ async def show_backtesting_page():
 
     st.title("策略回测")
 
-    # 股票搜索（多选模式）
+    # 股票选择
     col1, col2 = st.columns([3, 1])
     with col1:
         # 初始化缓存
@@ -51,12 +51,12 @@ async def show_backtesting_page():
                     st.error(f"加载股票列表失败: {str(e)}")
                     st.session_state.stock_cache = []
         
-        # 多选股票组件
+        # 选择股票组件，支持单选、多选
         selected_options = st.multiselect(
             "选择股票（可多选）",
             options=st.session_state.stock_cache,
             format_func=lambda x: f"{x[0]} {x[1]}",
-            help="选择多个股票进行组合回测",
+            help="选择股票进行组合回测",
             key="stock_select",
             default=[st.session_state.stock_cache[20]] if st.session_state.stock_cache else []
         )
@@ -64,8 +64,8 @@ async def show_backtesting_page():
         # 更新配置对象中的股票代码
         if selected_options:
             selected_symbols = [symbol[0] for symbol in selected_options]
-            st.session_state.backtest_config.target_symbol = selected_symbols[0]  # 保持向后兼容
-            st.session_state.backtest_config.target_symbols = selected_symbols  # 多符号支持
+            # 使用统一接口设置符号
+            st.session_state.backtest_config.target_symbols = selected_symbols
         
         # 显示已选股票
         if selected_options:
@@ -374,18 +374,19 @@ async def show_backtesting_page():
         
         # 初始化事件引擎BacktestEngine
         
-        # 多符号数据加载
-        if hasattr(backtest_config, 'target_symbols') and len(backtest_config.target_symbols) > 1:
+        # 统一数据加载
+        symbols = backtest_config.get_symbols()
+        
+        if backtest_config.is_multi_symbol():
             # 多符号模式
             data = await st.session_state.db.load_multiple_stock_data(
-                backtest_config.target_symbols, start_date, end_date, backtest_config.frequency
+                symbols, start_date, end_date, backtest_config.frequency
             )
             st.info(f"已加载 {len(data)} 只股票数据")
         else:
-            # 单符号模式（保持向后兼容）
-            
+            # 单符号模式
             data = await st.session_state.db.load_stock_data(
-                backtest_config.target_symbol, start_date, end_date, backtest_config.frequency
+                symbols[0], start_date, end_date, backtest_config.frequency
             )
 
         
@@ -434,18 +435,35 @@ async def show_backtesting_page():
             buy_rule = st.session_state.get('buy_rule_input', st.session_state.get('buy_rule_expr', ""))
             sell_rule = st.session_state.get('sell_rule_input', st.session_state.get('sell_rule_expr', ""))
             
-            rule_strategy = RuleBasedStrategy(
-                Data=data,
-                name="自定义规则策略",
-                indicator_service=st.session_state.indicator_service,
-                buy_rule_expr=buy_rule,
-                sell_rule_expr=sell_rule,
-                open_rule_expr=st.session_state.get('open_rule_expr', ''),
-                close_rule_expr=st.session_state.get('close_rule_expr', ''),
-                portfolio_manager=engine.portfolio_manager
-            )
-            # 注册策略实例
-            engine.register_strategy(rule_strategy)
+            if backtest_config.is_multi_symbol():
+                # 多符号模式：为每个符号创建独立的策略实例
+                for symbol, symbol_data in data.items():
+                    rule_strategy = RuleBasedStrategy(
+                        Data=symbol_data,
+                        name=f"自定义规则策略_{symbol}",
+                        indicator_service=st.session_state.indicator_service,
+                        buy_rule_expr=buy_rule,
+                        sell_rule_expr=sell_rule,
+                        open_rule_expr=st.session_state.get('open_rule_expr', ''),
+                        close_rule_expr=st.session_state.get('close_rule_expr', ''),
+                        portfolio_manager=engine.portfolio_manager
+                    )
+                    # 注册策略实例
+                    engine.register_strategy(rule_strategy)
+            else:
+                # 单符号模式
+                rule_strategy = RuleBasedStrategy(
+                    Data=data,
+                    name="自定义规则策略",
+                    indicator_service=st.session_state.indicator_service,
+                    buy_rule_expr=buy_rule,
+                    sell_rule_expr=sell_rule,
+                    open_rule_expr=st.session_state.get('open_rule_expr', ''),
+                    close_rule_expr=st.session_state.get('close_rule_expr', ''),
+                    portfolio_manager=engine.portfolio_manager
+                )
+                # 注册策略实例
+                engine.register_strategy(rule_strategy)
         
         # 启动事件循环
         task_id = f"backtest_{st.session_state.strategy_id}" # 回测任务唯一id
@@ -457,7 +475,7 @@ async def show_backtesting_page():
         #     progress_service.update_progress(task_id, (i + 1) / 100)
 
         # 回测运行（engine中已有策略实例和所有数据）
-        if hasattr(backtest_config, 'target_symbols') and len(backtest_config.target_symbols) > 1:
+        if backtest_config.is_multi_symbol():
             # 多符号回测
             engine.run_multi_symbol(pd.to_datetime(start_date), pd.to_datetime(end_date))
         else:
@@ -515,7 +533,7 @@ async def show_backtesting_page():
                 
                 if "combined_equity" in results:
                     # 多符号模式
-                    st.info(f"组合回测 - {len(backtest_config.target_symbols)} 只股票")
+                    st.info(f"组合回测 - {len(backtest_config.get_symbols())} 只股票")
                     
                     # 计算组合性能指标
                     combined_equity = results["combined_equity"]
@@ -554,14 +572,15 @@ async def show_backtesting_page():
                     st.subheader("各股票表现")
                     for symbol, symbol_results in results["individual"].items():
                         symbol_summary = symbol_results["summary"]
+                        symbol_capital = backtest_config.get_symbol_capital(symbol)
                         col1, col2, col3 = st.columns(3)
                         with col1:
-                            st.metric(f"{symbol} 初始资金", f"¥{symbol_summary['initial_capital']:,.2f}")
+                            st.metric(f"{symbol} 分配资金", f"¥{symbol_capital:,.2f}")
                         with col2:
                             st.metric(f"{symbol} 最终资金", f"¥{symbol_summary['final_capital']:,.2f}")
                         with col3:
-                            symbol_profit = symbol_summary['final_capital'] - symbol_summary['initial_capital']
-                            symbol_profit_pct = (symbol_profit / symbol_summary['initial_capital']) * 100
+                            symbol_profit = symbol_summary['final_capital'] - symbol_capital
+                            symbol_profit_pct = (symbol_profit / symbol_capital) * 100
                             st.metric(f"{symbol} 收益", f"¥{symbol_profit:,.2f}", f"{symbol_profit_pct:.2f}%")
                 
                 else:
@@ -602,22 +621,37 @@ async def show_backtesting_page():
                     # 格式化时间显示
                     if 'timestamp' in trades_df.columns:
                         trades_df['timestamp'] = pd.to_datetime(trades_df['timestamp'])
-                    st.dataframe(trades_df, use_container_width=True)
+                    
+                    # 获取PortfolioManager实例（通过IPortfolio接口）
+                    portfolio_manager = engine.portfolio_manager
+                    
+                    # 直接使用交易记录中已经包含的现金和持仓信息
+                    enhanced_trades_df = trades_df.copy()
+                    st.dataframe(enhanced_trades_df, use_container_width=True)
                     
                     # 交易统计
-                    if not trades_df.empty:
+                    if not enhanced_trades_df.empty:
                         st.subheader("交易统计")
-                        buy_trades = trades_df[trades_df['direction'] == 'BUY']
-                        sell_trades = trades_df[trades_df['direction'] == 'SELL']
+                        buy_trades = enhanced_trades_df[enhanced_trades_df['direction'] == 'BUY']
+                        sell_trades = enhanced_trades_df[enhanced_trades_df['direction'] == 'SELL']
                         
-                        col1, col2, col3 = st.columns(3)
+                        col1, col2, col3, col4 = st.columns(4)
                         with col1:
                             st.metric("买入交易", len(buy_trades))
                         with col2:
                             st.metric("卖出交易", len(sell_trades))
                         with col3:
-                            total_commission = trades_df['commission'].sum()
+                            total_commission = enhanced_trades_df['commission'].sum()
                             st.metric("总手续费", f"¥{total_commission:,.2f}")
+                        with col4:
+                            # 显示当前现金和持仓状态
+                            current_cash = portfolio_manager.get_cash_balance()
+                            current_positions = portfolio_manager.get_portfolio_value() - current_cash
+                            st.metric("当前现金/持仓", f"¥{current_cash:,.0f}/¥{current_positions:,.0f}")
+                            
+                    # 如果交易记录中没有现金和持仓信息，显示提示
+                    if 'cash_before' not in enhanced_trades_df.columns:
+                        st.warning("⚠️ 交易记录中缺少现金和持仓信息，请更新BacktestEngine版本")
                 else:
                     st.info("暂无交易记录")
             

@@ -4,7 +4,8 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Type, Callable
 from event_bus.event_types import StrategyScheduleEvent, BaseEvent
-from core.strategy.backtesting import BacktestEngine
+# 使用字符串类型注解避免循环导入
+# from core.strategy.backtesting import BacktestEngine
 
 class BaseStrategy():
     def __init__(self, Data, name, buy_rule_expr="", sell_rule_expr="", invest_ratio=0.01):
@@ -78,7 +79,7 @@ class FixedInvestmentStrategy(BaseStrategy):
         self.invest_ratio = 0.01  # 定投比例
         
 
-    def on_monthly_schedule(self, engine:BacktestEngine, event:StrategyScheduleEvent):
+    def on_monthly_schedule(self, engine: 'BacktestEngine', event:StrategyScheduleEvent):
         """每月定投逻辑"""
         # 计算定投金额
         invest_amount = engine.config.initial_capital * self.invest_ratio

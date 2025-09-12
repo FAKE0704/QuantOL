@@ -31,7 +31,22 @@ class RuleBasedStrategy(BaseStrategy):
         self.sell_rule_expr = sell_rule_expr
         self.open_rule_expr = open_rule_expr
         self.close_rule_expr = close_rule_expr
+        self.portfolio_manager = portfolio_manager
         self.parser = RuleParser(Data, indicator_service, portfolio_manager)
+
+    def copy_for_symbol(self, symbol: str):
+        """为指定符号创建策略副本"""
+        # 创建新的策略实例，保持相同的规则表达式
+        return RuleBasedStrategy(
+            Data=self.Data,  # 注意：这里需要传入对应符号的数据
+            name=f"{self.name}_{symbol}",
+            indicator_service=self.indicator_service,
+            buy_rule_expr=self.buy_rule_expr,
+            sell_rule_expr=self.sell_rule_expr,
+            open_rule_expr=self.open_rule_expr,
+            close_rule_expr=self.close_rule_expr,
+            portfolio_manager=self.portfolio_manager
+        )
         
     def _generate_signal_from_rule(self, rule_expr: str, signal_type: SignalType, rule_type: str) -> Optional[StrategySignalEvent]:
         """根据规则表达式生成交易信号（统一处理函数）

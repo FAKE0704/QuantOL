@@ -1,17 +1,11 @@
-# 命名一致性
-- 管理类：Manager后缀（RiskManager）
-- 策略相关：Strategy后缀（PositionStrategy）
-- 数据源：Source后缀（DataSource）
-- 事件：无后缀（OrderEvent）
-
-
-
 # src/core/data/database.py
 ## DatabaseManager
 - 负责数据库连接池管理（asyncpg实现）
 - 表结构初始化
 - 股票数据CRUD操作
 - 数据完整性检查
+
+
 
 主要方法
 - save_order：保存订单
@@ -148,21 +142,41 @@ _store_expression_result：存储表达式结果到data
 
 # src/core/strategy/backtesting.py
 ## BacktestConfig
-- 负责管理回测所需的所有参数配置
-属性
-- initial_capital (float): 初始资金，默认100万
-- commission_rate (float): 单笔交易手续费率（百分比值），默认0.0005，表示0.0005%手续费率
-- slippage (float): 滑点率，默认0.001
-- start_date (str): 回测开始日期，格式'YYYY-MM-DD'
-- end_date (str): 回测结束日期，格式'YYYY-MM-DD'
-- target_symbol (str): 目标交易标的代码
-- monthly_investment (Optional[float]): 每月定投金额，None表示不定投
-- stop_loss (Optional[float]): 止损比例，None表示不启用
-- take_profit (Optional[float]): 止盈比例，None表示不启用
-- max_holding_days (Optional[int]): 最大持仓天数，None表示不限制
-- extra_params (Dict[str, Any]): 额外参数存储
+回测配置类，包含回测所需的所有参数配置，用于存储、验证和管理回测策略的设置。
+### DUTIES
+- 存储和管理回测参数配置，包括资金、手续费、日期等。
+- 验证配置参数的合法性，确保输入值符合业务逻辑约束。
+- 处理多符号模式的兼容性和资金分配逻辑，支持单标或多标交易。
 
+### PROPERTIES
+- `initial_capital`: 初始资金，默认100万。
+- `commission_rate`: 单笔交易手续费率（百分比值），默认0.0005。
+- `slippage`: 滑点率，默认0.0。
+- `start_date`: 回测开始日期，格式'YYYY-MM-DD'。
+- `end_date`: 回测结束日期，格式'YYYY-MM-DD'。
+- `target_symbol`: 目标交易标的代码。
+- `target_symbols`: 多标的交易代码列表。
+- `frequency`: 数据频率。
+- `stop_loss`: 止损比例，None表示不启用。
+- `take_profit`: 止盈比例，None表示不启用。
+- `max_holding_days`: 最大持仓天数，None表示不限制。
+- `extra_params`: 额外参数存储。
+- `position_strategy_type`: 仓位策略类型，默认"fixed_percent"。
+- `position_strategy_params`: 仓位策略参数。
+- `min_lot_size`: 最小交易手数，默认100股（A股市场）。
 
+### METHODS
+- `__post_init__`: 参数验证和兼容性处理，包括日期格式、资金分配等。
+- `get_symbols`: 统一获取所有交易标的符号列表。
+- `is_multi_symbol`: 判断是否为多符号模式。
+- `get_primary_symbol`: 获取主符号（用于兼容旧代码）。
+- `_distribute_capital`: 多符号模式下的资金分配逻辑。
+- `get_symbol_capital`: 获取指定符号的分配资金。
+- `_validate_position_strategy_params`: 验证仓位策略参数。
+- `to_dict`: 将配置转换为字典。
+- `from_dict`: 从字典创建配置实例（类方法）。
+- `to_json`: 将配置转换为JSON字符串。
+- `from_json`: 从JSON字符串创建配置实例（类方法）。
 
 ## BacktestEngine
 - 负责执行回测流程
@@ -199,37 +213,50 @@ REBALANCE = "REBALANCE"  # 再平衡信号
 
 # src/core/portfolio/portfolio_interface.py
 ## IPortfolio
-投资组合接口
+BacktestEngine通过IPortfolio接口访问 PortfolioManager 的属性与方法。
 
-
-
+### METHODS
 - get_cash_balance：获取当前余额
 - get_total_return：计算总收益率
 
 
 # src/core/portfolio/portfolio.py
 ## PortfolioManager
+投资组合管理类
+### DUTIES
+- 投资组合管理：管理整个投资组合的资产配置和持仓情况
+- 资金管理：跟踪和管理可用现金、初始资金和组合总价值、持仓信息（持仓状态、持仓金额等）
+- 根据信号持仓操作：执行买入、卖出等持仓更新操作历史记录
+- 组合再平衡：根据目标配置比例自动调整持仓
+- 风险控制集成：与风险管理系统集成进行风险检查
+- 与TradeExecutionEngine协同工作，不执行实际交易操作
 
-- __投资组合管理__：管理整个投资组合的资产配置和持仓情况
-- __资金管理__：跟踪和管理可用现金、初始资金和组合总价值,持仓状态管理
-- __根据信号持仓操作__：执行买入、卖出等持仓更新操作历史记录
-- __组合再平衡__：根据目标配置比例自动调整持仓
-- __风险控制集成__：与风险管理系统集成进行风险检查
-- 收益指标
+### PROPERTIES
+- `initial_capital`: 初始资金
+- `current_cash`: 当前现金余额
+- `position_strategy`: 仓位策略实例
+- `event_bus`: 事件总线实例（可选）
+- `positions`: 持仓字典（键为股票代码，值为Position对象）
+- `equity_history` = {
+    'timestamp': timestamp,
+    'total_value': total_value,
+    'cash': self.current_cash,
+    'positions_value': total_value - self.current_cash,
+    'return_pct': self.get_total_return() * 100,
+    'drawdown_pct': current_drawdown,
+    'peak_value': self._peak_value
+  } : 历史净值记录列表
+- `_peak_value`: 最高收益值
+- `_max_drawdown`: 最大回撤值
+- `_portfolio_value_cache`: 组合价值缓存
+- `_cache_timestamp`: 缓存时间戳
+- `_cache_ttl`: 缓存有效期（秒）
+- `_last_update_time`: 最后更新时间戳
 
-属性
-equity_histoy = {
-                  'timestamp': timestamp,
-                  'total_value': total_value,
-                  'cash': self.current_cash,
-                  'positions_value': total_value - self.current_cash,
-                  'return_pct': self.get_total_return() * 100,
-                  'drawdown_pct': current_drawdown,
-                  'peak_value': self._peak_value
-                }
 
-方法
-- update_position：更新持仓
+### METHODS
+- update_position(self, symbol: str, quantity: float, price: float) -> bool: 更新指定股票的持仓数量和价格（含风险检查和事件发布）
+- update_position_for_backtest(self, symbol: str, quantity: float, price: float) -> bool: 回测专用的更新持仓方法（直接调用update_position）
 - get_portfolio_value：获取投资组合总价值 （不使用@st.cache_data）
 - rebalance：组合再平衡
 - _handle_open_signal

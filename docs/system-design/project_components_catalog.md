@@ -343,3 +343,33 @@ hedge_ratio:
 - 数据容器（DataBundle）
 
 ## ChartService
+
+# src/frontend/backtesting.py
+## BacktestingFrontend
+- 负责策略回测的前端界面实现
+- 基于Streamlit框架构建交互式回测配置界面
+- 支持多股票组合回测和规则组管理
+
+### DUTIES
+- `界面布局管理`: 使用标签页组织回测配置、策略配置、仓位配置
+- `规则组管理`: 提供规则组的创建、加载、保存功能
+- `数据加载`: 异步加载股票列表和行情数据
+- `配置管理`: 管理回测参数和策略映射配置
+- `回测执行`: 调用BacktestEngine执行回测并显示结果
+
+### PROPERTIES
+- `st.session_state.backtest_config`: 回测配置对象实例
+- `st.session_state.rule_groups`: 规则组字典存储
+- `st.session_state.strategy_mapping`: 股票-策略映射配置
+- `st.session_state.stock_cache`: 股票列表缓存
+
+### METHODS
+- `show_backtesting_page()`: 主页面显示函数
+- `validate_rule()`: 规则语法校验函数
+- 各种Streamlit组件交互方法
+
+### 新增功能特性
+- 支持预设规则组：金叉死叉、相对强度、Martingale策略
+- 改进的规则组加载机制，避免Streamlit widget修改错误
+- 多股票策略映射配置界面
+- 统一的规则语法校验和显示

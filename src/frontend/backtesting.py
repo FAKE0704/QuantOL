@@ -35,6 +35,25 @@ async def show_backtesting_page():
             position_strategy_params={"percent": 0.1}
         )
 
+    # 初始化规则组
+    if 'rule_groups' not in st.session_state:
+        st.session_state.rule_groups = {
+            '金叉死叉': {
+                'buy_rule': '(REF(SMA(close,5), 1) < REF(SMA(close,7), 1)) & (SMA(close,5) > SMA(close,7))',
+                'sell_rule': '(REF(SMA(close,5), 1) > REF(SMA(close,7), 1)) & (SMA(close,5) < SMA(close,7))'
+            },
+            '相对强度': {
+                'buy_rule': '(REF(RSI(close,5), 1) < 30) & (RSI(close,5) >= 30)',
+                'sell_rule': '(REF(RSI(close,5), 1) >= 60) & (RSI(close,5) < 60)'
+            },
+            'Martingale': {
+                'open_rule': '(close < REF(SMA(close,5), 1)) & (close > SMA(close,5))',  # 价格上穿5线开仓
+                'close_rule': '(close - (COST/POSITION))/(COST/POSITION) * 100 >= 5',  # 价格上涨5%时清仓
+                'buy_rule': '(close - (COST/POSITION))/(COST/POSITION) * 100 <= -5',   # 价格下跌5%时加仓
+                'sell_rule': ''    # 只清仓不平仓
+            }
+        }
+
     st.title("策略回测")
 
     # 使用标签页组织配置
@@ -117,260 +136,328 @@ async def show_backtesting_page():
     with config_tab2:
         st.subheader("⚙️ 策略配置")
 
-        # 生成规则组选项
-        rule_group_options = []
-        if 'rule_groups' in st.session_state and st.session_state.rule_groups:
-            rule_group_options = [f"规则组: {name}" for name in st.session_state.rule_groups.keys()]
-
         # 默认策略配置
         st.write("**默认策略配置**")
         default_strategy_type = st.selectbox(
             "默认策略类型",
-            options=["月定投", "移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"] + rule_group_options,
+            options=["月定投", "移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"],
             key="default_strategy_type"
         )
 
-        # 策略映射配置（多股票选择时才显示）
-        if len(selected_options) > 1:
+        # 如果默认策略是自定义规则，显示规则编辑器和规则组管理
+        if default_strategy_type == "自定义规则":
+            # 规则编辑器
+            with st.expander("默认规则编辑器", expanded=True):
+                cols = st.columns([3, 1])
 
-            # 如果默认策略是自定义规则，显示规则编辑器
-            if default_strategy_type == "自定义规则":
-                # 规则编辑器
-                with st.expander("默认规则编辑器", expanded=True):
-                    cols = st.columns([3, 1])
+                with cols[0]:
+                    # 使用加载的规则值或默认值
+                    open_rule_value = st.session_state.get("loaded_open_rule", st.session_state.get("default_open_rule", ""))
+                    close_rule_value = st.session_state.get("loaded_close_rule", st.session_state.get("default_close_rule", ""))
+                    buy_rule_value = st.session_state.get("loaded_buy_rule", st.session_state.get("default_buy_rule", ""))
+                    sell_rule_value = st.session_state.get("loaded_sell_rule", st.session_state.get("default_sell_rule", ""))
 
-                    with cols[0]:
-                        st.subheader("开仓规则")
-                        st.text_area(
-                            "默认开仓条件",
-                            value=st.session_state.get("default_open_rule", ""),
-                            height=60,
-                            key="default_open_rule",
-                            help="输入默认开仓条件表达式"
-                        )
+                    st.subheader("开仓规则")
+                    st.text_area(
+                        "默认开仓条件",
+                        value=open_rule_value,
+                        height=60,
+                        key="default_open_rule_editor",
+                        help="输入默认开仓条件表达式"
+                    )
 
-                        st.subheader("清仓规则")
-                        st.text_area(
-                            "默认清仓条件",
-                            value=st.session_state.get("default_close_rule", ""),
-                            height=60,
-                            key="default_close_rule",
-                            help="输入默认清仓条件表达式"
-                        )
+                    st.subheader("清仓规则")
+                    st.text_area(
+                        "默认清仓条件",
+                        value=close_rule_value,
+                        height=60,
+                        key="default_close_rule_editor",
+                        help="输入默认清仓条件表达式"
+                    )
 
-                        st.subheader("加仓规则")
-                        st.text_area(
-                            "默认加仓条件",
-                            value=st.session_state.get("default_buy_rule", ""),
-                            height=60,
-                            key="default_buy_rule",
-                            help="输入默认开仓条件表达式"
-                        )
+                    st.subheader("加仓规则")
+                    st.text_area(
+                        "默认加仓条件",
+                        value=buy_rule_value,
+                        height=60,
+                        key="default_buy_rule_editor",
+                        help="输入默认开仓条件表达式"
+                    )
 
-                        st.subheader("平仓规则")
-                        st.text_area(
-                            "默认平仓条件",
-                            value=st.session_state.get("default_sell_rule", ""),
-                            height=60,
-                            key="default_sell_rule",
-                            help="输入默认平仓条件表达式"
-                        )
+                    st.subheader("平仓规则")
+                    st.text_area(
+                        "默认平仓条件",
+                        value=sell_rule_value,
+                        height=60,
+                        key="default_sell_rule_editor",
+                        help="输入默认平仓条件表达式"
+                    )
 
-                    with cols[1]:
-                        st.subheader("规则语法校验")
+                with cols[1]:
+                    st.subheader("规则语法校验")
 
-                        # 统一的规则校验函数
-                        def validate_rule(rule_key, display_name):
-                            if rule_key in st.session_state and st.session_state[rule_key]:
-                                from core.strategy.rule_parser import RuleParser
-                                valid, msg = RuleParser.validate_syntax(st.session_state[rule_key])
-                                if valid:
-                                    st.success(f"✓ {display_name}语法正确")
-                                    st.code(f"{display_name}: {st.session_state[rule_key]}")
-                                else:
-                                    st.error(f"{display_name}错误: {msg}")
+                    # 统一的规则校验函数
+                    def validate_rule(rule_key, display_name):
+                        if rule_key in st.session_state and st.session_state[rule_key]:
+                            from core.strategy.rule_parser import RuleParser
+                            valid, msg = RuleParser.validate_syntax(st.session_state[rule_key])
+                            if valid:
+                                st.success(f"✓ {display_name}语法正确")
+                                st.code(f"{display_name}: {st.session_state[rule_key]}")
+                            else:
+                                st.error(f"{display_name}错误: {msg}")
 
-                        # 校验所有规则
-                        validate_rule("default_open_rule", "默认开仓")
-                        validate_rule("default_close_rule", "默认清仓")
-                        validate_rule("default_buy_rule", "默认加仓")
-                        validate_rule("default_sell_rule", "默认平仓")
+                    # 校验所有规则
+                    validate_rule("default_open_rule_editor", "默认开仓")
+                    validate_rule("default_close_rule_editor", "默认清仓")
+                    validate_rule("default_buy_rule_editor", "默认加仓")
+                    validate_rule("default_sell_rule_editor", "默认平仓")
 
-                        if not any([st.session_state.get('default_open_rule'), st.session_state.get('default_close_rule'),
-                                  st.session_state.get('default_buy_rule'), st.session_state.get('default_sell_rule')]):
-                            st.info("请输入默认开仓/清仓/加仓/平仓规则表达式")
+                    if not any([st.session_state.get('default_open_rule_editor'), st.session_state.get('default_close_rule_editor'),
+                              st.session_state.get('default_buy_rule_editor'), st.session_state.get('default_sell_rule_editor')]):
+                        st.info("请输入默认开仓/清仓/加仓/平仓规则表达式")
 
-                        # 规则组管理
-                        st.subheader("规则组管理")
+                    # 规则组管理
+                    st.subheader("规则组管理")
+
+                    # 检查是否有规则组可用
+                    if st.session_state.rule_groups:
                         selected_group = st.selectbox(
                             "选择规则组",
                             options=list(st.session_state.rule_groups.keys()),
                             key="default_rule_group_select"
                         )
 
-                        if st.button("加载规则组到默认策略"):
-                            if selected_group in st.session_state.rule_groups:
-                                group = st.session_state.rule_groups[selected_group]
-                                # 加载所有规则类型，保持向后兼容
-                                if 'open_rule' in group:
-                                    st.session_state.default_open_rule = group['open_rule']
-                                if 'close_rule' in group:
-                                    st.session_state.default_close_rule = group['close_rule']
-                                st.session_state.default_buy_rule = group.get('buy_rule', group.get('add_rule', ''))
-                                st.session_state.default_sell_rule = group.get('sell_rule', group.get('reduce_rule', ''))
+                        # 使用key来获取当前选择的规则组
+                        if st.button("加载规则组到默认策略", key="load_rule_group_button"):
+                            # 获取当前选择的规则组
+                            current_selected_group = st.session_state.default_rule_group_select
+                            if current_selected_group in st.session_state.rule_groups:
+                                group = st.session_state.rule_groups[current_selected_group]
+                                # 使用唯一key重新创建规则编辑器
+                                st.session_state.rule_group_loaded = True
+                                st.session_state.loaded_open_rule = group.get('open_rule', '')
+                                st.session_state.loaded_close_rule = group.get('close_rule', '')
+                                st.session_state.loaded_buy_rule = group.get('buy_rule', '')
+                                st.session_state.loaded_sell_rule = group.get('sell_rule', '')
                                 st.rerun()
-
-                        if st.button("保存当前为规则组"):
-                            group_name = st.text_input("输入规则组名称", key="default_new_rule_group_name")
-                            if group_name and group_name.strip():
-                                st.session_state.rule_groups[group_name] = {
-                                    'open_rule': st.session_state.get('default_open_rule', ''),
-                                    'close_rule': st.session_state.get('default_close_rule', ''),
-                                    'buy_rule': st.session_state.get('default_buy_rule', ''),
-                                    'sell_rule': st.session_state.get('default_sell_rule', '')
-                                }
-                                st.success(f"规则组 '{group_name}' 已保存")
-
-        # 初始化策略映射
-        if 'strategy_mapping' not in st.session_state:
-            st.session_state.strategy_mapping = {}
-
-        # 为每个股票配置策略
-        st.write("**各股票策略配置**")
-        for symbol_option in selected_options:
-            symbol = symbol_option[0]
-            symbol_name = symbol_option[1]
-
-            # 为每个股票创建扩展器来配置策略
-            with st.expander(f"{symbol} - {symbol_name}", expanded=False):
-                col1, col2 = st.columns([1, 1])
-
-                with col1:
-                    # 生成规则组选项
-                    rule_group_options = []
-                    if 'rule_groups' in st.session_state and st.session_state.rule_groups:
-                        rule_group_options = [f"规则组: {name}" for name in st.session_state.rule_groups.keys()]
-
-                    # 策略选择
-                    strategy_choice = st.selectbox(
-                        f"选择策略类型",
-                        options=["使用默认策略", "月定投", "移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"] + rule_group_options,
-                        key=f"strategy_type_{symbol}"
-                    )
-
-                with col2:
-                    # 显示当前策略状态
-                    if strategy_choice == "使用默认策略":
-                        st.info("使用默认策略配置")
-                    elif strategy_choice.startswith("规则组:"):
-                        group_name = strategy_choice.replace("规则组: ", "")
-                        st.success(f"使用规则组: {group_name}")
                     else:
-                        st.success(f"使用自定义策略: {strategy_choice}")
+                        st.info("暂无规则组，请先创建规则组")
 
-                # 如果选择自定义规则，显示规则编辑器
-                if strategy_choice == "自定义规则":
-                    st.text_area(
-                        f"开仓条件 - {symbol}",
-                        value=st.session_state.get(f"open_rule_{symbol}", ""),
-                        height=60,
-                        key=f"open_rule_{symbol}",
-                        help="输入开仓条件表达式"
-                    )
-                    st.text_area(
-                        f"清仓条件 - {symbol}",
-                        value=st.session_state.get(f"close_rule_{symbol}", ""),
-                        height=60,
-                        key=f"close_rule_{symbol}",
-                        help="输入清仓条件表达式"
-                    )
-                    st.text_area(
-                        f"加仓条件 - {symbol}",
-                        value=st.session_state.get(f"buy_rule_{symbol}", ""),
-                        height=60,
-                        key=f"buy_rule_{symbol}",
-                        help="输入加仓条件表达式"
-                    )
-                    st.text_area(
-                        f"平仓条件 - {symbol}",
-                        value=st.session_state.get(f"sell_rule_{symbol}", ""),
-                        height=60,
-                        key=f"sell_rule_{symbol}",
-                        help="输入平仓条件表达式"
-                    )
-
-                # 存储策略映射
-                if strategy_choice != "使用默认策略":
-                    if strategy_choice.startswith("规则组:"):
-                        # 处理规则组选择
-                        group_name = strategy_choice.replace("规则组: ", "")
-                        if 'rule_groups' in st.session_state and group_name in st.session_state.rule_groups:
-                            group = st.session_state.rule_groups[group_name]
-                            st.session_state.strategy_mapping[symbol] = {
-                                'type': "自定义规则",
-                                'buy_rule': group.get('buy_rule', ''),
-                                'sell_rule': group.get('sell_rule', ''),
-                                'open_rule': group.get('open_rule', ''),
-                                'close_rule': group.get('close_rule', '')
+                    if st.button("保存当前为规则组"):
+                        group_name = st.text_input("输入规则组名称", key="default_new_rule_group_name")
+                        if group_name and group_name.strip():
+                            st.session_state.rule_groups[group_name] = {
+                                'open_rule': st.session_state.get('default_open_rule_editor', ''),
+                                'close_rule': st.session_state.get('default_close_rule_editor', ''),
+                                'buy_rule': st.session_state.get('default_buy_rule_editor', ''),
+                                'sell_rule': st.session_state.get('default_sell_rule_editor', '')
                             }
-                            # 同时更新session state中的规则值，以便在界面上显示
-                            st.session_state[f"buy_rule_{symbol}"] = group.get('buy_rule', '')
-                            st.session_state[f"sell_rule_{symbol}"] = group.get('sell_rule', '')
-                            st.session_state[f"open_rule_{symbol}"] = group.get('open_rule', '')
-                            st.session_state[f"close_rule_{symbol}"] = group.get('close_rule', '')
-                    else:
-                        # 处理普通策略选择
-                        st.session_state.strategy_mapping[symbol] = {
-                            'type': strategy_choice,
-                            'buy_rule': st.session_state.get(f"buy_rule_{symbol}", ""),
-                            'sell_rule': st.session_state.get(f"sell_rule_{symbol}", ""),
-                            'open_rule': st.session_state.get(f"open_rule_{symbol}", ""),
-                            'close_rule': st.session_state.get(f"close_rule_{symbol}", "")
-                        }
-                elif symbol in st.session_state.strategy_mapping:
-                    del st.session_state.strategy_mapping[symbol]
+                            st.success(f"规则组 '{group_name}' 已保存")
+                            st.rerun()
 
-        # 更新配置对象中的策略映射
-        st.session_state.backtest_config.strategy_mapping = st.session_state.strategy_mapping
-        st.session_state.backtest_config.default_strategy = {
-            'type': default_strategy_type,
-            'buy_rule': st.session_state.get("default_buy_rule", ""),
-            'sell_rule': st.session_state.get("default_sell_rule", ""),
-            'open_rule': st.session_state.get("default_open_rule", ""),
-            'close_rule': st.session_state.get("default_close_rule", "")
-        }
+        # 策略映射配置（多股票选择时才显示）
+        if len(selected_options) > 1:
+
+            # 初始化策略映射
+            if 'strategy_mapping' not in st.session_state:
+                st.session_state.strategy_mapping = {}
+
+            # 为每个股票配置策略
+            st.write("**各股票策略配置**")
+            for symbol_option in selected_options:
+                symbol = symbol_option[0]
+                symbol_name = symbol_option[1]
+
+                # 为每个股票创建扩展器来配置策略
+                with st.expander(f"{symbol} - {symbol_name}", expanded=False):
+                    col1, col2 = st.columns([1, 1])
+
+                    with col1:
+                        # 生成规则组选项
+                        rule_group_options = []
+                        if 'rule_groups' in st.session_state and st.session_state.rule_groups:
+                            rule_group_options = [f"规则组: {name}" for name in st.session_state.rule_groups.keys()]
+
+                        # 策略选择
+                        strategy_choice = st.selectbox(
+                            f"选择策略类型",
+                            options=["使用默认策略", "月定投", "移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"] + rule_group_options,
+                            key=f"strategy_type_{symbol}"
+                        )
+
+                    with col2:
+                        # 显示当前策略状态
+                        if strategy_choice == "使用默认策略":
+                            st.info("使用默认策略配置")
+                        elif strategy_choice.startswith("规则组:"):
+                            group_name = strategy_choice.replace("规则组: ", "")
+                            st.success(f"使用规则组: {group_name}")
+                        else:
+                            st.success(f"使用自定义策略: {strategy_choice}")
+
+                    # 如果选择自定义规则，显示规则编辑器
+                    if strategy_choice == "自定义规则":
+                        st.text_area(
+                            f"开仓条件 - {symbol}",
+                            value=st.session_state.get(f"open_rule_{symbol}", ""),
+                            height=60,
+                            key=f"open_rule_{symbol}",
+                            help="输入开仓条件表达式"
+                        )
+                        st.text_area(
+                            f"清仓条件 - {symbol}",
+                            value=st.session_state.get(f"close_rule_{symbol}", ""),
+                            height=60,
+                            key=f"close_rule_{symbol}",
+                            help="输入清仓条件表达式"
+                        )
+                        st.text_area(
+                            f"加仓条件 - {symbol}",
+                            value=st.session_state.get(f"buy_rule_{symbol}", ""),
+                            height=60,
+                            key=f"buy_rule_{symbol}",
+                            help="输入加仓条件表达式"
+                        )
+                        st.text_area(
+                            f"平仓条件 - {symbol}",
+                            value=st.session_state.get(f"sell_rule_{symbol}", ""),
+                            height=60,
+                            key=f"sell_rule_{symbol}",
+                            help="输入平仓条件表达式"
+                        )
+
+                    # 存储策略映射
+                    if strategy_choice != "使用默认策略":
+                        if strategy_choice.startswith("规则组:"):
+                            # 处理规则组选择
+                            group_name = strategy_choice.replace("规则组: ", "")
+                            if 'rule_groups' in st.session_state and group_name in st.session_state.rule_groups:
+                                group = st.session_state.rule_groups[group_name]
+                                st.session_state.strategy_mapping[symbol] = {
+                                    'type': "自定义规则",
+                                    'buy_rule': group.get('buy_rule', ''),
+                                    'sell_rule': group.get('sell_rule', ''),
+                                    'open_rule': group.get('open_rule', ''),
+                                    'close_rule': group.get('close_rule', '')
+                                }
+                                # 同时更新session state中的规则值，以便在界面上显示
+                                st.session_state[f"buy_rule_{symbol}"] = group.get('buy_rule', '')
+                                st.session_state[f"sell_rule_{symbol}"] = group.get('sell_rule', '')
+                                st.session_state[f"open_rule_{symbol}"] = group.get('open_rule', '')
+                                st.session_state[f"close_rule_{symbol}"] = group.get('close_rule', '')
+                        else:
+                            # 处理普通策略选择
+                            st.session_state.strategy_mapping[symbol] = {
+                                'type': strategy_choice,
+                                'buy_rule': st.session_state.get(f"buy_rule_{symbol}", ""),
+                                'sell_rule': st.session_state.get(f"sell_rule_{symbol}", ""),
+                                'open_rule': st.session_state.get(f"open_rule_{symbol}", ""),
+                                'close_rule': st.session_state.get(f"close_rule_{symbol}", "")
+                            }
+                    elif symbol in st.session_state.strategy_mapping:
+                        del st.session_state.strategy_mapping[symbol]
+
+            # 更新配置对象中的策略映射
+            st.session_state.backtest_config.strategy_mapping = st.session_state.strategy_mapping
+            st.session_state.backtest_config.default_strategy = {
+                'type': default_strategy_type,
+                'buy_rule': st.session_state.get("default_buy_rule_editor", ""),
+                'sell_rule': st.session_state.get("default_sell_rule_editor", ""),
+                'open_rule': st.session_state.get("default_open_rule_editor", ""),
+                'close_rule': st.session_state.get("default_close_rule_editor", "")
+            }
+
+    with config_tab3:
+        st.subheader("📈 仓位配置")
+
+        # 仓位策略类型选择
+        position_strategy_type = st.selectbox(
+            "仓位策略类型",
+            options=["fixed_percent", "kelly", "martingale"],
+            format_func=lambda x: "固定比例" if x == "fixed_percent" else "凯利公式" if x == "kelly" else "马丁策略",
+            key="position_strategy_select"
+        )
+        # 更新配置对象中的仓位策略类型
+        st.session_state.backtest_config.position_strategy_type = position_strategy_type
+
+        # 根据策略类型显示不同的参数配置
+        if position_strategy_type == "fixed_percent":
+            percent = st.slider(
+                "固定仓位比例(%)",
+                min_value=1,
+                max_value=100,
+                value=10,
+                key="fixed_percent_slider"
+            )
+            # 更新配置对象中的仓位策略参数
+            st.session_state.backtest_config.position_strategy_params = {"percent": percent / 100}
+
+        elif position_strategy_type == "kelly":
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                win_rate = st.slider(
+                    "策略胜率(%)",
+                    min_value=1,
+                    max_value=99,
+                    value=50,
+                    key="kelly_win_rate"
+                )
+            with col2:
+                win_loss_ratio = st.slider(
+                    "盈亏比",
+                    min_value=0.1,
+                    max_value=10.0,
+                    value=2.0,
+                    step=0.1,
+                    key="kelly_win_loss_ratio"
+                )
+            with col3:
+                max_percent = st.slider(
+                    "最大仓位限制(%)",
+                    min_value=1,
+                    max_value=100,
+                    value=25,
+                    key="kelly_max_percent"
+                )
+            # 更新配置对象中的仓位策略参数
+            st.session_state.backtest_config.position_strategy_params = {
+                "win_rate": win_rate / 100,
+                "win_loss_ratio": win_loss_ratio,
+                "max_percent": max_percent / 100
+            }
+
+        elif position_strategy_type == "martingale":
+            col1, col2 = st.columns(2)
+            with col1:
+                initial_ratio = st.slider(
+                    "初始开仓资金比例(%)",
+                    min_value=1.0,
+                    max_value=10.0,
+                    value=0.01,
+                    step=0.01,
+                    key="martingale_initial_ratio"
+                )
+            with col2:
+                multiplier = st.slider(
+                    "加仓倍数",
+                    min_value=1.0,
+                    max_value=10.0,
+                    value=2.0,
+                    step=0.1,
+                    key="martingale_multiplier"
+                )
+
+            # 显示仓位计算示例
+            st.info(f"仓位计算示例: 第1次开仓 {initial_ratio}%, 第2次加仓 {initial_ratio * multiplier:.1f}%, 第3次加仓 {initial_ratio * multiplier**2:.1f}%")
+
+            # 更新配置对象中的仓位策略参数
+            st.session_state.backtest_config.position_strategy_params = {
+                "initial_ratio": initial_ratio / 100,
+                "multiplier": multiplier,
+                "clear_on_insufficient": True  # 资金不足时清仓
+            }
     
-    # 时间范围选择
-    col1, col2 = st.columns(2)
-    with col1:
-        start_date = st.date_input("开始日期", key="start_date_input_main", value= "2025-04-01")
-        # 更新配置对象中的开始日期
-        st.session_state.backtest_config.start_date = start_date.strftime("%Y%m%d")
-    with col2:
-        end_date = st.date_input("结束日期", key="end_date_input_main")
-        # 更新配置对象中的结束日期
-        st.session_state.backtest_config.end_date = end_date.strftime("%Y%m%d")
-    
-    # 频率选择
-    frequency_options = {
-            "5": "5分钟",
-            "15": "15分钟",
-            "30": "30分钟",
-            "60": "60分钟",
-            "120": "120分钟",
-            "d": "日线",
-            "w": "周线",
-            "m": "月线",
-            "y": "年线"
-    }
-    frequency = st.selectbox(
-        "频率",
-        options=list(frequency_options.keys()),
-        format_func=lambda x: frequency_options[x],
-        key="frequency_select_main"
-    )
-    # 更新配置对象中的频率
-    st.session_state.backtest_config.frequency = frequency
     
     
 
@@ -394,95 +481,6 @@ async def show_backtesting_page():
     st.session_state.last_initial_capital = initial_capital
     st.session_state.last_commission_rate = commission_rate
     
-    # 仓位策略配置
-    st.subheader("📊 仓位策略配置")
-    
-    # 仓位策略类型选择
-    position_strategy_type = st.selectbox(
-        "仓位策略类型",
-        options=["fixed_percent", "kelly", "martingale"],
-        format_func=lambda x: "固定比例" if x == "fixed_percent" else "凯利公式" if x == "kelly" else "马丁策略",
-        key="position_strategy_select"
-    )
-    # 更新配置对象中的仓位策略类型
-    st.session_state.backtest_config.position_strategy_type = position_strategy_type
-    
-    # 根据策略类型显示不同的参数配置
-    if position_strategy_type == "fixed_percent":
-        percent = st.slider(
-            "固定仓位比例(%)",
-            min_value=1,
-            max_value=100,
-            value=10,
-            key="fixed_percent_slider"
-        )
-        # 更新配置对象中的仓位策略参数
-        st.session_state.backtest_config.position_strategy_params = {"percent": percent / 100}
-        
-    elif position_strategy_type == "kelly":
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            win_rate = st.slider(
-                "策略胜率(%)",
-                min_value=1,
-                max_value=99,
-                value=50,
-                key="kelly_win_rate"
-            )
-        with col2:
-            win_loss_ratio = st.slider(
-                "盈亏比",
-                min_value=0.1,
-                max_value=10.0,
-                value=2.0,
-                step=0.1,
-                key="kelly_win_loss_ratio"
-            )
-        with col3:
-            max_percent = st.slider(
-                "最大仓位限制(%)",
-                min_value=1,
-                max_value=100,
-                value=25,
-                key="kelly_max_percent"
-            )
-        # 更新配置对象中的仓位策略参数
-        st.session_state.backtest_config.position_strategy_params = {
-            "win_rate": win_rate / 100,
-            "win_loss_ratio": win_loss_ratio,
-            "max_percent": max_percent / 100
-        }
-    
-    elif position_strategy_type == "martingale":
-        col1, col2 = st.columns(2)
-        with col1:
-            initial_ratio = st.slider(
-                "初始开仓资金比例(%)",
-                min_value=1.0,
-                max_value=10.0,
-                value=0.01,
-                step=0.01,
-                key="martingale_initial_ratio"
-            )
-        with col2:
-            multiplier = st.slider(
-                "加仓倍数",
-                min_value=1.0,
-                max_value=10.0,
-                value=2.0,
-                step=0.1,
-                key="martingale_multiplier"
-            )
-        
-        # 显示仓位计算示例
-        st.info(f"仓位计算示例: 第1次开仓 {initial_ratio}%, 第2次加仓 {initial_ratio * multiplier:.1f}%, 第3次加仓 {initial_ratio * multiplier**2:.1f}%")
-        
-        # 更新配置对象中的仓位策略参数
-        st.session_state.backtest_config.position_strategy_params = {
-            "initial_ratio": initial_ratio / 100,
-            "multiplier": multiplier,
-            "clear_on_insufficient": True  # 资金不足时清仓
-        }
     
     # 初始化按钮状态
     if 'start_backtest_clicked' not in st.session_state:

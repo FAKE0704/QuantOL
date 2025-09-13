@@ -34,26 +34,29 @@ class BacktestConfig:
         target_symbol (str): 目标交易标的代码
         target_symbols (List[str]): 多标的交易代码列表
         frequency (str): 数据频率
-        
+
         stop_loss (Optional[float]): 止损比例，None表示不启用
         take_profit (Optional[float]): 止盈比例，None表示不启用
         max_holding_days (Optional[int]): 最大持仓天数，None表示不限制
         extra_params (Dict[str, Any]): 额外参数存储
-        
+
         position_strategy_type (str): 仓位策略类型，默认"fixed_percent"
         position_strategy_params (Dict[str, float]): 仓位策略参数，支持参数包括：
             - fixed_percent: {"percent": 0.1} (10%仓位)
             - kelly: {"max_position_percent": 0.25} (最大25%仓位)
-        
+
         min_lot_size (int): 最小交易手数，默认100股（A股市场）
+
+        strategy_mapping (Dict[str, Dict[str, Any]]): 股票-策略映射配置
+        default_strategy (Dict[str, Any]): 默认策略配置
     """
-    
+
     start_date: str
     end_date: str
     target_symbol: str
     frequency: str
     target_symbols: List[str] = field(default_factory=list)
-    
+
     stop_loss: Optional[float] = None
     take_profit: Optional[float] = None
     max_holding_days: Optional[int] = None
@@ -64,6 +67,8 @@ class BacktestConfig:
     position_strategy_type: str = "fixed_percent"
     position_strategy_params: Dict[str, Any] = field(default_factory=dict)
     min_lot_size: int = 100
+    strategy_mapping: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    default_strategy: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """参数验证和兼容性处理"""
@@ -146,22 +151,16 @@ class BacktestConfig:
         """获取指定符号的分配资金"""
         if not self.is_multi_symbol():
             return self.initial_capital
-        
+
         if hasattr(self, '_capital_distribution'):
             return self._capital_distribution.get(symbol, 0)
-        
+
         # 默认平均分配
         return self.initial_capital / len(self.target_symbols)
 
-        if self.extra_params is None:
-            self.extra_params = {}
-            
-        # 验证最小交易手数
-        if self.min_lot_size <= 0:
-            raise ValueError("最小交易手数必须大于0")
-            
-        # 验证仓位策略参数
-        self._validate_position_strategy_params()
+    def get_strategy_for_symbol(self, symbol: str) -> Dict[str, Any]:
+        """获取指定股票的策略配置"""
+        return self.strategy_mapping.get(symbol, self.default_strategy)
         
     def _validate_position_strategy_params(self):
         """验证仓位策略参数"""
@@ -864,22 +863,22 @@ class BacktestEngine:
 
     def run_multi_symbol(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
         """执行多符号回测
-        
+
         对于每个符号，运行单独的回测，然后组合结果
         """
         if not self.multi_symbol_mode:
             # 单符号模式，直接运行普通回测
             self.run(start_date, end_date)
             return self.get_results()
-        
+
         # 多符号模式
         all_results = {}
         individual_results = {}
-        
+
         # 为每个符号运行单独的回测
         for symbol, data in self.data_dict.items():
             logger.info(f"Running backtest for symbol: {symbol}")
-            
+
             # 为每个符号创建单独的配置
             symbol_config = BacktestConfig(
                 start_date=self.config.start_date,
@@ -891,12 +890,15 @@ class BacktestEngine:
                 position_strategy_type=self.config.position_strategy_type,
                 position_strategy_params=self.config.position_strategy_params
             )
-            
+
             # 创建并运行单独的引擎
             symbol_engine = BacktestEngine(symbol_config, data)
-            
-            # 为每个符号创建新的策略实例（避免数据引用问题）
+
+            # 为每个符号创建新的策略实例（根据策略映射）
             for strategy in self.strategies:
+                # 获取该股票的策略配置
+                symbol_strategy_config = self.config.get_strategy_for_symbol(symbol)
+
                 # 创建策略副本或新实例
                 if hasattr(strategy, 'name') and hasattr(strategy, 'buy_rule_expr'):
                     # 对于RuleBasedStrategy类型的策略，重新创建实例
@@ -905,39 +907,45 @@ class BacktestEngine:
                     if indicator_service is None:
                         from core.strategy.indicators import IndicatorService
                         indicator_service = IndicatorService()
-                    
+
+                    # 使用策略映射中的规则表达式（如果存在），否则使用原策略的规则
+                    buy_rule = symbol_strategy_config.get('buy_rule', getattr(strategy, 'buy_rule_expr', ''))
+                    sell_rule = symbol_strategy_config.get('sell_rule', getattr(strategy, 'sell_rule_expr', ''))
+                    open_rule = symbol_strategy_config.get('open_rule', getattr(strategy, 'open_rule_expr', ''))
+                    close_rule = symbol_strategy_config.get('close_rule', getattr(strategy, 'close_rule_expr', ''))
+
                     symbol_strategy = RuleBasedStrategy(
                         Data=data,  # 使用当前符号的数据
                         name=f"{getattr(strategy, 'name', 'Unknown')}_{symbol}",
                         indicator_service=indicator_service,
-                        buy_rule_expr=getattr(strategy, 'buy_rule_expr', ''),
-                        sell_rule_expr=getattr(strategy, 'sell_rule_expr', ''),
-                        open_rule_expr=getattr(strategy, 'open_rule_expr', ''),
-                        close_rule_expr=getattr(strategy, 'close_rule_expr', ''),
+                        buy_rule_expr=buy_rule,
+                        sell_rule_expr=sell_rule,
+                        open_rule_expr=open_rule,
+                        close_rule_expr=close_rule,
                         portfolio_manager=getattr(strategy, 'portfolio_manager', None)
                     )
                 else:
                     # 对于其他类型的策略，使用原策略
                     symbol_strategy = strategy
                 symbol_engine.register_strategy(symbol_strategy)
-            
+
             # 运行回测
             symbol_engine.run(start_date, end_date)
-            
+
             # 存储单个符号的结果
             individual_results[symbol] = symbol_engine.get_results()
-            
+
             # 合并交易记录
             self.trades.extend(symbol_engine.trades)
-            
+
             # 合并错误
             self.errors.extend(symbol_engine.errors)
-        
+
         # 创建组合结果
         all_results["individual"] = individual_results
         all_results["trades"] = self.trades
         all_results["errors"] = self.errors
-        
+
         # 计算组合净值曲线（简单相加）
         combined_equity = pd.DataFrame()
         for symbol, results in individual_results.items():
@@ -950,12 +958,16 @@ class BacktestEngine:
                     # 合并时间对齐的净值数据
                     equity_data = equity_data[['timestamp', 'total_value']].rename(columns={'total_value': symbol})
                     combined_equity = combined_equity.merge(equity_data, on='timestamp', how='outer')
-        
+
         # 计算组合总净值
         if not combined_equity.empty:
             combined_equity['total_value'] = combined_equity.drop('timestamp', axis=1).sum(axis=1)
             all_results["combined_equity"] = combined_equity
-        
+
+        # 添加策略映射信息到结果中
+        all_results["strategy_mapping"] = self.config.strategy_mapping
+        all_results["default_strategy"] = self.config.default_strategy
+
         self.results = all_results
         return all_results
 

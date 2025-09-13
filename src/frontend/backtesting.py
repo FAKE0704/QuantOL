@@ -14,6 +14,83 @@ from services.progress_service import progress_service
 from typing import cast
 import time
 from support.log.logger import logger
+import numpy as np
+
+# 性能指标计算辅助函数（前端临时实现，未来应迁移到PortfolioManager）
+def calculate_performance_metrics(equity_data, trades_df=None, risk_free_rate=0.03):
+    """计算性能指标"""
+    metrics = {}
+
+    if equity_data is None or equity_data.empty:
+        return metrics
+
+    # 确保净值数据按时间排序
+    if 'timestamp' in equity_data.columns:
+        equity_data = equity_data.sort_values('timestamp')
+
+    equity_values = equity_data['total_value'].values if 'total_value' in equity_data.columns else equity_data.values
+
+    if len(equity_values) < 2:
+        return metrics
+
+    # 计算基本指标
+    initial_value = equity_values[0]
+    final_value = equity_values[-1]
+    total_return = (final_value - initial_value) / initial_value
+
+    # 计算年化收益率
+    days = len(equity_values)  # 简化计算
+    annual_return = (1 + total_return) ** (365 / max(days, 1)) - 1 if days > 0 else 0
+
+    # 计算最大回撤
+    peak = equity_values[0]
+    max_drawdown = 0.0
+    for value in equity_values:
+        if value > peak:
+            peak = value
+        drawdown = (peak - value) / peak
+        if drawdown > max_drawdown:
+            max_drawdown = drawdown
+
+    metrics['annual_return'] = annual_return
+    metrics['max_drawdown'] = max_drawdown
+
+    # 计算夏普比率（需要日收益率）
+    returns = np.diff(equity_values) / equity_values[:-1]
+    if len(returns) > 0:
+        excess_returns = returns - risk_free_rate/252
+        sharpe_ratio = (excess_returns.mean() / returns.std()) * np.sqrt(252) if returns.std() > 0 else 0
+        metrics['sharpe_ratio'] = sharpe_ratio
+
+    # 计算索提诺比率
+    downside_returns = returns[returns < 0]
+    if len(downside_returns) > 0:
+        sortino_ratio = (returns.mean() / downside_returns.std()) * np.sqrt(252) if downside_returns.std() > 0 else 0
+        metrics['sortino_ratio'] = sortino_ratio
+
+    # 计算卡玛比率
+    if max_drawdown > 0:
+        metrics['calmar_ratio'] = annual_return / max_drawdown
+
+    # 计算年化波动率
+    if len(returns) > 0:
+        metrics['annual_volatility'] = returns.std() * np.sqrt(252)
+
+    # 如果有交易数据，计算盈亏比
+    if trades_df is not None and len(trades_df) > 0 and isinstance(trades_df, list):
+        # 如果是列表，转换为DataFrame
+        trades_df = pd.DataFrame(trades_df)
+
+    if trades_df is not None and not trades_df.empty and 'profit' in trades_df.columns:
+        winning_trades = trades_df[trades_df['profit'] > 0]
+        losing_trades = trades_df[trades_df['profit'] < 0]
+
+        if len(losing_trades) > 0:
+            avg_win = winning_trades['profit'].mean() if len(winning_trades) > 0 else 0
+            avg_loss = abs(losing_trades['profit'].mean())
+            metrics['win_loss_ratio'] = avg_win / avg_loss if avg_loss > 0 else float('inf')
+
+    return metrics
 
 async def show_backtesting_page():
     # 初始化策略ID
@@ -705,9 +782,37 @@ async def show_backtesting_page():
                     with col2:
                         total_trades = len(results["trades"])
                         st.metric("总交易次数", total_trades)
-                        # 简化显示，多符号模式下胜率计算较复杂
-                        st.metric("胜率", "多符号模式")
-                        st.metric("最大回撤", "多符号模式")
+
+                        # 计算组合胜率
+                        win_rate = 0.0
+                        win_rate_count = 0
+                        for symbol_result in individual_results.values():
+                            if 'summary' in symbol_result and 'win_rate' in symbol_result['summary']:
+                                win_rate += symbol_result['summary']['win_rate']
+                                win_rate_count += 1
+
+                        if win_rate_count > 0:
+                            avg_win_rate = (win_rate / win_rate_count) * 100
+                            st.metric("胜率", f"{avg_win_rate:.2f}%")
+                        else:
+                            st.metric("胜率", "N/A")
+
+                        # 计算组合最大回撤
+                        if not combined_equity.empty and 'total_value' in combined_equity.columns:
+                            equity_values = combined_equity['total_value'].values
+                            peak = equity_values[0]
+                            max_drawdown = 0.0
+
+                            for value in equity_values:
+                                if value > peak:
+                                    peak = value
+                                drawdown = (peak - value) / peak * 100
+                                if drawdown > max_drawdown:
+                                    max_drawdown = drawdown
+
+                            st.metric("最大回撤", f"{max_drawdown:.2f}%")
+                        else:
+                            st.metric("最大回撤", "N/A")
                     
                     with col3:
                         # 计算年化收益率
@@ -720,6 +825,12 @@ async def show_backtesting_page():
                                 st.metric("年化收益率", "N/A")
                         else:
                             st.metric("年化收益率", "N/A")
+
+                        # 计算并显示高级性能指标
+                        metrics = calculate_performance_metrics(combined_equity, results["trades"])
+                        if metrics:
+                            st.metric("夏普比率", f"{metrics.get('sharpe_ratio', 0):.2f}" if metrics.get('sharpe_ratio') else "N/A")
+                            st.metric("年化波动率", f"{metrics.get('annual_volatility', 0)*100:.2f}%" if metrics.get('annual_volatility') else "N/A")
                     
                     # 显示各股票表现
                     st.subheader("各股票表现")
@@ -765,6 +876,12 @@ async def show_backtesting_page():
                                 st.metric("年化收益率", "N/A")
                         else:
                             st.metric("年化收益率", "N/A")
+
+                        # 计算并显示高级性能指标
+                        metrics = calculate_performance_metrics(equity_data, results["trades"])
+                        if metrics:
+                            st.metric("夏普比率", f"{metrics.get('sharpe_ratio', 0):.2f}" if metrics.get('sharpe_ratio') else "N/A")
+                            st.metric("年化波动率", f"{metrics.get('annual_volatility', 0)*100:.2f}%" if metrics.get('annual_volatility') else "N/A")
             
             with tab2:
                 # 显示交易记录

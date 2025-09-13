@@ -115,22 +115,55 @@ _store_expression_result：存储表达式结果到data
 # src/core/strategy/position_strategy.py
 ## PositionStrategy
 仓位策略基类
-- 基于策略逻辑生成目标仓位
-- 
+### DUTIES
+- 计算理论仓位大小
+- 根据策略信号确定仓位比例
+- 注意：实际仓位限制检查由RiskManager负责
 
-待分析：
-输入​：市场数据（价格、波动率）、策略参数（风险偏好、杠杆率）、账户状态（当前持仓）。
-•
-​输出​：策略级别的目标仓位（如股票A买入200股）
-- 计算信号强度
-- 应用策略级风控
+### PROPERTIES
+- `account_value`: 账户当前净值
+
+### METHODS
+- `__init__(account_value: float)`: 初始化策略
+- `calculate_position(signal_strength: float = 1.0) -> float`: 计算仓位大小
 
 ## FixedPercentStrategy(PositionStrategy)
 固定比例仓位策略
-- calculate_position：计算仓位比例
+### DUTIES
+- 按固定比例计算仓位
+- 不考虑风险限制(由RiskManager处理)
+
+### PROPERTIES
+- `percent`: 固定仓位比例(0-1)
+
+### METHODS
+- `__init__(account_value: float, percent: float = 0.1)`: 初始化策略
+- `calculate_position(signal_strength: float = 1.0) -> float`: 计算固定比例仓位
+
 ## KellyStrategy(PositionStrategy)
 凯利公式仓位策略
-- calculate_position：计算凯利公式仓位
+### DUTIES
+- 根据凯利公式计算最优仓位
+- 最大仓位限制仅为公式计算上限
+- 实际执行需通过RiskManager验证
+
+### PROPERTIES
+- `win_rate`: 策略胜率(0-1)
+- `win_loss_ratio`: 平均盈亏比(正数)
+- `max_percent`: 最大仓位限制(0-1)
+
+### METHODS
+- `__init__(account_value: float, win_rate: float, win_loss_ratio: float, max_percent: float = 0.25)`: 初始化策略
+- `calculate_position(signal_strength: float = 1.0) -> float`: 计算凯利公式仓位
+
+## PositionStrategyFactory
+仓位策略工厂类
+### DUTIES
+- 根据配置创建相应的仓位策略实例
+- 提供统一的策略创建接口
+
+### METHODS
+- `create_strategy(strategy_type: str, account_value: float, params: Dict[str, Any]) -> PositionStrategy`: 创建仓位策略实例
 
 
 # src/core/strategy/indicators.py
@@ -366,6 +399,7 @@ hedge_ratio:
 ### METHODS
 - `show_backtesting_page()`: 主页面显示函数
 - `validate_rule()`: 规则语法校验函数
+- `calculate_performance_metrics()`: 性能指标计算函数（前端临时实现，未来应迁移到PortfolioManager）
 - 各种Streamlit组件交互方法
 
 ### 新增功能特性
@@ -373,3 +407,4 @@ hedge_ratio:
 - 改进的规则组加载机制，避免Streamlit widget修改错误
 - 多股票策略映射配置界面
 - 统一的规则语法校验和显示
+- 完整的策略性能指标计算和显示（夏普比率、索提诺比率、卡玛比率、年化波动率、盈亏比等）

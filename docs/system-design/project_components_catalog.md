@@ -164,6 +164,8 @@ _store_expression_result：存储表达式结果到data
 - `position_strategy_type`: 仓位策略类型，默认"fixed_percent"。
 - `position_strategy_params`: 仓位策略参数。
 - `min_lot_size`: 最小交易手数，默认100股（A股市场）。
+- `strategy_mapping`: 股票-策略映射配置，支持为不同股票选择不同策略。
+- `default_strategy`: 默认策略配置，用于单符号模式或未指定策略的股票。
 
 ### METHODS
 - `__post_init__`: 参数验证和兼容性处理，包括日期格式、资金分配等。
@@ -172,6 +174,7 @@ _store_expression_result：存储表达式结果到data
 - `get_primary_symbol`: 获取主符号（用于兼容旧代码）。
 - `_distribute_capital`: 多符号模式下的资金分配逻辑。
 - `get_symbol_capital`: 获取指定符号的分配资金。
+- `get_strategy_for_symbol`: 获取指定股票的策略配置。
 - `_validate_position_strategy_params`: 验证仓位策略参数。
 - `to_dict`: 将配置转换为字典。
 - `from_dict`: 从字典创建配置实例（类方法）。

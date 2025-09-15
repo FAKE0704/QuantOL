@@ -70,7 +70,7 @@ async def show_backtesting_page():
         config_ui.render_frequency_config_ui()
 
         # 使用BacktestConfigUI组件渲染股票选择
-        selected_options = config_ui.render_stock_selection_ui()
+        selected_options = await config_ui.render_stock_selection_ui()
 
         # 更新配置对象中的股票代码
         if selected_options:

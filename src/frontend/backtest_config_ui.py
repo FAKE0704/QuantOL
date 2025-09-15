@@ -46,7 +46,7 @@ class BacktestConfigUI:
         frequency_map = {"日线": "d", "周线": "w", "月线": "m"}
         self.session_state.backtest_config.frequency = frequency_map[frequency]
 
-    def render_stock_selection_ui(self) -> List[Tuple[str, str]]:
+    async def render_stock_selection_ui(self) -> List[Tuple[str, str]]:
         """渲染股票选择UI，返回选中的股票列表"""
         st.subheader("📈 选择交易标的")
 
@@ -58,9 +58,9 @@ class BacktestConfigUI:
             if 'stock_cache' not in self.session_state or self.session_state.stock_cache is None:
                 with st.spinner("正在加载股票列表..."):
                     try:
-                        stock_list = self.session_state.db.get_stock_list()
+                        stock_list = await self.session_state.db.get_all_stocks()
                         self.session_state.stock_cache = [
-                            (row['symbol'], f"{row['symbol']} - {row['name']}")
+                            (row['code'], f"{row['code']} - {row['code_name']}")
                             for _, row in stock_list.iterrows()
                         ]
                     except Exception as e:

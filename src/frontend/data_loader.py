@@ -90,9 +90,9 @@ class DataLoader:
     async def refresh_stock_list(self) -> List[Tuple[str, str]]:
         """刷新股票列表"""
         try:
-            stock_list = await self.session_state.db.get_stock_list()
+            stock_list = await self.session_state.db.get_all_stocks()
             return [
-                (row['symbol'], f"{row['symbol']} - {row['name']}")
+                (row['code'], f"{row['code']} - {row['code_name']}")
                 for _, row in stock_list.iterrows()
             ]
         except Exception as e:

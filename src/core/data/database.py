@@ -5,6 +5,7 @@ import chinese_calendar as calendar
 import streamlit as st
 from datetime import datetime, date,time
 import asyncio
+import os
 from support.log.logger import logger
 
 @st.cache_resource(ttl=3600, show_spinner=False)
@@ -15,8 +16,8 @@ def get_db_manager():
 
 
 class DatabaseManager:
-    def __init__(self, host='113.45.40.20', port='8080', dbname='quantdb',
-                 user='quant', password='quant123', admin_db='quantdb'):
+    def __init__(self, host=None, port=None, dbname=None,
+                 user=None, password=None, admin_db=None):
         self.connection = None
         # self._loop = asyncio.get_event_loop()  # 全局唯一事件循环
         import logging
@@ -26,26 +27,31 @@ class DatabaseManager:
         self._instance_id = id(self)  # 添加实例ID用于调试
         self.connection_states = {}  # 连接状态跟踪 {conn_id: {status, last_change}}
         logger.debug(f"DatabaseManager initialized, instance_id: {self._instance_id}")  # 测试warning日志
+        # 从环境变量获取配置，支持参数覆盖
+        db_password = password or os.getenv('DB_PASSWORD')
+        if not db_password:
+            raise ValueError("数据库密码未配置。请设置DB_PASSWORD环境变量或通过参数传递。")
+
         self.connection_config = { # 数据库连接配置
-            'host': host,
-            'port': port,
-            'dbname': dbname,
-            'user': user,
-            'password': password
+            'host': host or os.getenv('DB_HOST', 'localhost'),
+            'port': port or os.getenv('DB_PORT', '5432'),
+            'dbname': dbname or os.getenv('DB_NAME', 'quantdb'),
+            'user': user or os.getenv('DB_USER', 'quant'),
+            'password': db_password
         }
         self.admin_config = {
-            'host': host,
-            'port': port,
-            'dbname': admin_db,
-            'user': user,
-            'password': password
+            'host': host or os.getenv('DB_HOST', 'localhost'),
+            'port': port or os.getenv('DB_PORT', '5432'),
+            'dbname': admin_db or os.getenv('ADMIN_DB_NAME', 'quantdb'),
+            'user': user or os.getenv('DB_USER', 'quant'),
+            'password': db_password
         }
         self._initialized = False  # 初始化状态
         self._initializing = False  # 防止重复初始化
         self.pool = None  # 记录连接池
         self._loop = None
-        self.max_pool_size = 15  # 最大连接数
-        self.query_timeout = 60  # 查询超时时间（秒）
+        self.max_pool_size = int(os.getenv('DB_MAX_POOL_SIZE', '15'))  # 最大连接数
+        self.query_timeout = int(os.getenv('DB_QUERY_TIMEOUT', '60'))  # 查询超时时间（秒）
         self.active_connections = {}  # 目前活跃的连接
         self._conn_lock = asyncio.Lock()  
         

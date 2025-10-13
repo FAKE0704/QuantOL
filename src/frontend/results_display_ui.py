@@ -68,7 +68,9 @@ class ResultsDisplayUI:
         equity_data = self._get_equity_data(results)
         if equity_data is not None:
             # 使用ChartService绘制净值曲线
-            chart_service = ChartService()
+            from services.chart_service import DataBundle, ChartService
+            data_bundle = DataBundle(raw_data=equity_data)
+            chart_service = ChartService.get_chart_service(data_bundle)
             chart_service.draw_equity_and_allocation(equity_data)
         else:
             st.warning("无净值数据可用")
@@ -81,11 +83,13 @@ class ResultsDisplayUI:
         price_data = self._get_price_data(results)
         if price_data is not None:
             # 使用ChartService绘制技术指标
-            chart_service = ChartService()
+            from services.chart_service import DataBundle, ChartService
+            data_bundle = DataBundle(raw_data=price_data)
+            chart_service = ChartService.get_chart_service(data_bundle)
 
             col1, col2 = st.columns(2)
             with col1:
-                chart_service.drawMA(price_data)
+                chart_service.drawMA(price_data, [5, 10, 20])
                 chart_service.drawMACD(price_data)
             with col2:
                 chart_service.drawBollingerBands(price_data)
@@ -116,7 +120,9 @@ class ResultsDisplayUI:
         equity_data = self._get_equity_data(results)
         if equity_data is not None:
             # 使用ChartService绘制回撤曲线
-            chart_service = ChartService()
+            from services.chart_service import DataBundle, ChartService
+            data_bundle = DataBundle(raw_data=equity_data)
+            chart_service = ChartService.get_chart_service(data_bundle)
             chart_service.draw_drawdown_analysis(equity_data)
         else:
             st.warning("无净值数据可用")
@@ -128,7 +134,9 @@ class ResultsDisplayUI:
         equity_data = self._get_equity_data(results)
         if equity_data is not None:
             # 使用ChartService绘制收益分布
-            chart_service = ChartService()
+            from services.chart_service import DataBundle, ChartService
+            data_bundle = DataBundle(raw_data=equity_data)
+            chart_service = ChartService.get_chart_service(data_bundle)
             chart_service.draw_returns_distribution(equity_data)
         else:
             st.warning("无净值数据可用")
@@ -142,7 +150,9 @@ class ResultsDisplayUI:
 
         if price_data is not None and signals_data is not None:
             # 使用ChartService绘制交易信号
-            chart_service = ChartService()
+            from services.chart_service import DataBundle, ChartService
+            data_bundle = DataBundle(raw_data=price_data)
+            chart_service = ChartService.get_chart_service(data_bundle)
             chart_service.draw_trading_signals(price_data, signals_data)
         else:
             st.warning("无价格或信号数据可用")

@@ -25,18 +25,30 @@ class BaostockDataSource(DataSource):
         """从baostock获取股票symbol从start_date到end_date的频率frequency数据
         Args:
             symbol: 股票代码
-            start_date: 开始日期(date对象)
-            end_date: 结束日期(date对象)
+            start_date: 开始日期(date对象或字符串)
+            end_date: 结束日期(date对象或字符串)
             frequency: 数据频率(可选)
         """
         
 
         from services.progress_service import progress_service
-        
+        import pandas as pd
+
+        # 确保日期格式正确
+        if isinstance(start_date, str):
+            start_dt = pd.to_datetime(start_date).date()
+        else:
+            start_dt = start_date
+
+        if isinstance(end_date, str):
+            end_dt = pd.to_datetime(end_date).date()
+        else:
+            end_dt = end_date
+
         freq = frequency if frequency is not None else self.default_frequency
         task_id = f"{symbol}_{freq}_load"
         progress_service.start_task(task_id, 1)
-        
+
         lg = bs.login()
         if lg.error_code != '0':
             progress_service.end_task(task_id)
@@ -48,8 +60,8 @@ class BaostockDataSource(DataSource):
             fields = "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST"
         
         # 如果日期相同，需要将前者日期前移一天
-        if start_date == end_date:
-            start_date_str = start_date.strftime("%Y-%m-%d")
+        if start_dt == end_dt:
+            start_date_str = start_dt.strftime("%Y-%m-%d")
             rs = bs.query_history_k_data_plus(
                 symbol,
                 fields,
@@ -59,9 +71,9 @@ class BaostockDataSource(DataSource):
             ) # 日期格式需要为 20250202
         else:
             # 转换为baostock需要的日期格式
-            start_date_str = start_date.strftime("%Y-%m-%d")
-            end_date_str = end_date.strftime("%Y-%m-%d")
-        
+            start_date_str = start_dt.strftime("%Y-%m-%d")
+            end_date_str = end_dt.strftime("%Y-%m-%d")
+
             rs = bs.query_history_k_data_plus(
                 symbol,
                 fields,

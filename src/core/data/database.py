@@ -8,6 +8,10 @@ import asyncio
 import os
 from support.log.logger import logger
 
+# 加载环境变量
+from dotenv import load_dotenv
+load_dotenv()
+
 @st.cache_resource(ttl=3600, show_spinner=False)
 def get_db_manager():
     """带缓存的数据库管理器工厂函数"""
@@ -211,8 +215,8 @@ class DatabaseManager:
         """异步检查数据完整性
         Args:
             symbol: 股票代码
-            start_date: 开始日期(date对象)，示例
-            end_date: 结束日期(date对象)
+            start_date: 开始日期(date对象或字符串)
+            end_date: 结束日期(date对象或字符串)
         Returns:
             缺失日期区间列表[(start1,end1), (start2,end2)...]
         """
@@ -221,11 +225,18 @@ class DatabaseManager:
             await self._create_pool()
 
         try:
-            logger.info(f"Checking data completeness for {symbol} from {start_date} to {end_date}")
-            
-            # 直接使用date对象
-            start_dt = start_date
-            end_dt = end_date
+            # 确保日期格式正确
+            if isinstance(start_date, str):
+                start_dt = pd.to_datetime(start_date).date()
+            else:
+                start_dt = start_date
+
+            if isinstance(end_date, str):
+                end_dt = pd.to_datetime(end_date).date()
+            else:
+                end_dt = end_date
+
+            logger.info(f"Checking data completeness for {symbol} from {start_dt} to {end_dt}")
             
             async with self.pool.acquire() as conn:
                 # 获取数据库中已有日期
@@ -285,21 +296,27 @@ class DatabaseManager:
         """从数据库加载股票数据，如有缺失则从数据源获取并保存
         Args:
             symbol: 股票代码
-            start_date: 开始日期(date对象)
-            end_date: 结束日期(date对象)
+            start_date: 开始日期(date对象或字符串)
+            end_date: 结束日期(date对象或字符串)
             frequency: 数据频率(如'd'表示日线)
         Returns:
             包含股票数据的DataFrame
         """
         try:
-            
-            logger.info(f"Loading stock data for {symbol} from {start_date} to {end_date}")
-            # the date that data lack of  # 
-            missing_ranges = await self.check_data_completeness(symbol, start_date, end_date,frequency)
-            
-            # 直接使用date对象
-            start_dt = start_date
-            end_dt = end_date
+            # 确保日期格式正确
+            if isinstance(start_date, str):
+                start_dt = pd.to_datetime(start_date).date()
+            else:
+                start_dt = start_date
+
+            if isinstance(end_date, str):
+                end_dt = pd.to_datetime(end_date).date()
+            else:
+                end_dt = end_date
+
+            logger.info(f"Loading stock data for {symbol} from {start_dt} to {end_dt}")
+            # the date that data lack of  #
+            missing_ranges = await self.check_data_completeness(symbol, start_dt, end_dt,frequency)
 
             # Fetch missing data ranges from Baostock
             if missing_ranges:

@@ -28,7 +28,7 @@ async def init_global_services():
         
 
 def show_home_page():
-    st.title("欢迎使用量化交易系统")
+    st.title("欢迎使用智能量化平台")
     st.write("请从左侧导航栏选择功能")
 
 async def main():

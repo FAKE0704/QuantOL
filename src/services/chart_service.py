@@ -599,7 +599,6 @@ class ChartService:
         return self._interaction_service
 
     @staticmethod
-    @st.cache_resource(show_spinner=False)
     def get_chart_service(data_bundle: DataBundle, _strategy_id: Optional[str] = None) -> 'ChartService':
         """基于策略ID的缓存实例工厂
         
@@ -1098,14 +1097,11 @@ class ChartService:
         
         return fig
 
-    def draw_equity_and_allocation(self, equity_data: Optional[pd.DataFrame] = None) -> go.Figure:
+    def draw_equity_and_allocation(self, equity_data: Optional[pd.DataFrame] = None) -> None:
         """绘制净值与资产配置比例单轴图表
-        
+
         Args:
             equity_data: 净值数据DataFrame，包含timestamp, total_value, positions_value列
-            
-        Returns:
-            go.Figure: 配置好的单轴图表
         """
         
         # 数据准备：使用传入数据或默认数据源
@@ -1168,10 +1164,11 @@ class ChartService:
                      annotation_position="bottom right")
         
         # 添加零线参考
-        fig.add_hline(y=0, line_dash="dash", line_color="green", 
+        fig.add_hline(y=0, line_dash="dash", line_color="green",
                      annotation_text="盈亏平衡线")
-        
-        return fig
+
+        # 显示图表
+        st.plotly_chart(fig, use_container_width=True)
 
     def drawMA(self, data: Optional[DataFrame], periods: List[int]) -> List[go.Scatter]:
         """绘制均线"""
@@ -1526,3 +1523,144 @@ class ChartService:
             yaxis_title="资金流向 (亿)",
         )
         return fig
+
+    def draw_drawdown_analysis(self, equity_data: pd.DataFrame) -> None:
+        """绘制回撤分析图表
+
+        Args:
+            equity_data: 净值数据DataFrame，包含timestamp和total_value列
+        """
+        if equity_data is None or equity_data.empty:
+            st.warning("无净值数据可用于回撤分析")
+            return
+
+        # 计算回撤
+        equity_data = equity_data.copy()
+        equity_data['peak'] = equity_data['total_value'].cummax()
+        equity_data['drawdown'] = (equity_data['total_value'] - equity_data['peak']) / equity_data['peak'] * 100
+
+        # 创建图表
+        fig = go.Figure()
+
+        # 添加回撤曲线
+        fig.add_trace(
+            go.Scatter(
+                x=equity_data['timestamp'],
+                y=equity_data['drawdown'],
+                name="回撤 (%)",
+                line=dict(color="red", width=2),
+                fill='tozeroy',
+                fillcolor='rgba(255,0,0,0.2)'
+            )
+        )
+
+        # 配置图表
+        fig.update_layout(
+            title="回撤分析",
+            xaxis_title="时间",
+            yaxis_title="回撤 (%)",
+            template="plotly_white",
+            height=400
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    def draw_returns_distribution(self, equity_data: pd.DataFrame) -> None:
+        """绘制收益分布图表
+
+        Args:
+            equity_data: 净值数据DataFrame，包含timestamp和total_value列
+        """
+        if equity_data is None or equity_data.empty:
+            st.warning("无净值数据可用于收益分布分析")
+            return
+
+        # 计算日收益率
+        equity_data = equity_data.copy()
+        equity_data['daily_return'] = equity_data['total_value'].pct_change() * 100
+
+        # 创建直方图
+        fig = px.histogram(
+            equity_data,
+            x='daily_return',
+            title="日收益率分布",
+            nbins=50,
+            labels={'daily_return': '日收益率 (%)'}
+        )
+
+        # 添加统计信息
+        mean_return = equity_data['daily_return'].mean()
+        std_return = equity_data['daily_return'].std()
+
+        fig.add_vline(x=mean_return, line_dash="dash", line_color="red",
+                     annotation_text=f"均值: {mean_return:.2f}%")
+        fig.add_vline(x=mean_return + std_return, line_dash="dash", line_color="orange",
+                     annotation_text=f"+1σ: {mean_return + std_return:.2f}%")
+        fig.add_vline(x=mean_return - std_return, line_dash="dash", line_color="orange",
+                     annotation_text=f"-1σ: {mean_return - std_return:.2f}%")
+
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
+
+    def draw_trading_signals(self, price_data: pd.DataFrame, signals_data: pd.DataFrame) -> None:
+        """绘制交易信号图表
+
+        Args:
+            price_data: 价格数据DataFrame
+            signals_data: 信号数据DataFrame
+        """
+        if price_data is None or price_data.empty:
+            st.warning("无价格数据可用于信号分析")
+            return
+
+        # 创建K线图
+        fig = go.Figure()
+
+        # 添加K线
+        fig.add_trace(
+            go.Candlestick(
+                x=price_data.index,
+                open=price_data['open'],
+                high=price_data['high'],
+                low=price_data['low'],
+                close=price_data['close'],
+                name="K线"
+            )
+        )
+
+        # 如果有信号数据，添加交易信号标记
+        if signals_data is not None and not signals_data.empty:
+            buy_signals = signals_data[signals_data['signal'] == 'BUY']
+            sell_signals = signals_data[signals_data['signal'] == 'SELL']
+
+            if not buy_signals.empty:
+                fig.add_trace(
+                    go.Scatter(
+                        x=buy_signals.index,
+                        y=buy_signals['price'],
+                        mode='markers',
+                        marker=dict(symbol='triangle-up', size=10, color='green'),
+                        name='买入信号'
+                    )
+                )
+
+            if not sell_signals.empty:
+                fig.add_trace(
+                    go.Scatter(
+                        x=sell_signals.index,
+                        y=sell_signals['price'],
+                        mode='markers',
+                        marker=dict(symbol='triangle-down', size=10, color='red'),
+                        name='卖出信号'
+                    )
+                )
+
+        fig.update_layout(
+            title="交易信号分析",
+            xaxis_title="时间",
+            yaxis_title="价格",
+            template="plotly_white",
+            height=500
+        )
+
+        st.plotly_chart(fig, use_container_width=True)

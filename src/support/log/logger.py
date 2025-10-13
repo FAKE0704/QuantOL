@@ -7,7 +7,8 @@ logger.setLevel(logging.DEBUG)
 
 # 创建文件处理器
 # 验证日志文件路径可写
-log_path = '../src/database.log'
+import os
+log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database.log')
 try:
     with open(log_path, 'a') as f:
         f.write('')  # 测试写入权限

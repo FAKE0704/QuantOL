@@ -28,7 +28,7 @@ class StrategyConfigUI:
             st.subheader("⚙️ 自定义交易规则")
 
             # 规则组管理
-            rule_group_manager.render_rule_group_ui()
+            rule_group_manager.render_rule_group_management_ui()
 
             # 规则编辑器
             col1, col2 = st.columns(2)

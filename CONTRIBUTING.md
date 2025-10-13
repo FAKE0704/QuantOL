@@ -6,7 +6,7 @@
 
 ### 报告问题
 如果您发现了bug或有功能建议，请通过以下方式报告：
-1. 在 [GitHub Issues](https://github.com/your-username/awesome-Qsys/issues) 中搜索是否已有相关问题
+1. 在 [GitHub Issues](https://github.com/FAKE0704/awesome-Qsys/issues) 中搜索是否已有相关问题
 2. 如果没有找到相关issue，请创建新的issue
 3. 清晰描述问题或建议，包括：
    - 问题描述
@@ -182,9 +182,9 @@ flake8 src/
 
 ## 📞 联系方式
 
-- 项目 Issues: [GitHub Issues](https://github.com/your-username/awesome-Qsys/issues)
-- 讨论区: [GitHub Discussions](https://github.com/your-username/awesome-Qsys/discussions)
-- 邮箱: your-email@example.com
+- 项目 Issues: [GitHub Issues](https://github.com/FAKE0704/awesome-Qsys/issues)
+- 讨论区: [GitHub Discussions](https://github.com/FAKE0704/awesome-Qsys/discussions)
+- 邮箱: pengfeigaofake@gmail.com
 
 ---
 

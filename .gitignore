@@ -127,6 +127,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+bin/
+
+# Claude
+.claude/
+CLAUDE.md
+
 
 # 添加项目特定的虚拟环境目录
 venvMac/

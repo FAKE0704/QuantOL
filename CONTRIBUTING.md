@@ -185,7 +185,7 @@ flake8 src/
 - 项目 Issues: [GitHub Issues](https://github.com/FAKE0704/awesome-Qsys/issues)
 - 讨论区: [GitHub Discussions](https://github.com/FAKE0704/awesome-Qsys/discussions)
 - 邮箱: pengfeigaofake@gmail.com
-
+- 微信：ThomasGao0704
 ---
 
 感谢您的贡献！让我们一起打造更好的量化交易系统！

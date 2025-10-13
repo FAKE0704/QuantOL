@@ -61,11 +61,26 @@ streamlit run src/main.py
 
 ### 配置说明
 
-#### 数据库配置
-- **PostgreSQL**: localhost:5432
-- **用户名**: quant
-- **密码**: quant123
-- **数据库**: quantdb
+#### 环境变量配置
+复制 `.env.example` 为 `.env` 并配置数据库连接信息：
+
+```bash
+cp .env.example .env
+```
+
+编辑 `.env` 文件：
+```env
+# 数据库配置
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=quantdb
+DB_USER=quant
+DB_PASSWORD=your_secure_password_here
+
+# 连接池配置
+DB_MAX_POOL_SIZE=15
+DB_QUERY_TIMEOUT=60
+```
 
 #### 数据源配置
 系统支持多种数据源，默认使用Baostock：

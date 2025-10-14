@@ -117,10 +117,18 @@ class RuleGroupManager:
 
         # 设置加载状态和规则值
         self.session_state[f"{prefix}_rule_group_loaded"] = True
-        self.session_state[f"{prefix}_loaded_open_rule"] = group.get('open_rule', '')
-        self.session_state[f"{prefix}_loaded_close_rule"] = group.get('close_rule', '')
-        self.session_state[f"{prefix}_loaded_buy_rule"] = group.get('buy_rule', '')
-        self.session_state[f"{prefix}_loaded_sell_rule"] = group.get('sell_rule', '')
+        
+        # 更新UI控件的值和默认值
+        self.session_state[f"open_rule_{prefix}"] = group.get('open_rule', '')
+        self.session_state[f"close_rule_{prefix}"] = group.get('close_rule', '')
+        self.session_state[f"buy_rule_{prefix}"] = group.get('buy_rule', '')
+        self.session_state[f"sell_rule_{prefix}"] = group.get('sell_rule', '')
+        
+        # 设置默认值供UI使用
+        self.session_state['open_rule_default'] = group.get('open_rule', '')
+        self.session_state['close_rule_default'] = group.get('close_rule', '')
+        self.session_state['buy_rule_default'] = group.get('buy_rule', '')
+        self.session_state['sell_rule_default'] = group.get('sell_rule', '')
 
         st.success(f"已加载规则组: {group_name}")
         return True

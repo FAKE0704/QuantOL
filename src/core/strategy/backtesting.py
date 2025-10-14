@@ -35,6 +35,7 @@ class BacktestConfig:
         target_symbols (List[str]): 多标的交易代码列表
         frequency (str): 数据频率
 
+        strategy_type (str): 策略类型，默认"月定投"
         stop_loss (Optional[float]): 止损比例，None表示不启用
         take_profit (Optional[float]): 止盈比例，None表示不启用
         max_holding_days (Optional[int]): 最大持仓天数，None表示不限制
@@ -64,6 +65,7 @@ class BacktestConfig:
     initial_capital: float = 1e6
     commission_rate: float = 0.0005
     slippage: float = 0.00
+    strategy_type: str = "月定投"
     position_strategy_type: str = "fixed_percent"
     position_strategy_params: Dict[str, Any] = field(default_factory=dict)
     min_lot_size: int = 100

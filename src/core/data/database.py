@@ -32,23 +32,37 @@ class DatabaseManager:
         self.connection_states = {}  # 连接状态跟踪 {conn_id: {status, last_change}}
         logger.debug(f"DatabaseManager initialized, instance_id: {self._instance_id}")  # 测试warning日志
         # 从环境变量获取配置，支持参数覆盖
-        db_password = password or os.getenv('DB_PASSWORD')
-        if not db_password:
-            raise ValueError("数据库密码未配置。请设置DB_PASSWORD环境变量或通过参数传递。")
+        # 优先使用DATABASE_URL，其次使用单独的DB_*环境变量
+        database_url = os.getenv('DATABASE_URL')
+        if database_url:
+            # 解析DATABASE_URL格式: postgresql://user:password@host:port/dbname
+            import urllib.parse
+            parsed = urllib.parse.urlparse(database_url)
+            self.connection_config = {
+                'host': parsed.hostname,
+                'port': str(parsed.port) if parsed.port else '5432',
+                'dbname': parsed.path[1:],  # 去掉开头的/
+                'user': parsed.username,
+                'password': parsed.password
+            }
+        else:
+            db_password = password or os.getenv('DB_PASSWORD')
+            if not db_password:
+                raise ValueError("数据库密码未配置。请设置DB_PASSWORD环境变量或通过参数传递。")
 
-        self.connection_config = { # 数据库连接配置
-            'host': host or os.getenv('DB_HOST', 'localhost'),
-            'port': port or os.getenv('DB_PORT', '5432'),
-            'dbname': dbname or os.getenv('DB_NAME', 'quantdb'),
-            'user': user or os.getenv('DB_USER', 'quant'),
-            'password': db_password
-        }
+            self.connection_config = { # 数据库连接配置
+                'host': host or os.getenv('DB_HOST', 'localhost'),
+                'port': port or os.getenv('DB_PORT', '5432'),
+                'dbname': dbname or os.getenv('DB_NAME', 'quantdb'),
+                'user': user or os.getenv('DB_USER', 'quant'),
+                'password': db_password
+            }
         self.admin_config = {
-            'host': host or os.getenv('DB_HOST', 'localhost'),
-            'port': port or os.getenv('DB_PORT', '5432'),
+            'host': self.connection_config['host'],
+            'port': self.connection_config['port'],
             'dbname': admin_db or os.getenv('ADMIN_DB_NAME', 'quantdb'),
-            'user': user or os.getenv('DB_USER', 'quant'),
-            'password': db_password
+            'user': self.connection_config['user'],
+            'password': self.connection_config['password']
         }
         self._initialized = False  # 初始化状态
         self._initializing = False  # 防止重复初始化

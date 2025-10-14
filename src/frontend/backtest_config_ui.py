@@ -35,15 +35,19 @@ class BacktestConfigUI:
         """渲染频率配置UI"""
         st.subheader("🔄 数据频率")
 
+        frequency_options = ["5分钟", "15分钟", "30分钟", "60分钟", "120分钟", "日线", "周线", "月线", "年线"]
         frequency = st.selectbox(
             "数据频率",
-            options=["日线", "周线", "月线"],
-            index=0,
+            options=frequency_options,
+            index=5,  # 默认选择日线
             key="data_frequency"
         )
 
         # 映射到实际频率值
-        frequency_map = {"日线": "d", "周线": "w", "月线": "m"}
+        frequency_map = {
+            "5分钟": "5", "15分钟": "15", "30分钟": "30", "60分钟": "60", "120分钟": "120",
+            "日线": "d", "周线": "w", "月线": "m", "年线": "y"
+        }
         self.session_state.backtest_config.frequency = frequency_map[frequency]
 
     async def render_stock_selection_ui(self) -> List[Tuple[str, str]]:
@@ -95,7 +99,11 @@ class BacktestConfigUI:
         col1, col2 = st.columns(2)
         with col1:
             st.info(f"**回测期间**: {config.start_date} 至 {config.end_date}")
-            st.info(f"**数据频率**: {'日线' if config.frequency == 'd' else '周线' if config.frequency == 'w' else '月线'}")
+            frequency_display_map = {
+                "5": "5分钟", "15": "15分钟", "30": "30分钟", "60": "60分钟", "120": "120分钟",
+                "d": "日线", "w": "周线", "m": "月线", "y": "年线"
+            }
+            st.info(f"**数据频率**: {frequency_display_map.get(config.frequency, config.frequency)}")
 
         with col2:
             st.info(f"**初始资金**: ¥{config.initial_capital:,.2f}")

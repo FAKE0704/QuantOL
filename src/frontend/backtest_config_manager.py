@@ -17,6 +17,7 @@ class BacktestConfigManager:
             frequency="d",
             initial_capital=100000,
             commission_rate=0.0003,
+            strategy_type="月定投",
             position_strategy_type="fixed_percent",
             position_strategy_params={"percent": 0.1}
         )

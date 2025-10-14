@@ -20,6 +20,9 @@ class StrategyConfigUI:
             key="default_strategy_type"
         )
 
+        # 更新配置中的策略类型
+        self.session_state.backtest_config.strategy_type = default_strategy_type
+
         return default_strategy_type
 
     def render_custom_rules_ui(self, rule_group_manager: RuleGroupManager, strategy_type: str) -> None:
@@ -33,11 +36,15 @@ class StrategyConfigUI:
             # 规则编辑器
             col1, col2 = st.columns(2)
             with col1:
-                rule_group_manager.render_rule_editor_ui('buy_rule', "", "default", 60)
-                rule_group_manager.render_rule_editor_ui('sell_rule', "", "default", 60)
+                rule_group_manager.render_rule_editor_ui('buy_rule', 
+                    st.session_state.get('buy_rule_default', ''), "default", 60)
+                rule_group_manager.render_rule_editor_ui('sell_rule', 
+                    st.session_state.get('sell_rule_default', ''), "default", 60)
             with col2:
-                rule_group_manager.render_rule_editor_ui('open_rule', "", "default", 60)
-                rule_group_manager.render_rule_editor_ui('close_rule', "", "default", 60)
+                rule_group_manager.render_rule_editor_ui('open_rule', 
+                    st.session_state.get('open_rule_default', ''), "default", 60)
+                rule_group_manager.render_rule_editor_ui('close_rule', 
+                    st.session_state.get('close_rule_default', ''), "default", 60)
 
     def render_multi_symbol_strategy_ui(self,
                                       selected_options: List[Tuple[str, str]],

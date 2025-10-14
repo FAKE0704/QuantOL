@@ -135,7 +135,7 @@ CLAUDE.md
 
 
 # 添加项目特定的虚拟环境目录
-venvMac/
+.venvMac/
 venvWin/
 
 # Spyder project settings

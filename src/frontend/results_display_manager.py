@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 from typing import Dict, Any, List, Optional
-from core.strategy.backtesting import BacktestConfig
+from src.core.strategy.backtesting import BacktestConfig
 
 class ResultsDisplayManager:
     """回测结果展示管理器，负责结果的可视化和分析"""

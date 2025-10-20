@@ -3,9 +3,9 @@ import pandas as pd
 import logging
 from datetime import datetime
 from typing import Dict, Any, Type, Callable
-from event_bus.event_types import StrategyScheduleEvent, BaseEvent
+from src.event_bus.event_types import StrategyScheduleEvent, BaseEvent
 # 使用字符串类型注解避免循环导入
-# from core.strategy.backtesting import BacktestEngine
+# from src.core.strategy.backtesting import BacktestEngine
 
 class BaseStrategy():
     def __init__(self, Data, name, buy_rule_expr="", sell_rule_expr="", invest_ratio=0.01):
@@ -73,10 +73,64 @@ class BaseStrategy():
         """每月定时回调（子类可覆盖）"""
         pass
 
+    def on_schedule(self, engine):
+        """每日定时回调（子类可覆盖）"""
+        # 默认实现：不做任何操作
+        pass
+
 class FixedInvestmentStrategy(BaseStrategy):
     def __init__(self, Data, name, buy_rule_expr="", sell_rule_expr=""):
         super().__init__(Data, name, buy_rule_expr, sell_rule_expr)
         self.invest_ratio = 0.01  # 定投比例
+
+    def on_schedule(self, engine):
+        """每日定时检查，实现月定投逻辑"""
+        # 检查是否是月初（简化：每月1号）
+        current_time = engine.current_time
+        if hasattr(current_time, 'day'):
+            if current_time.day == 1:
+                self._execute_monthly_investment(engine)
+        else:
+            # 如果时间格式不是datetime，尝试解析
+            try:
+                import pandas as pd
+                if isinstance(current_time, pd.Timestamp):
+                    if current_time.day == 1:
+                        self._execute_monthly_investment(engine)
+            except:
+                pass
+
+    def _execute_monthly_investment(self, engine):
+        """执行月定投"""
+        try:
+            # 计算定投金额
+            invest_amount = engine.config.initial_capital * self.invest_ratio
+            # 获取当前价格并转换为float
+            current_price = float(engine.data.iloc[engine.current_index]["close"])
+            # 计算可买数量并按最小手数取整
+            min_lot_size = getattr(engine.config, 'min_lot_size', 100)
+            quantity = int(invest_amount / current_price / min_lot_size) * min_lot_size
+
+            if quantity > 0:
+                # 创建信号事件
+                from src.core.strategy.signal_types import SignalType
+                from src.event_bus.event_types import StrategySignalEvent
+
+                signal = StrategySignalEvent(
+                    timestamp=engine.current_time,
+                    symbol=engine.config.target_symbol,
+                    price=current_price,
+                    signal_type=SignalType.BUY,
+                    confidence=1.0,
+                    strategy_id=self.strategy_id,
+                    current_index=engine.current_index
+                )
+
+                # 通过engine处理信号
+                engine._handle_signal_event(signal)
+
+        except Exception as e:
+            self.logger.error(f"月定投执行失败: {str(e)}")
         
 
     def on_monthly_schedule(self, engine: 'BacktestEngine', event:StrategyScheduleEvent):

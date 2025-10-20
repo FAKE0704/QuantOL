@@ -1,14 +1,14 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from core.strategy.backtesting import BacktestEngine
-from core.strategy.rule_based_strategy import RuleBasedStrategy
-from core.strategy.strategy import FixedInvestmentStrategy
-from core.strategy.signal_types import SignalType
-from services.progress_service import progress_service
+from src.core.strategy.backtesting import BacktestEngine
+from src.core.strategy.rule_based_strategy import RuleBasedStrategy
+from src.core.strategy.strategy import FixedInvestmentStrategy
+from src.core.strategy.signal_types import SignalType
+from src.services.progress_service import progress_service
 from typing import Dict, Any, List
 import asyncio
-from support.log.logger import logger
+from src.support.log.logger import logger
 
 class BacktestExecutor:
     """回测执行器，负责回测引擎的初始化和执行"""
@@ -42,7 +42,7 @@ class BacktestExecutor:
         def handle_signal_with_direction(event):
             if not hasattr(event, 'signal_type') or event.signal_type is None:
                 event.signal_type = SignalType.BUY if event.confidence > 0 else SignalType.SELL
-            from core.strategy.event_handlers import handle_signal
+            from src.core.strategy.event_handlers import handle_signal
             return handle_signal(event)
 
         engine.register_handler(type(event), handle_signal_with_direction)
@@ -52,7 +52,7 @@ class BacktestExecutor:
     def initialize_indicator_service(self):
         """初始化指标服务"""
         if 'indicator_service' not in self.session_state:
-            from core.strategy.indicators import IndicatorService
+            from src.core.strategy.indicators import IndicatorService
             self.session_state.indicator_service = IndicatorService()
 
     def register_strategies(self, engine, backtest_config, data):
@@ -173,9 +173,9 @@ class BacktestExecutor:
             # 作图前时间排序
             raw_data = raw_data.sort_values(by='combined_time')
             transaction_data = transaction_data.sort_values(by='timestamp')
-            from services.chart_service import DataBundle
+            from src.services.chart_service import DataBundle
             databundle = DataBundle(raw_data, transaction_data, capital_flow_data=None)
-            from services.chart_service import ChartService
+            from src.services.chart_service import ChartService
             return ChartService(databundle)
 
         if 'chart_service' not in self.session_state:

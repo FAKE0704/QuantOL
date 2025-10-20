@@ -1,20 +1,20 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, date
 from typing import Optional, Dict, Any, List, Type
-from core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy, PositionStrategyFactory
-from core.strategy.indicators import IndicatorService  # 新增IndicatorService导入
-from core.strategy.rule_parser import RuleParser  # 新增RuleParser导入
-from core.strategy.rule_based_strategy import RuleBasedStrategy  # 新增RuleBasedStrategy导入
-from core.strategy.signal_types import SignalType  # 新增信号类型导入
-from event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent, OrderEvent, FillEvent  # 新增OrderEvent和FillEvent导入
-from core.risk.risk_manager import RiskManager  
-from core.portfolio.portfolio import PortfolioManager 
-from core.portfolio.portfolio_interface import Position, IPortfolio
-from core.execution.Trader import BacktestTrader, TradeOrderManager  # 新增交易执行组件导入
+from src.core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy, PositionStrategyFactory
+from src.core.strategy.indicators import IndicatorService  # 新增IndicatorService导入
+from src.core.strategy.rule_parser import RuleParser  # 新增RuleParser导入
+from src.core.strategy.rule_based_strategy import RuleBasedStrategy  # 新增RuleBasedStrategy导入
+from src.core.strategy.signal_types import SignalType  # 新增信号类型导入
+from src.event_bus.event_types import StrategyScheduleEvent, TradingDayEvent, StrategySignalEvent, OrderEvent, FillEvent  # 新增OrderEvent和FillEvent导入
+from src.core.risk.risk_manager import RiskManager  
+from src.core.portfolio.portfolio import PortfolioManager 
+from src.core.portfolio.portfolio_interface import Position, IPortfolio
+from src.core.execution.Trader import BacktestTrader, TradeOrderManager  # 新增交易执行组件导入
 import json
 import streamlit as st  # 新增streamlit导入
 from pathlib import Path
-from support.log.logger import logger
+from src.support.log.logger import logger
 import os
 import pandas as pd
 
@@ -252,18 +252,36 @@ class BacktestEngine:
             'total_value'
         ])
 
-        # 使用配置创建仓位策略（增加错误处理）
+        # 使用配置创建仓位策略（优先使用新的固定比例仓位管理策略）
         try:
-            self.position_strategy = PositionStrategyFactory.create_strategy(
-                config.position_strategy_type,
-                config.initial_capital,
-                config.position_strategy_params
-            )
-            logger.info(f"仓位策略创建成功: {config.position_strategy_type}")
+            if config.position_strategy_type == "fixed_percent":
+                # 使用新的固定比例仓位管理策略
+                from src.core.strategy.fixed_percent_position_strategy import FixedPercentPositionStrategy
+
+                position_params = config.position_strategy_params
+                self.position_strategy = FixedPercentPositionStrategy(
+                    percent=position_params.get("percent", 0.1),
+                    use_initial_capital=position_params.get("use_initial_capital", True),
+                    min_lot_size=getattr(config, 'min_lot_size', 100)
+                )
+                logger.info(f"固定比例仓位管理策略创建成功: percent={self.position_strategy.percent}")
+            else:
+                # 使用旧版本的仓位策略（保持兼容性）
+                self.position_strategy = PositionStrategyFactory.create_strategy(
+                    config.position_strategy_type,
+                    config.initial_capital,
+                    config.position_strategy_params
+                )
+                logger.info(f"仓位策略创建成功: {config.position_strategy_type}")
         except Exception as e:
             logger.error(f"仓位策略创建失败: {str(e)}，使用默认策略")
             # 使用默认策略作为fallback
-            self.position_strategy = FixedPercentStrategy(config.initial_capital, 0.1)
+            from src.core.strategy.fixed_percent_position_strategy import FixedPercentPositionStrategy
+            self.position_strategy = FixedPercentPositionStrategy(
+                percent=0.1,
+                use_initial_capital=True,
+                min_lot_size=getattr(config, 'min_lot_size', 100)
+            )
         
         # 初始化PortfolioManager
         self.portfolio_manager = PortfolioManager(
@@ -317,7 +335,11 @@ class BacktestEngine:
             if 'time' not in self.data.columns:
                 raise ValueError("分钟线数据必须包含time字段")
             
-            print(self.data[self.data['time'].isnull()])
+            # 检查time列的空值
+            null_time_data = self.data[self.data['time'].isnull()]
+            if not null_time_data.empty:
+                logger.warning(f"发现{len(null_time_data)}条time列为空的记录")
+                logger.debug(f"空time记录: {null_time_data.head()}")
         
         
         # 初始化signal列
@@ -333,8 +355,14 @@ class BacktestEngine:
         
         
         # 遍历触发事件
-        logger.debug("开始回测...")
+        logger.debug(f"开始回测... 数据总数: {len(self.data)}")
+        logger.debug(f"数据列: {list(self.data.columns)}")
+        logger.debug(f"数据预览: {self.data.head(1).to_dict()}")
+
         for idx in range(len(self.data)):
+            if idx % 100 == 0:  # 每100条记录输出一次进度
+                logger.debug(f"回测进度: {idx}/{len(self.data)}")
+
             current_time = self.data.iloc[idx]['combined_time']
             self.current_time = current_time
             self.current_index = idx
@@ -353,13 +381,20 @@ class BacktestEngine:
             
             
             # 触发所有注册策略的定时检查
+            if idx == 0:
+                logger.debug(f"已注册策略数量: {len(self.strategies)}")
+                for i, strategy in enumerate(self.strategies):
+                    logger.debug(f"策略 {i}: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
+
             for strategy in self.strategies:
-                # logger.debug("进入on_schedule方法")
+                logger.debug(f"触发策略: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
                 strategy.on_schedule(self)
-            # logger.debug(f"已触发策略数量: {len(self.strategies)}")
+            logger.debug(f"已触发策略数量: {len(self.strategies)}")
 
             # 处理事件队列（处理非StrategySignalEvent和OrderEvent的其他事件）
+            logger.debug(f"处理前事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
             self._process_event_queue()
+            logger.debug(f"处理后事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
 
             # 在每个数据点通过PortfolioManager记录净值历史
             price_data = {
@@ -404,10 +439,10 @@ class BacktestEngine:
 
     def _handle_signal_event(self, event: StrategySignalEvent):
         """处理策略信号事件"""
-        
+
         # 使用current_index参数（如果存在）或默认使用当前索引
         idx = getattr(event, 'current_index', self.current_index)
-        
+
         # 记录信号到数据中
         if event.signal_type in [SignalType.OPEN, SignalType.BUY]:
             self.data.loc[idx, 'signal'] = 1
@@ -417,15 +452,109 @@ class BacktestEngine:
             self.data.loc[idx, 'signal'] = 2  # 对冲信号
         elif event.signal_type == SignalType.REBALANCE:
             self.data.loc[idx, 'signal'] = 3  # 再平衡信号
-        
-        # 根据不同信号类型创建相应的订单
-        if event.signal_type in [SignalType.OPEN, SignalType.BUY, SignalType.SELL, SignalType.CLOSE]:
-            self._create_order_from_signal(event)
-        elif event.signal_type == SignalType.HEDGE:
-            self._create_hedge_order(event)
-        elif event.signal_type == SignalType.REBALANCE:
-            self._create_rebalance_order(event)
-            
+
+        # 使用仓位管理策略计算交易数量
+        if hasattr(self.position_strategy, 'calculate_position_size'):
+            # 使用新的固定比例仓位管理策略
+            self._create_order_with_position_strategy(event)
+        else:
+            # 使用旧的订单创建方式（保持兼容性）
+            if event.signal_type in [SignalType.OPEN, SignalType.BUY, SignalType.SELL, SignalType.CLOSE]:
+                self._create_order_from_signal(event)
+            elif event.signal_type == SignalType.HEDGE:
+                self._create_hedge_order(event)
+            elif event.signal_type == SignalType.REBALANCE:
+                self._create_rebalance_order(event)
+
+    def _create_order_with_position_strategy(self, event: StrategySignalEvent):
+        """使用仓位管理策略创建订单"""
+        try:
+            # 获取当前投资组合信息
+            portfolio_data = {
+                'initial_capital': self.config.initial_capital,
+                'available_cash': self.portfolio_manager.get_available_cash(),
+                'total_equity': self.portfolio_manager.get_total_value()
+            }
+
+            # 获取当前持仓
+            current_position = 0
+            if self.multi_symbol_mode:
+                # 多符号模式：获取对应符号的持仓
+                symbol = event.symbol
+                current_position = self.portfolio_manager.get_position_size(symbol)
+            else:
+                # 单符号模式：获取目标符号的持仓
+                current_position = self.portfolio_manager.get_position_size(self.config.target_symbol)
+
+            # 使用仓位管理策略计算交易数量
+            quantity = self.position_strategy.calculate_position_size(
+                signal_type=event.signal_type,
+                portfolio_data=portfolio_data,
+                current_price=float(event.price),
+                current_position=current_position
+            )
+
+            logger.debug(f"仓位策略计算结果: {quantity}, 信号类型: {event.signal_type}, 当前持仓: {current_position}")
+
+            # 创建交易订单
+            if quantity > 0:
+                # 买入订单
+                self._create_buy_order(event, quantity)
+            elif quantity < 0:
+                # 卖出订单
+                self._create_sell_order(event, abs(quantity))
+
+        except Exception as e:
+            error_msg = f"仓位策略订单创建失败: {str(e)}"
+            logger.error(error_msg)
+            self.errors.append(error_msg)
+
+    def _create_buy_order(self, event: StrategySignalEvent, quantity: int):
+        """创建买入订单"""
+        try:
+            from src.event_bus.event_types import OrderEvent
+
+            order_event = OrderEvent(
+                timestamp=event.timestamp,
+                symbol=event.symbol,
+                quantity=quantity,
+                side="BUY",
+                price=float(event.price),
+                strategy_id=event.strategy_id
+            )
+
+            # 将订单事件添加到事件队列
+            self.event_queue.append(order_event)
+            logger.debug(f"创建买入订单: {quantity}股 {event.symbol} @ {event.price}")
+
+        except Exception as e:
+            error_msg = f"买入订单创建失败: {str(e)}"
+            logger.error(error_msg)
+            self.errors.append(error_msg)
+
+    def _create_sell_order(self, event: StrategySignalEvent, quantity: int):
+        """创建卖出订单"""
+        try:
+            from src.event_bus.event_types import OrderEvent
+
+            order_event = OrderEvent(
+                timestamp=event.timestamp,
+                symbol=event.symbol,
+                quantity=quantity,
+                side="SELL",
+                price=float(event.price),
+                strategy_id=event.strategy_id
+            )
+
+            # 将订单事件添加到事件队列
+            self.event_queue.append(order_event)
+            logger.debug(f"创建卖出订单: {quantity}股 {event.symbol} @ {event.price}")
+
+        except Exception as e:
+            error_msg = f"卖出订单创建失败: {str(e)}"
+            logger.error(error_msg)
+            self.errors.append(error_msg)
+
     def _create_order_from_signal(self, event: StrategySignalEvent):
         """从策略信号创建订单事件（通过TradeOrderManager处理）"""
         try:
@@ -907,7 +1036,7 @@ class BacktestEngine:
                     # 确保指标服务不为None
                     indicator_service = getattr(strategy, 'indicator_service', None)
                     if indicator_service is None:
-                        from core.strategy.indicators import IndicatorService
+                        from src.core.strategy.indicators import IndicatorService
                         indicator_service = IndicatorService()
 
                     # 使用策略映射中的规则表达式（如果存在），否则使用原策略的规则

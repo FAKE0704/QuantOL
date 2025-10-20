@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Dict, Any, Optional
-from core.strategy.signal_types import SignalType
+from src.core.strategy.signal_types import SignalType
 
 class BaseEvent:
     """事件基类"""

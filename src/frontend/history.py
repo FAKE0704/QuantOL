@@ -9,10 +9,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import time
 # import asyncio
-from services.stock_search import StockSearchService
-from services.chart_service import ChartService, MAIndicator, RSIIndicator, MACDIndicator
-from core.data.database import DatabaseManager
-from services.interaction_service import InteractionService
+from src.services.stock_search import StockSearchService
+from src.services.chart_service import ChartService, MAIndicator, RSIIndicator, MACDIndicator
+from src.core.data.database import DatabaseManager
+from src.services.interaction_service import InteractionService
 from ipywidgets import VBox
 
 def update_indicator():
@@ -142,7 +142,7 @@ async def show_history_page():
                         raise ValueError(f"数据缺少必需字段: {required_fields}")
                         
                     # 使用ChartService绘制图表
-                    from services.chart_service import DataBundle
+                    from src.services.chart_service import DataBundle
                     data_bundle = DataBundle(raw_data=data)
                     chart_service = ChartService(data_bundle)
                     

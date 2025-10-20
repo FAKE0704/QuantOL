@@ -6,7 +6,7 @@ import streamlit as st
 from datetime import datetime, date,time
 import asyncio
 import os
-from support.log.logger import logger
+from src.support.log.logger import logger
 
 # 加载环境变量
 from dotenv import load_dotenv
@@ -25,7 +25,7 @@ class DatabaseManager:
         self.connection = None
         # self._loop = asyncio.get_event_loop()  # 全局唯一事件循环
         import logging
-        from support.log.logger import logger
+        from src.support.log.logger import logger
         logger = logger
         logger.setLevel(logging.DEBUG)
         self._instance_id = id(self)  # 添加实例ID用于调试
@@ -330,7 +330,9 @@ class DatabaseManager:
 
             logger.info(f"Loading stock data for {symbol} from {start_dt} to {end_dt}")
             # the date that data lack of  #
+            logger.info(f"开始检查 {symbol} 的数据完整性...")
             missing_ranges = await self.check_data_completeness(symbol, start_dt, end_dt,frequency)
+            logger.info(f"数据完整性检查完成，发现 {len(missing_ranges)} 个缺失区间")
 
             # Fetch missing data ranges from Baostock
             if missing_ranges:
@@ -348,9 +350,11 @@ class DatabaseManager:
                     await self.save_stock_data(symbol, new_data, frequency)  # save stock data into table Stockdata
                     data = pd.concat([data, new_data])
 
-            
+            else:
+                logger.info(f"数据完整，无需从外部数据源获取 {symbol} 的数据")
 
             # Load complete data from database
+            logger.info(f"开始从数据库加载 {symbol} 的完整数据...")
             query = """
                 SELECT date, time, code, open, high, low, close, volume, amount, adjustflag, frequency
                 FROM StockData
@@ -361,9 +365,11 @@ class DatabaseManager:
             """
             
             
+            logger.info(f"执行数据库查询，参数: symbol={symbol}, start={start_dt}, end={end_dt}, frequency={frequency}")
             async with self.pool.acquire() as conn:
                 rows = await conn.fetch(query, symbol, start_dt, end_dt, frequency)
-                
+                logger.info(f"数据库查询完成，返回 {len(rows) if rows else 0} 行数据")
+
                 if not rows:
                     logger.warning(
                         f"[{symbol}] 未找到股票数据 date_range=[{start_date}~{end_date}] "

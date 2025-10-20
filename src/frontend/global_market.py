@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 from typing import Optional
-from services.theme_manager import ThemeManager
+from src.services.theme_manager import ThemeManager
 from datetime import datetime
 
 async def show_global_market():

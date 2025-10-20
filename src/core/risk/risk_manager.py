@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING
-from support.log.logger import logger
+from src.support.log.logger import logger
 
 if TYPE_CHECKING:
     from ..portfolio.portfolio_interface import IPortfolio

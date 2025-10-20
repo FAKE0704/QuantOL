@@ -1,5 +1,5 @@
 import streamlit as st
-from core.strategy.backtesting import BacktestConfig
+from src.core.strategy.backtesting import BacktestConfig
 from typing import Dict, Any
 
 class BacktestConfigManager:

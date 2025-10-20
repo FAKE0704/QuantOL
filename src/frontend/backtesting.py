@@ -3,32 +3,32 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from core.strategy.backtesting import BacktestConfig
-from core.strategy.strategy import FixedInvestmentStrategy
-from core.data.database import DatabaseManager
-from services.progress_service import progress_service
+from src.core.strategy.backtesting import BacktestConfig
+from src.core.strategy.strategy import FixedInvestmentStrategy
+from src.core.data.database import DatabaseManager
+from src.services.progress_service import progress_service
 from typing import cast
 import time
-from support.log.logger import logger
+from src.support.log.logger import logger
 import numpy as np
 
 # 导入新创建的模块
-from frontend.backtest_config_manager import BacktestConfigManager
-from frontend.rule_group_manager import RuleGroupManager
-from frontend.strategy_mapping_manager import StrategyMappingManager
-from frontend.backtest_executor import BacktestExecutor
-from frontend.results_display_manager import ResultsDisplayManager
+from src.frontend.backtest_config_manager import BacktestConfigManager
+from src.frontend.rule_group_manager import RuleGroupManager
+from src.frontend.strategy_mapping_manager import StrategyMappingManager
+from src.frontend.backtest_executor import BacktestExecutor
+from src.frontend.results_display_manager import ResultsDisplayManager
 
 # 导入新创建的UI组件模块
-from frontend.backtest_config_ui import BacktestConfigUI
-from frontend.strategy_config_ui import StrategyConfigUI
-from frontend.position_config_ui import PositionConfigUI
-from frontend.results_display_ui import ResultsDisplayUI
+from src.frontend.backtest_config_ui import BacktestConfigUI
+from src.frontend.strategy_config_ui import StrategyConfigUI
+from src.frontend.position_config_ui import PositionConfigUI
+from src.frontend.results_display_ui import ResultsDisplayUI
 
 # 导入服务模块
-from frontend.data_loader import DataLoader
-from frontend.callback_services import CallbackServices
-from frontend.event_handlers import EventHandlers
+from src.frontend.data_loader import DataLoader
+from src.frontend.callback_services import CallbackServices
+from src.frontend.event_handlers import EventHandlers
 
 async def show_backtesting_page():
     # 初始化策略ID
@@ -129,7 +129,7 @@ async def show_backtesting_page():
         st.write(data)
 
         # 使用BacktestExecutionService执行回测
-        from frontend.backtest_execution_service import BacktestExecutionService
+        from src.frontend.backtest_execution_service import BacktestExecutionService
         execution_service = BacktestExecutionService(st.session_state)
 
         # 初始化引擎

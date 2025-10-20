@@ -1,5 +1,5 @@
 from functools import lru_cache
-from core.data.database import DatabaseManager
+from src.core.data.database import DatabaseManager
 
 class StockSearchService:
     """股票搜索服务"""

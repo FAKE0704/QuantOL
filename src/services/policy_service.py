@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List
-from core.data.political_source import PoliticalEvent, PoliticalDataSource
-from core.database import DatabaseManager
+from src.core.data.political_source import PoliticalEvent, PoliticalDataSource
+from src.core.data.database import DatabaseManager
 import asyncio
 
 class PolicyService:

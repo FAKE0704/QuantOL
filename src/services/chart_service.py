@@ -2,8 +2,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 from abc import ABC, abstractmethod
-from services.theme_manager import ThemeManager
-from services.interaction_service import InteractionService
+from src.services.theme_manager import ThemeManager
+from src.services.interaction_service import InteractionService
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -38,7 +38,7 @@ class ChartConfig:
     """可视化配置管理"""
 
     def __init__(self, theme_manager=None):
-        from services.theme_manager import ThemeManager
+        from src.services.theme_manager import ThemeManager
         self.theme_manager = theme_manager or ThemeManager()
         self.theme = self.theme_manager.get_theme()  # 获取默认主题配置
         self.layout = LayoutConfig()
@@ -104,7 +104,7 @@ class ChartConfigManager:
     @classmethod
     def _create_default_dict(cls) -> dict:
         """创建默认配置字典"""
-        from services.theme_manager import ThemeManager
+        from src.services.theme_manager import ThemeManager
         theme_manager = ThemeManager()
         layout = LayoutConfig()
         data = DataConfig()

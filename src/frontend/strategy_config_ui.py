@@ -1,8 +1,8 @@
 import streamlit as st
 from typing import List, Tuple
-from frontend.rule_group_manager import RuleGroupManager
-from frontend.strategy_mapping_manager import StrategyMappingManager
-from frontend.backtest_config_manager import BacktestConfigManager
+from src.frontend.rule_group_manager import RuleGroupManager
+from src.frontend.strategy_mapping_manager import StrategyMappingManager
+from src.frontend.backtest_config_manager import BacktestConfigManager
 
 class StrategyConfigUI:
     """策略配置UI组件，负责策略相关配置的界面渲染"""
@@ -36,15 +36,11 @@ class StrategyConfigUI:
             # 规则编辑器
             col1, col2 = st.columns(2)
             with col1:
-                rule_group_manager.render_rule_editor_ui('buy_rule', 
-                    st.session_state.get('buy_rule_default', ''), "default", 60)
-                rule_group_manager.render_rule_editor_ui('sell_rule', 
-                    st.session_state.get('sell_rule_default', ''), "default", 60)
+                rule_group_manager.render_rule_editor_ui('buy_rule', "", "default", 60)
+                rule_group_manager.render_rule_editor_ui('sell_rule', "", "default", 60)
             with col2:
-                rule_group_manager.render_rule_editor_ui('open_rule', 
-                    st.session_state.get('open_rule_default', ''), "default", 60)
-                rule_group_manager.render_rule_editor_ui('close_rule', 
-                    st.session_state.get('close_rule_default', ''), "default", 60)
+                rule_group_manager.render_rule_editor_ui('open_rule', "", "default", 60)
+                rule_group_manager.render_rule_editor_ui('close_rule', "", "default", 60)
 
     def render_multi_symbol_strategy_ui(self,
                                       selected_options: List[Tuple[str, str]],

@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 from typing import Dict, Any, List
-from core.strategy.backtesting import BacktestEngine
-from core.strategy.rule_based_strategy import RuleBasedStrategy
-from core.strategy.strategy import FixedInvestmentStrategy
-from event_bus.event_types import StrategySignalEvent
-from core.strategy.event_handlers import handle_signal
-from core.strategy.signal_types import SignalType
+from src.core.strategy.backtesting import BacktestEngine
+from src.core.strategy.rule_based_strategy import RuleBasedStrategy
+from src.core.strategy.strategy import FixedInvestmentStrategy
+from src.event_bus.event_types import StrategySignalEvent
+from src.core.strategy.event_handlers import handle_signal
+from src.core.strategy.signal_types import SignalType
 
 class BacktestExecutionService:
     """回测执行服务，负责回测引擎的初始化和执行"""
@@ -42,7 +42,7 @@ class BacktestExecutionService:
     def _initialize_indicator_service(self) -> None:
         """初始化指标服务"""
         if 'indicator_service' not in self.session_state:
-            from core.strategy.indicators import IndicatorService
+            from src.core.strategy.indicators import IndicatorService
             self.session_state.indicator_service = IndicatorService()
 
     def _initialize_strategies(self, engine: BacktestEngine, backtest_config: Any, data: Any) -> None:
@@ -145,7 +145,7 @@ class BacktestExecutionService:
 
     def prepare_chart_service(self, data: Any, equity_data: Any) -> None:
         """准备图表服务"""
-        from services.chart_service import ChartService, DataBundle
+        from src.services.chart_service import ChartService, DataBundle
 
         @st.cache_resource(ttl=3600, show_spinner=False)
         def init_chart_service(raw_data, transaction_data):

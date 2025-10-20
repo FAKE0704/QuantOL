@@ -5,7 +5,7 @@ from typing import Dict, Literal, Optional
 import pandas as pd
 import uuid
 # from THS.THSTrader import THSTrader
-from event_bus.event_types import FillEvent, OrderEvent
+from src.event_bus.event_types import FillEvent, OrderEvent
 
 from enum import Enum, auto
 from threading import Lock

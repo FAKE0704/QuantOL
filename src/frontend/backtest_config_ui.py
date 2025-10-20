@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from typing import List, Tuple, Optional
-from core.strategy.backtesting import BacktestConfig
+from src.core.strategy.backtesting import BacktestConfig
 
 class BacktestConfigUI:
     """回测配置UI组件，负责回测范围配置的界面渲染"""

@@ -1,5 +1,5 @@
 import streamlit as st
-from core.strategy.rule_parser import RuleParser
+from src.core.strategy.rule_parser import RuleParser
 from typing import Dict, Any
 
 class RuleGroupManager:
@@ -27,6 +27,16 @@ class RuleGroupManager:
                     'sell_rule': ''
                 }
             }
+
+        # 初始化默认规则编辑器状态
+        if 'buy_rule_default' not in self.session_state:
+            self.session_state.buy_rule_default = ''
+        if 'sell_rule_default' not in self.session_state:
+            self.session_state.sell_rule_default = ''
+        if 'open_rule_default' not in self.session_state:
+            self.session_state.open_rule_default = ''
+        if 'close_rule_default' not in self.session_state:
+            self.session_state.close_rule_default = ''
 
     def get_rule_groups(self) -> Dict[str, Dict[str, str]]:
         """获取所有规则组"""
@@ -147,7 +157,6 @@ class RuleGroupManager:
 
         return st.text_area(
             display_name,
-            value=default_value,
             height=height,
             key=f"{rule_type}_{key_suffix}",
             help=f"输入{display_name}"

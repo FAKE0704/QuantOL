@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from core.execution.Trader import TradeOrderManager
+from src.core.execution.Trader import TradeOrderManager
 
 def show_trading_page():
     st.title("交易管理")

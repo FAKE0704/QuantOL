@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from services.theme_manager import ThemeManager
+from src.services.theme_manager import ThemeManager
 
 def show_settings_page():
     st.title("系统设置")

@@ -9,7 +9,7 @@ import asyncio
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, project_root)
 
-from core.data.market_data_source import MarketDataSource
+from src.core.data.market_data_source import MarketDataSource
 
 @pytest.fixture
 def mock_db_conn():

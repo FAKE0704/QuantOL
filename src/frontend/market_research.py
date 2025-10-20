@@ -1,6 +1,6 @@
 import streamlit as st
 import logging
-from services.market_research_service import MarketResearchService
+from src.services.market_research_service import MarketResearchService
 
 async def show_market_research_page():
     """显示市场研究主页面"""

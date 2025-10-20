@@ -4,7 +4,7 @@ from .data_source import DataSource, DataSourceError
 from .data_factory import DataFactory
 from typing import Optional
 from datetime import date, datetime, timedelta
-from core.data.database import DatabaseManager
+from src.core.data.database import DatabaseManager
 import os
 from datetime import datetime
 
@@ -31,7 +31,7 @@ class BaostockDataSource(DataSource):
         """
         
 
-        from services.progress_service import progress_service
+        from src.services.progress_service import progress_service
         import pandas as pd
 
         # 确保日期格式正确
@@ -157,7 +157,7 @@ class BaostockDataSource(DataSource):
 
     async def _get_all_stocks(self) -> pd.DataFrame:
         """从Baostock获取所有股票信息"""
-        from services.progress_service import progress_service
+        from src.services.progress_service import progress_service
         
         task_id = "stock_list_load"
         progress_service.start_task(task_id, 1)  # 初始化进度任务
@@ -206,7 +206,7 @@ class BaostockDataSource(DataSource):
         Returns:
             包含货币供应量数据的DataFrame
         """
-        from services.progress_service import progress_service
+        from src.services.progress_service import progress_service
         
         task_id = "money_supply_load"
         progress_service.start_task(task_id, 1)

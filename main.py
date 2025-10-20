@@ -5,18 +5,18 @@ import os
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
-from frontend.navigation import initialize_navigation
-from frontend.history import show_history_page
-from frontend.indicators import show_indicators_page
-from frontend.backtesting import show_backtesting_page
-from frontend.trading import show_trading_page
-from frontend.settings import show_settings_page
-from frontend.global_market import show_global_market
-from frontend.market_research import show_market_research_page
+from src.frontend.navigation import initialize_navigation
+from src.frontend.history import show_history_page
+from src.frontend.indicators import show_indicators_page
+from src.frontend.backtesting import show_backtesting_page
+from src.frontend.trading import show_trading_page
+from src.frontend.settings import show_settings_page
+from src.frontend.global_market import show_global_market
+from src.frontend.market_research import show_market_research_page
 
 import streamlit as st
-from core.data.database import get_db_manager
-from services.stock_search import StockSearchService
+from src.core.data.database import get_db_manager
+from src.services.stock_search import StockSearchService
 import asyncio, platform
 
 async def init_global_services():

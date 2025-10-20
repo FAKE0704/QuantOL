@@ -2,9 +2,9 @@ from typing import List, Dict
 import pandas as pd
 import plotly.graph_objects as go
 import logging
-from core.data.data_source import DataSource
-from core.data.market_data_source import MarketDataSource
-from services.chart_service import ChartService, DataBundle
+from src.core.data.data_source import DataSource
+from src.core.data.market_data_source import MarketDataSource
+from src.services.chart_service import ChartService, DataBundle
 
 class MarketResearchService:
     """市场研究核心服务"""

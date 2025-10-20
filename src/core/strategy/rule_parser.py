@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import pandas as pd
 import astunparse
 from .indicators import IndicatorService  # 引入IndicatorService
-from support.log.logger import logger
+from src.support.log.logger import logger
 
 @dataclass
 class IndicatorFunction:

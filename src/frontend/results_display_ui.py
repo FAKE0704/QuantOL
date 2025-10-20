@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 from typing import Dict, Any
-from core.strategy.backtesting import BacktestConfig
-from services.chart_service import ChartService
+from src.core.strategy.backtesting import BacktestConfig
+from src.services.chart_service import ChartService
 
 class ResultsDisplayUI:
     """结果展示UI组件，负责回测结果的界面渲染"""
@@ -41,21 +41,21 @@ class ResultsDisplayUI:
 
     def render_summary_tab(self, results: Dict[str, Any], backtest_config: BacktestConfig) -> None:
         """渲染回测摘要标签页"""
-        from frontend.results_display_manager import ResultsDisplayManager
+        from src.frontend.results_display_manager import ResultsDisplayManager
 
         display_manager = ResultsDisplayManager(self.session_state)
         display_manager.display_backtest_summary(results, backtest_config)
 
     def render_trades_tab(self, results: Dict[str, Any]) -> None:
         """渲染交易记录标签页"""
-        from frontend.results_display_manager import ResultsDisplayManager
+        from src.frontend.results_display_manager import ResultsDisplayManager
 
         display_manager = ResultsDisplayManager(self.session_state)
         display_manager.display_trade_records(results)
 
     def render_positions_tab(self, results: Dict[str, Any]) -> None:
         """渲染仓位明细标签页"""
-        from frontend.results_display_manager import ResultsDisplayManager
+        from src.frontend.results_display_manager import ResultsDisplayManager
 
         display_manager = ResultsDisplayManager(self.session_state)
         display_manager.display_position_details(results)
@@ -68,7 +68,7 @@ class ResultsDisplayUI:
         equity_data = self._get_equity_data(results)
         if equity_data is not None:
             # 使用ChartService绘制净值曲线
-            from services.chart_service import DataBundle, ChartService
+            from src.services.chart_service import DataBundle, ChartService
             data_bundle = DataBundle(raw_data=equity_data)
             chart_service = ChartService.get_chart_service(data_bundle)
             chart_service.draw_equity_and_allocation(equity_data)
@@ -83,7 +83,7 @@ class ResultsDisplayUI:
         price_data = self._get_price_data(results)
         if price_data is not None:
             # 使用ChartService绘制技术指标
-            from services.chart_service import DataBundle, ChartService
+            from src.services.chart_service import DataBundle, ChartService
             data_bundle = DataBundle(raw_data=price_data)
             chart_service = ChartService.get_chart_service(data_bundle)
 
@@ -106,7 +106,7 @@ class ResultsDisplayUI:
         trades_data = self._get_trades_data(results)
 
         if equity_data is not None:
-            from frontend.results_display_manager import ResultsDisplayManager
+            from src.frontend.results_display_manager import ResultsDisplayManager
 
             display_manager = ResultsDisplayManager(self.session_state)
             display_manager.display_performance_metrics(equity_data, trades_data)
@@ -120,7 +120,7 @@ class ResultsDisplayUI:
         equity_data = self._get_equity_data(results)
         if equity_data is not None:
             # 使用ChartService绘制回撤曲线
-            from services.chart_service import DataBundle, ChartService
+            from src.services.chart_service import DataBundle, ChartService
             data_bundle = DataBundle(raw_data=equity_data)
             chart_service = ChartService.get_chart_service(data_bundle)
             chart_service.draw_drawdown_analysis(equity_data)
@@ -134,7 +134,7 @@ class ResultsDisplayUI:
         equity_data = self._get_equity_data(results)
         if equity_data is not None:
             # 使用ChartService绘制收益分布
-            from services.chart_service import DataBundle, ChartService
+            from src.services.chart_service import DataBundle, ChartService
             data_bundle = DataBundle(raw_data=equity_data)
             chart_service = ChartService.get_chart_service(data_bundle)
             chart_service.draw_returns_distribution(equity_data)
@@ -150,7 +150,7 @@ class ResultsDisplayUI:
 
         if price_data is not None and signals_data is not None:
             # 使用ChartService绘制交易信号
-            from services.chart_service import DataBundle, ChartService
+            from src.services.chart_service import DataBundle, ChartService
             data_bundle = DataBundle(raw_data=price_data)
             chart_service = ChartService.get_chart_service(data_bundle)
             chart_service.draw_trading_signals(price_data, signals_data)

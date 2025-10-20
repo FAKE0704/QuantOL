@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from core.data.database import DatabaseManager
+from src.core.data.database import DatabaseManager
 
 def show_indicators_page():
     st.title("技术指标分析")

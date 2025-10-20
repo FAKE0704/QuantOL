@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from typing import Dict, Any, List, Tuple
-from core.strategy.backtesting import BacktestConfig
+from src.core.strategy.backtesting import BacktestConfig
 
 class DataLoader:
     """数据加载服务，负责统一的数据加载和预处理"""

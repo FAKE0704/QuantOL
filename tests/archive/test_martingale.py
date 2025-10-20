@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """测试Martingale规则解析"""
 
+import os
+import sys
 import pandas as pd
 import numpy as np
-import sys
-import os
 
-# 添加src目录到Python路径
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# 添加项目根目录到Python路径
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, project_root)
 
 # 现在导入模块
 try:

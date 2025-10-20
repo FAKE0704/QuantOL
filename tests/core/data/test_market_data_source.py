@@ -1,8 +1,15 @@
+import os
+import sys
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from core.data.market_data_source import MarketDataSource
 import pandas as pd
 import asyncio
+
+# 添加项目根目录到Python路径
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, project_root)
+
+from core.data.market_data_source import MarketDataSource
 
 @pytest.fixture
 def mock_db_conn():

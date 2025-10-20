@@ -2,12 +2,12 @@ import ast
 import operator as op
 import sys  # 添加sys导入
 import logging
-from support.log.logger import logger
 from typing import Any, Dict, Callable, Union, List, Tuple
 from dataclasses import dataclass
 import pandas as pd
 import astunparse
 from .indicators import IndicatorService  # 引入IndicatorService
+from support.log.logger import logger
 
 @dataclass
 class IndicatorFunction:

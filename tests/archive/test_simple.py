@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """简单测试表达式生成"""
 
+import os
+import sys
 import ast
 import astunparse
+
+# 添加项目根目录到Python路径
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, project_root)
 
 # 测试表达式生成函数
 def test_expression_generation():

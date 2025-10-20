@@ -1,7 +1,14 @@
+import os
+import sys
 import pandas as pd
 import numpy as np
 import pytest
 from unittest.mock import Mock
+
+# 添加项目根目录到Python路径
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, project_root)
+
 from src.core.strategy.rule_parser import RuleParser
 
 def setup_data() -> pd.DataFrame:

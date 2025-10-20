@@ -36,56 +36,78 @@ class PositionConfigUI:
 
     def _render_fixed_percent_ui(self) -> None:
         """渲染固定比例策略UI"""
+        # 使用session_state来确保滑动条值在组件重渲染时保持同步
+        if 'fixed_percent_value' not in self.session_state:
+            self.session_state.fixed_percent_value = 10.0
+
         percent = st.slider(
             "仓位比例",
-            min_value=0.01,
-            max_value=1.0,
-            value=0.1,
+            min_value=0.0,
+            max_value=100.0,
+            value=self.session_state.fixed_percent_value,
             step=0.01,
-            format="%.0f%%",
-            key="fixed_percent"
+            format="%.2f%%",
+            key="fixed_percent_slider"
         )
 
+        # 更新session_state中的值
+        self.session_state.fixed_percent_value = percent
+
+        # 转换为小数格式存储
+        percent_decimal = percent / 100.0
+
         self.session_state.backtest_config.position_strategy_params = {
-            "percent": percent
+            "percent": percent_decimal
         }
 
-        st.info(f"每次交易使用 {percent*100:.0f}% 的资金")
+        # 使用markdown来更清晰地显示当前值
+        st.markdown(f"**当前仓位比例**: {percent:.2f}%")
 
     def _render_kelly_ui(self) -> None:
         """渲染凯利公式策略UI"""
+        # 初始化session_state值
+        if 'kelly_win_rate_value' not in self.session_state:
+            self.session_state.kelly_win_rate_value = 0.6
+        if 'kelly_win_loss_ratio_value' not in self.session_state:
+            self.session_state.kelly_win_loss_ratio_value = 1.5
+        if 'kelly_max_percent_value' not in self.session_state:
+            self.session_state.kelly_max_percent_value = 0.25
+
         col1, col2 = st.columns(2)
 
         with col1:
             win_rate = st.slider(
                 "预估胜率",
-                min_value=0.01,
-                max_value=0.99,
-                value=0.6,
+                min_value=0.0,
+                max_value=100.0,
+                value=self.session_state.kelly_win_rate_value * 100.0,
                 step=0.01,
-                format="%.0f%%",
-                key="kelly_win_rate"
+                format="%.2f%%",
+                key="kelly_win_rate_slider"
             )
+            self.session_state.kelly_win_rate_value = win_rate / 100.0
 
         with col2:
             win_loss_ratio = st.slider(
                 "预估盈亏比",
                 min_value=0.1,
                 max_value=5.0,
-                value=1.5,
+                value=self.session_state.kelly_win_loss_ratio_value,
                 step=0.1,
-                key="kelly_win_loss_ratio"
+                key="kelly_win_loss_ratio_slider"
             )
+            self.session_state.kelly_win_loss_ratio_value = win_loss_ratio
 
         max_percent = st.slider(
             "最大仓位限制",
-            min_value=0.01,
-            max_value=0.5,
-            value=0.25,
+            min_value=0.0,
+            max_value=50.0,
+            value=self.session_state.kelly_max_percent_value * 100.0,
             step=0.01,
-            format="%.0f%%",
-            key="kelly_max_percent"
+            format="%.2f%%",
+            key="kelly_max_percent_slider"
         )
+        self.session_state.kelly_max_percent_value = max_percent / 100.0
 
         self.session_state.backtest_config.position_strategy_params = {
             "win_rate": win_rate,
@@ -93,36 +115,51 @@ class PositionConfigUI:
             "max_percent": max_percent
         }
 
-        st.info(f"胜率: {win_rate*100:.1f}%, 盈亏比: {win_loss_ratio:.1f}, 最大仓位: {max_percent*100:.0f}%")
+        # 使用更清晰的显示方式
+        st.markdown(f"**当前配置**:")
+        st.markdown(f"- **胜率**: {win_rate*100:.2f}%")
+        st.markdown(f"- **盈亏比**: {win_loss_ratio:.1f}")
+        st.markdown(f"- **最大仓位**: {max_percent*100:.2f}%")
 
     def _render_martingale_ui(self) -> None:
         """渲染马丁格尔策略UI"""
+        # 初始化session_state值
+        if 'martingale_multiplier_value' not in self.session_state:
+            self.session_state.martingale_multiplier_value = 2.0
+        if 'martingale_max_doubles_value' not in self.session_state:
+            self.session_state.martingale_max_doubles_value = 5
+        if 'martingale_base_percent_value' not in self.session_state:
+            self.session_state.martingale_base_percent_value = 0.05
+
         multiplier = st.slider(
             "加倍系数",
             min_value=1.0,
             max_value=5.0,
-            value=2.0,
+            value=self.session_state.martingale_multiplier_value,
             step=0.1,
-            key="martingale_multiplier"
+            key="martingale_multiplier_slider"
         )
+        self.session_state.martingale_multiplier_value = multiplier
 
         max_doubles = st.slider(
             "最大加倍次数",
             min_value=1,
             max_value=10,
-            value=5,
-            key="martingale_max_doubles"
+            value=self.session_state.martingale_max_doubles_value,
+            key="martingale_max_doubles_slider"
         )
+        self.session_state.martingale_max_doubles_value = max_doubles
 
         base_percent = st.slider(
             "基础仓位比例",
-            min_value=0.01,
-            max_value=0.2,
-            value=0.05,
+            min_value=0.0,
+            max_value=20.0,
+            value=self.session_state.martingale_base_percent_value * 100.0,
             step=0.01,
-            format="%.0f%%",
-            key="martingale_base_percent"
+            format="%.2f%%",
+            key="martingale_base_percent_slider"
         )
+        self.session_state.martingale_base_percent_value = base_percent / 100.0
 
         self.session_state.backtest_config.position_strategy_params = {
             "multiplier": multiplier,
@@ -130,7 +167,11 @@ class PositionConfigUI:
             "base_percent": base_percent
         }
 
-        st.info(f"基础仓位: {base_percent*100:.0f}%, 加倍系数: {multiplier:.1f}, 最大加倍: {max_doubles}次")
+        # 使用更清晰的显示方式
+        st.markdown(f"**当前配置**:")
+        st.markdown(f"- **基础仓位**: {base_percent*100:.2f}%")
+        st.markdown(f"- **加倍系数**: {multiplier:.1f}")
+        st.markdown(f"- **最大加倍次数**: {max_doubles}次")
 
     def render_basic_config_ui(self) -> None:
         """渲染基础配置UI"""

@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime
 import logging
-from support.log.logger import logger
+from src.support.log.logger import logger
 
 
 import logging

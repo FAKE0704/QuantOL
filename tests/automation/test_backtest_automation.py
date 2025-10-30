@@ -13,10 +13,28 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any
 import asyncio
 from pathlib import Path
+from unittest.mock import Mock, MagicMock
 
 # 添加项目根目录到Python路径
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
+
+# 模拟Streamlit session_state
+class MockSessionState:
+    def __init__(self):
+        self.db = Mock()
+        # 模拟数据库管理器的方法
+        self.db._loop = Mock()
+        self.db.load_stock_data = Mock()
+        self.db.load_multiple_stock_data = Mock()
+        self.db.get_all_stocks = Mock()
+
+# 创建全局session_state模拟对象
+mock_session_state = MockSessionState()
+
+# 在导入前设置模拟的session_state
+import streamlit as st
+st.session_state = mock_session_state
 
 from src.core.strategy.backtesting import BacktestEngine, BacktestConfig
 from src.core.strategy.rule_based_strategy import RuleBasedStrategy

@@ -10,10 +10,27 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import Mock
 
 # 确保项目根目录在Python路径中
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
+
+# 模拟Streamlit session_state
+class MockSessionState:
+    def __init__(self):
+        self.db = Mock()
+        self.db._loop = Mock()
+        self.db.load_stock_data = Mock()
+        self.db.load_multiple_stock_data = Mock()
+        self.db.get_all_stocks = Mock()
+
+# 创建全局session_state模拟对象
+mock_session_state = MockSessionState()
+
+# 在导入前设置模拟的session_state
+import streamlit as st
+st.session_state = mock_session_state
 
 from src.core.strategy.backtesting import BacktestEngine, BacktestConfig
 from src.core.strategy.rule_based_strategy import RuleBasedStrategy

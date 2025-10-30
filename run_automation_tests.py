@@ -20,11 +20,12 @@ def main():
 
     print("选择测试类型:")
     print("1. 独立规则测试 (推荐，无Streamlit依赖)")
-    print("2. 完整回测测试 (需要Streamlit环境)")
-    print("3. 单规则测试 (需要Streamlit环境)")
+    print("2. 真实数据规则测试 (使用CSV数据)")
+    print("3. 完整回测测试 (需要Streamlit环境)")
+    print("4. 单规则测试 (需要Streamlit环境)")
 
     try:
-        choice = input("\n请选择 (1/2/3): ").strip()
+        choice = input("\n请选择 (1/2/3/4): ").strip()
 
         if choice == '1':
             print("\n🚀 启动独立规则测试...")
@@ -32,12 +33,18 @@ def main():
             run_standalone_test()
 
         elif choice == '2':
+            print("\n🚀 启动真实数据规则测试...")
+            print("将使用tests/data/下的真实CSV数据进行测试")
+            from test_rule_with_real_data import main as run_real_data_test
+            run_real_data_test()
+
+        elif choice == '3':
             print("\n🚀 启动完整回测测试...")
             print("注意: 需要Streamlit环境")
             from tests.automation.test_backtest_automation import main as run_tests
             asyncio.run(run_tests())
 
-        elif choice == '3':
+        elif choice == '4':
             print("\n🚀 启动单规则测试...")
             print("注意: 需要Streamlit环境")
             from test_single_rule import main as run_single_test

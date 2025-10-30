@@ -90,14 +90,26 @@ class BacktestExecutor:
                 portfolio_manager=engine.portfolio_manager
             )
             engine.register_strategy(rule_strategy)
-        elif strategy_type.startswith("规则组:"):
+        elif strategy_type.startswith("规则组:") or strategy_type in ['Martingale', '金叉死叉', '相对强度']:
             self._register_rule_group_strategy(engine, symbol, symbol_data, strategy_type, backtest_config)
 
     def _register_rule_group_strategy(self, engine, symbol, symbol_data, strategy_type, backtest_config):
         """注册规则组策略"""
-        group_name = strategy_type.replace("规则组: ", "")
+        # 处理两种格式: "规则组: Martingale" 或直接 "Martingale"
+        if strategy_type.startswith("规则组:"):
+            group_name = strategy_type.replace("规则组: ", "")
+        else:
+            group_name = strategy_type
+
+        print(f"[DEBUG] 尝试注册规则组策略: {strategy_type} -> group_name: {group_name}")
+
         if 'rule_groups' in self.session_state and group_name in self.session_state.rule_groups:
             group = self.session_state.rule_groups[group_name]
+
+            # 添加调试信息
+            print(f"[DEBUG] 注册规则组策略: {group_name}")
+            print(f"[DEBUG] 规则内容: {group}")
+
             rule_strategy = RuleBasedStrategy(
                 Data=symbol_data,
                 name=f"规则组策略_{symbol}_{group_name}",
@@ -108,7 +120,21 @@ class BacktestExecutor:
                 close_rule_expr=group.get('close_rule', ''),
                 portfolio_manager=engine.portfolio_manager
             )
+
+            # 验证规则是否正确设置
+            print(f"[DEBUG] 策略创建完成: {rule_strategy.name}")
+            print(f"[DEBUG] 开仓规则: {rule_strategy.open_rule_expr}")
+            print(f"[DEBUG] 清仓规则: {rule_strategy.close_rule_expr}")
+            print(f"[DEBUG] 加仓规则: {rule_strategy.buy_rule_expr}")
+            print(f"[DEBUG] 平仓规则: {rule_strategy.sell_rule_expr}")
+
             engine.register_strategy(rule_strategy)
+        else:
+            print(f"[ERROR] 规则组 '{group_name}' 不存在或 rule_groups 未初始化")
+            if 'rule_groups' in self.session_state:
+                print(f"[DEBUG] 可用规则组: {list(self.session_state.rule_groups.keys())}")
+            else:
+                print(f"[DEBUG] session_state 中没有 rule_groups")
 
     def _register_single_symbol_strategy(self, engine, data, backtest_config):
         """注册单符号策略"""

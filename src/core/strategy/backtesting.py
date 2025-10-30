@@ -389,12 +389,12 @@ class BacktestEngine:
             for strategy in self.strategies:
                 logger.debug(f"触发策略: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
                 strategy.on_schedule(self)
-            logger.debug(f"已触发策略数量: {len(self.strategies)}")
+            # logger.debug(f"已触发策略数量: {len(self.strategies)}")
 
             # 处理事件队列（处理非StrategySignalEvent和OrderEvent的其他事件）
-            logger.debug(f"处理前事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
+            # logger.debug(f"处理前事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
             self._process_event_queue()
-            logger.debug(f"处理后事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
+            # logger.debug(f"处理后事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
 
             # 在每个数据点通过PortfolioManager记录净值历史
             price_data = {
@@ -762,24 +762,28 @@ class BacktestEngine:
             raise ValueError("策略必须实现handle_event方法")
         if not hasattr(strategy, 'strategy_id'):
             raise ValueError("策略必须设置strategy_id属性")
-            
+
         # 验证策略ID是否有效
         if not strategy.strategy_id or not isinstance(strategy.strategy_id, str):
             raise ValueError(f"无效的策略ID: {strategy.strategy_id}")
-            
+
         # 检查是否已存在相同ID的策略
         existing_ids = [s.strategy_id for s in self.strategies]
         if strategy.strategy_id in existing_ids:
             raise ValueError(f"策略ID {strategy.strategy_id} 已存在")
-            
+
         self.strategies.append(strategy)
-        
+
+        # 添加调试信息
+        strategy_name = getattr(strategy, 'name', '未命名')
+        print(f"[DEBUG] 策略注册成功 | ID: {strategy.strategy_id} | 名称: {strategy_name} | 类型: {type(strategy).__name__}")
+
         # 注册策略调度事件处理器
         self.register_handler(StrategyScheduleEvent, strategy.on_schedule)
         logger.debug(f"注册策略调度处理器: {strategy.strategy_id}")
-        
+
         # 记录策略注册日志
-        logger.info(f"策略注册成功 | ID: {strategy.strategy_id} | 名称: {getattr(strategy, 'name', '未命名')}")
+        logger.info(f"策略注册成功 | ID: {strategy.strategy_id} | 名称: {strategy_name}")
 
     def create_rule_based_strategy(self, name: str, 
                                   buy_rule_expr: str = "", 
@@ -807,10 +811,24 @@ class BacktestEngine:
 
         # 收集调试数据（如果有基于规则的策略）
         debug_data = {}
+        print(f"[DEBUG] 收集调试数据 - 总策略数: {len(self.strategies)}")
+
         for strategy in self.strategies:
-            if hasattr(strategy, 'debug_data') and strategy.debug_data is not None:
-                strategy_name = strategy.name if hasattr(strategy, 'name') else 'unknown'
-                debug_data[strategy_name] = strategy.debug_data
+            strategy_name = strategy.name if hasattr(strategy, 'name') else 'unknown'
+            strategy_type = type(strategy).__name__
+
+            print(f"[DEBUG] 检查策略: {strategy_name} ({strategy_type})")
+
+            if hasattr(strategy, 'debug_data'):
+                if strategy.debug_data is not None:
+                    debug_data[strategy_name] = strategy.debug_data
+                    print(f"[DEBUG] ✓ 找到debug_data: {strategy_name}, 列数: {len(strategy.debug_data.columns)}")
+                else:
+                    print(f"[DEBUG] ✗ debug_data为None: {strategy_name}")
+            else:
+                print(f"[DEBUG] ✗ 无debug_data属性: {strategy_name} ({strategy_type})")
+
+        print(f"[DEBUG] 最终收集到的debug_data数量: {len(debug_data)}")
 
         return {
             "summary": {

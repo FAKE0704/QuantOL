@@ -133,7 +133,13 @@ class RuleBasedStrategy(BaseStrategy):
             # 每次调用后清理缓存
             self.parser.clear_cache()
             # 保存调试数据（包含所有生成的列）
+            old_debug_data_size = len(self.debug_data.columns) if self.debug_data is not None else 0
             self.debug_data = self.parser.data.copy()
+            new_debug_data_size = len(self.debug_data.columns) if self.debug_data is not None else 0
+
+            # 添加调试信息
+            if old_debug_data_size != new_debug_data_size:
+                print(f"[DEBUG] {self.name} debug_data更新: {old_debug_data_size} -> {new_debug_data_size} 列")
             
     def on_schedule(self, engine) -> None:
         """定时触发规则检查"""

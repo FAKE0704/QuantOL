@@ -1,0 +1,20 @@
+# 数据库配置
+# 请复制此文件为 .env 并填入实际配置
+
+# PostgreSQL 数据库配置 (Docker容器映射到8080端口)
+DB_HOST=localhost
+DB_PORT=8080
+DB_NAME=quantdb
+DB_USER=quant
+DB_PASSWORD=quant123
+
+# 可选：管理数据库配置（如果与主数据库不同）
+ADMIN_DB_NAME=quantdb
+
+# 连接池配置
+DB_MAX_POOL_SIZE=15
+DB_QUERY_TIMEOUT=60
+
+# 数据源配置
+# 可选：其他数据源API密钥等
+# DATA_SOURCE_API_KEY=your_api_key_here

@@ -1,0 +1,18 @@
+{
+  "default": {
+    "primary": "#2c7be5",
+    "secondary": "#6c757d",
+    "background": "#FFFFFF",
+    "text": "#333333",
+    "success": "#25A776",
+    "danger": "#EF4444"
+  },
+  "dark": {
+    "primary": "#0074D9",
+    "secondary": "#5a6268",
+    "background": "#121212",
+    "text": "#E0E0E0",
+    "success": "#3D9970",
+    "danger": "#FF4136"
+  }
+}

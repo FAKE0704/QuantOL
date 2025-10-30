@@ -1,0 +1,4 @@
+- 策略信号事件(`StrategySignalEvent`)触发`handle_signal`
+- `handle_signal`调用策略的`calculate_signals`方法
+- `calculate_signals`应包含指标计算逻辑
+- 

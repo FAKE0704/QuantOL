@@ -1,0 +1,61 @@
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: quant
+      POSTGRES_PASSWORD: quant123
+      POSTGRES_DB: quantdb
+    ports:
+      - "0.0.0.0:8080:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - quant_network
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@quant.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      SERVER_MODE: "True"
+      PGADMIN_LISTEN_ADDRESS: "0.0.0.0"
+      GUNICORN_CMD_ARGS: "--bind 0.0.0.0:80 --workers=1 --threads=25"
+    ports:
+      - "8081:80"
+    networks:
+      - quant_network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  quant-web:
+    image: streamlit_app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    environment:
+      - DATABASE_URL=postgresql://quant:quant123@postgres:5432/quantdb
+      - STREAMLIT_SERVER_PORT=8501
+    ports:
+      - "8082:8501"
+    volumes:
+      - ./src:/app/src
+      - streamlit_cache:/app/.streamlit
+    depends_on:
+      - postgres
+    networks:
+      - quant_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  streamlit_cache:
+
+networks:
+  quant_network:
+    driver: bridge
+    enable_ipv6: false

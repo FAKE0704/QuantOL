@@ -128,6 +128,8 @@ ENV/
 env.bak/
 venv.bak/
 bin/
+..env.un~
+.env~
 
 # Claude
 .claude/

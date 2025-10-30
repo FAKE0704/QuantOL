@@ -796,15 +796,22 @@ class BacktestEngine:
 
     def get_results(self) -> Dict:
         """获取回测结果"""
-        
+
         if self.multi_symbol_mode and hasattr(self, 'results') and self.results:
             # 多符号模式，返回组合结果
             return self.results
-        
+
         # 单符号模式
         # 使用PortfolioManager的性能指标
         performance_metrics = self.portfolio_manager.get_performance_metrics()
-        
+
+        # 收集调试数据（如果有基于规则的策略）
+        debug_data = {}
+        for strategy in self.strategies:
+            if hasattr(strategy, 'debug_data') and strategy.debug_data is not None:
+                strategy_name = strategy.name if hasattr(strategy, 'name') else 'unknown'
+                debug_data[strategy_name] = strategy.debug_data
+
         return {
             "summary": {
                 "initial_capital": self.config.initial_capital,
@@ -823,7 +830,8 @@ class BacktestEngine:
                 "type": self.config.position_strategy_type,
                 "params": self.config.position_strategy_params
             },
-            "performance_metrics": performance_metrics
+            "performance_metrics": performance_metrics,
+            "debug_data": debug_data  # 添加调试数据
         }
 
     def _calculate_win_rate(self) -> float:
@@ -1094,6 +1102,19 @@ class BacktestEngine:
         if not combined_equity.empty:
             combined_equity['total_value'] = combined_equity.drop('timestamp', axis=1).sum(axis=1)
             all_results["combined_equity"] = combined_equity
+
+        # 收集所有符号的调试数据
+        all_debug_data = {}
+        for symbol, results in individual_results.items():
+            if "debug_data" in results and results["debug_data"]:
+                # 为每个符号的调试数据添加前缀
+                for strategy_name, debug_data in results["debug_data"].items():
+                    prefixed_name = f"{symbol}_{strategy_name}"
+                    all_debug_data[prefixed_name] = debug_data
+
+        # 添加调试数据到总结果中
+        if all_debug_data:
+            all_results["debug_data"] = all_debug_data
 
         # 添加策略映射信息到结果中
         all_results["strategy_mapping"] = self.config.strategy_mapping

@@ -12,10 +12,10 @@ class ResultsDisplayUI:
 
     def render_results_tabs(self, results: Dict[str, Any], backtest_config: BacktestConfig) -> None:
         """渲染结果展示标签页"""
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
             "📊 回测摘要", "💱 交易记录", "📈 仓位明细", "📉 净值曲线",
             "📈 技术指标", "📊 性能分析", "📉 回撤分析", "📊 收益分布",
-            "🎯 交易信号", "🔍 详细数据"
+            "🎯 交易信号", "🔍 详细数据", "🐛 调试数据"
         ])
 
         with tab1:
@@ -38,6 +38,8 @@ class ResultsDisplayUI:
             self.render_signals_tab(results)
         with tab10:
             self.render_detailed_data_tab(results)
+        with tab11:
+            self.render_debug_data_tab(results)
 
     def render_summary_tab(self, results: Dict[str, Any], backtest_config: BacktestConfig) -> None:
         """渲染回测摘要标签页"""
@@ -171,6 +173,89 @@ class ResultsDisplayUI:
             st.subheader("交易记录")
             trades_df = pd.DataFrame(results["trades"])
             st.dataframe(trades_df, use_container_width=True)
+
+    def render_debug_data_tab(self, results: Dict[str, Any]) -> None:
+        """渲染调试数据标签页"""
+        st.subheader("🐛 规则解析器调试数据")
+
+        # 调试信息显示
+        st.write("**调试信息:**")
+        if "debug_data" in results:
+            st.write(f"• debug_data键存在: 是")
+            st.write(f"• debug_data内容: {list(results['debug_data'].keys()) if results['debug_data'] else '空'}")
+        else:
+            st.write(f"• debug_data键存在: 否")
+
+        if "debug_data" not in results or not results["debug_data"]:
+            st.info("无调试数据可用（仅在使用自定义规则策略时生成）")
+            return
+
+        debug_data = results["debug_data"]
+
+        for strategy_name, strategy_data in debug_data.items():
+            if strategy_data is None:
+                continue
+
+            st.subheader(f"策略: {strategy_name}")
+
+            # 显示数据形状和基本信息
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("数据行数", len(strategy_data))
+            with col2:
+                st.metric("数据列数", len(strategy_data.columns))
+            with col3:
+                # 显示时间范围
+                if 'combined_time' in strategy_data.columns:
+                    time_range = f"{strategy_data['combined_time'].min()} 至 {strategy_data['combined_time'].max()}"
+                    st.metric("时间范围", time_range)
+
+            # 列分类：基础数据、指标数据、规则表达式结果
+            basic_cols = ['open', 'high', 'low', 'close', 'volume', 'code', 'combined_time']
+            indicator_cols = [col for col in strategy_data.columns
+                            if any(func in col for func in ['SMA', 'RSI', 'MACD', 'REF'])]
+            rule_cols = [col for col in strategy_data.columns
+                        if col not in basic_cols and col not in indicator_cols]
+
+            # 显示列分类
+            st.write("**列分类:**")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.write(f"基础数据 ({len(basic_cols)}列):")
+                st.write(", ".join(basic_cols))
+            with col2:
+                st.write(f"指标数据 ({len(indicator_cols)}列):")
+                st.write(", ".join(indicator_cols[:10]) + ("..." if len(indicator_cols) > 10 else ""))
+            with col3:
+                st.write(f"规则结果 ({len(rule_cols)}列):")
+                st.write(", ".join(rule_cols[:10]) + ("..." if len(rule_cols) > 10 else ""))
+
+            # 数据展示选项
+            show_columns = st.multiselect(
+                "选择要显示的列",
+                options=list(strategy_data.columns),
+                default=basic_cols + indicator_cols[:5],  # 默认显示基础数据和前5个指标
+                key=f"columns_{strategy_name}"
+            )
+
+            if show_columns:
+                # 显示数据预览
+                st.write(f"**数据预览 (最近20行):**")
+                display_data = strategy_data[show_columns].tail(20)
+                st.dataframe(display_data, use_container_width=True)
+
+                # 提供数据下载
+                csv = display_data.to_csv(index=False)
+                st.download_button(
+                    label="下载显示的数据为CSV",
+                    data=csv,
+                    file_name=f"debug_data_{strategy_name}.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.warning("请选择要显示的列")
+
+            st.divider()
 
     def _get_equity_data(self, results: Dict[str, Any]) -> pd.DataFrame:
         """获取净值数据"""

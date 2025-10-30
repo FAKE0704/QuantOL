@@ -11,7 +11,7 @@ from src.support.log.logger import logger
 class RuleBasedStrategy(BaseStrategy):
     """基于规则表达式的策略实现"""
     
-    def __init__(self, Data: pd.DataFrame, name: str, 
+    def __init__(self, Data: pd.DataFrame, name: str,
                  indicator_service: IndicatorService,
                  buy_rule_expr: str = "", sell_rule_expr: str = "",
                  open_rule_expr: str = "", close_rule_expr: str = "",
@@ -33,6 +33,7 @@ class RuleBasedStrategy(BaseStrategy):
         self.close_rule_expr = close_rule_expr
         self.portfolio_manager = portfolio_manager
         self.parser = RuleParser(Data, indicator_service, portfolio_manager)
+        self.debug_data = Data.copy()  # 初始化时保存原始数据
 
     def copy_for_symbol(self, symbol: str):
         """为指定符号创建策略副本"""
@@ -131,6 +132,8 @@ class RuleBasedStrategy(BaseStrategy):
         finally:
             # 每次调用后清理缓存
             self.parser.clear_cache()
+            # 保存调试数据（包含所有生成的列）
+            self.debug_data = self.parser.data.copy()
             
     def on_schedule(self, engine) -> None:
         """定时触发规则检查"""

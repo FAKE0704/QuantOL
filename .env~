@@ -2,7 +2,7 @@
 # 请复制此文件为 .env 并填入实际配置
 
 # PostgreSQL 数据库配置 (Docker容器映射到8080端口)
-DB_HOST=localhost
+DB_HOST=113.45.40.20
 DB_PORT=8080
 DB_NAME=quantdb
 DB_USER=quant

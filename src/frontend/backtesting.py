@@ -16,8 +16,8 @@ import numpy as np
 from src.frontend.backtest_config_manager import BacktestConfigManager
 from src.frontend.rule_group_manager import RuleGroupManager
 from src.frontend.strategy_mapping_manager import StrategyMappingManager
-from src.frontend.backtest_executor import BacktestExecutor
 from src.frontend.results_display_manager import ResultsDisplayManager
+from src.frontend.backtest_execution_service import BacktestExecutionService
 
 # 导入新创建的UI组件模块
 from src.frontend.backtest_config_ui import BacktestConfigUI
@@ -40,7 +40,7 @@ async def show_backtesting_page():
     config_manager = BacktestConfigManager(st.session_state)
     rule_group_manager = RuleGroupManager(st.session_state)
     strategy_mapping_manager = StrategyMappingManager(st.session_state)
-    backtest_executor = BacktestExecutor(st.session_state)
+    backtest_execution_service = BacktestExecutionService(st.session_state)
     results_display_manager = ResultsDisplayManager(st.session_state)
 
     # 初始化UI组件
@@ -129,8 +129,7 @@ async def show_backtesting_page():
         st.write(data)
 
         # 使用BacktestExecutionService执行回测
-        from src.frontend.backtest_execution_service import BacktestExecutionService
-        execution_service = BacktestExecutionService(st.session_state)
+        execution_service = backtest_execution_service
 
         # 初始化引擎
         engine = execution_service.initialize_engine(backtest_config, data)

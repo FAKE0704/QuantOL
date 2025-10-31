@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from typing import Dict, Any
 from src.core.strategy.backtesting import BacktestConfig
 from src.services.chart_service import ChartService
@@ -164,16 +165,270 @@ class ResultsDisplayUI:
         """渲染详细数据标签页"""
         st.subheader("🔍 详细数据")
 
-        # 显示原始数据
+        # 显示净值记录（包含规则判断结果）
         if "equity_records" in results:
             st.subheader("净值记录")
             equity_df = pd.DataFrame(results["equity_records"])
+
+            # 获取价格数据以提取规则结果
+            price_data = results.get("price_data")
+            if price_data is not None and not price_data.empty:
+                # 查找规则结果列
+                rule_columns = self._find_rule_columns(price_data)
+
+                # 将规则结果合并到净值记录中
+                equity_df = self._merge_rule_results_to_equity(equity_df, price_data, rule_columns)
+
             st.dataframe(equity_df, use_container_width=True)
 
         if "trades" in results and results["trades"]:
             st.subheader("交易记录")
             trades_df = pd.DataFrame(results["trades"])
             st.dataframe(trades_df, use_container_width=True)
+
+    def _find_rule_columns(self, price_data: pd.DataFrame) -> dict:
+        """查找规则结果列并返回映射关系"""
+        rule_columns = {}
+        rule_type_mapping = {}
+
+        # 添加调试信息
+        st.write(f"**调试信息:** 价格数据列名: {list(price_data.columns)}")
+
+        # 排除价格数据列（避免将OHLCV误认为规则列）
+        price_columns = {'open', 'high', 'low', 'close', 'volume', 'time', 'date', 'datetime', 'signal'}
+
+        # 查找四种规则的判断结果列（只取第一个找到的）
+        for col in price_data.columns:
+            col_lower = col.lower()
+
+            # 跳过价格数据列
+            if col_lower in price_columns:
+                continue
+
+            # 检查列名是否包含规则相关的复杂表达式模式
+            if (any(keyword in col_lower for keyword in ['open', '开仓']) and
+                len(col) > 4 and  # 确保不是简单的'open'列
+                '开仓' not in rule_type_mapping.values()):
+
+                # 检查该列是否包含布尔值或数值类型的规则结果
+                sample_values = price_data[col].dropna().head(10)
+                if self._is_rule_result_column(sample_values):
+                    rule_columns[col] = '开仓'
+                    rule_type_mapping[col] = '开仓'
+                    st.write(f"✓ 找到开仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
+
+            elif (any(keyword in col_lower for keyword in ['close', '清仓']) and
+                  len(col) > 5 and  # 确保不是简单的'close'列
+                  '清仓' not in rule_type_mapping.values()):
+
+                sample_values = price_data[col].dropna().head(10)
+                if self._is_rule_result_column(sample_values):
+                    rule_columns[col] = '清仓'
+                    rule_type_mapping[col] = '清仓'
+                    st.write(f"✓ 找到清仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
+
+            elif (any(keyword in col_lower for keyword in ['buy', '加仓']) and
+                  len(col) > 3 and  # 确保不是简单的'buy'列
+                  '加仓' not in rule_type_mapping.values()):
+
+                sample_values = price_data[col].dropna().head(10)
+                if self._is_rule_result_column(sample_values):
+                    rule_columns[col] = '加仓'
+                    rule_type_mapping[col] = '加仓'
+                    st.write(f"✓ 找到加仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
+
+            elif (any(keyword in col_lower for keyword in ['sell', '平仓']) and
+                  len(col) > 4 and  # 确保不是简单的'sell'列
+                  '平仓' not in rule_type_mapping.values()):
+
+                sample_values = price_data[col].dropna().head(10)
+                if self._is_rule_result_column(sample_values):
+                    rule_columns[col] = '平仓'
+                    rule_type_mapping[col] = '平仓'
+                    st.write(f"✓ 找到平仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
+
+            # 如果四种规则都找到了，就停止搜索
+            if len(rule_columns) == 4:
+                break
+
+        st.write(f"**调试信息:** 找到的规则列: {rule_columns}")
+
+        # 如果没有找到规则列，检查是否有布尔值列
+        if not rule_columns:
+            st.write("⚠️ 没有找到明显的规则列，搜索布尔值列...")
+            for col in price_data.columns:
+                if col_lower in price_columns:
+                    continue
+                sample_values = price_data[col].dropna().head(10)
+                if self._is_rule_result_column(sample_values):
+                    st.write(f"发现可能的规则列: {col} (样本: {sample_values.tolist()[:3]})")
+
+        return rule_columns
+
+    def _is_rule_result_column(self, sample_values: pd.Series) -> bool:
+        """判断列是否为规则结果列"""
+        if sample_values.empty:
+            return False
+
+        # 检查是否包含布尔值（包括 numpy.bool_）
+        if sample_values.dtype in [bool, np.bool_]:
+            return True
+
+        # 检查第一个值是否为布尔类型
+        if len(sample_values) > 0:
+            first_val = sample_values.iloc[0]
+            if isinstance(first_val, (bool, np.bool_)):
+                return True
+
+        # 检查是否包含0/1数值
+        try:
+            numeric_values = pd.to_numeric(sample_values, errors='coerce').dropna()
+            if not numeric_values.empty:
+                unique_values = set(numeric_values)
+                # 如果主要是0和1，很可能是规则结果
+                if unique_values.issubset({0.0, 1.0, 0, 1}):
+                    return True
+        except:
+            pass
+
+        # 检查是否包含字符串形式的布尔值
+        if sample_values.dtype == object:
+            str_values = sample_values.astype(str).str.lower()
+            if str_values.isin(['true', 'false', '1', '0', 'yes', 'no']).any():
+                return True
+
+        return False
+
+    def _merge_rule_results_to_equity(self, equity_df: pd.DataFrame, price_data: pd.DataFrame, rule_columns: dict) -> pd.DataFrame:
+        """将规则结果合并到净值记录中"""
+        if not rule_columns:
+            st.write("⚠️ 调试信息: 没有找到规则列，无法合并")
+            return equity_df
+
+        st.write(f"📊 调试信息: 开始合并规则结果到净值记录")
+        st.write(f"   净值记录行数: {len(equity_df)}, 价格数据行数: {len(price_data)}")
+
+        # 确保时间戳列名一致
+        equity_time_col = 'timestamp'
+        price_time_col = price_data.index.name if price_data.index.name else 'index'
+
+        # 检查价格数据是否有日期时间列
+        datetime_col = None
+        for col in price_data.columns:
+            if 'time' in col.lower() or 'date' in col.lower() or col == 'datetime':
+                datetime_col = col
+                break
+
+        # 如果净值记录有timestamp列，将其转换为datetime类型以便匹配
+        if equity_time_col in equity_df.columns:
+            equity_df[equity_time_col] = pd.to_datetime(equity_df[equity_time_col])
+
+        if datetime_col:
+            # 使用价格数据中的日期时间列
+            price_data_index = pd.to_datetime(price_data[datetime_col])
+            st.write(f"   找到价格数据时间列: {datetime_col}")
+        else:
+            # 检查价格数据索引是否已经是数值型（0, 1, 2...），如果是则按行号匹配
+            if price_data.index.dtype in ['int64', 'int32']:
+                st.write(f"   价格数据使用数值索引，将按行号匹配净值记录")
+                # 使用行号匹配的逻辑
+                return self._merge_by_row_number(equity_df, price_data, rule_columns)
+            else:
+                # 尝试将索引转换为datetime
+                price_data_index = pd.to_datetime(price_data.index)
+
+        st.write(f"   净值记录时间范围: {equity_df[equity_time_col].min()} 到 {equity_df[equity_time_col].max()}")
+        st.write(f"   价格数据时间范围: {price_data_index.min()} 到 {price_data_index.max()}")
+
+        match_count = 0
+        # 为每个规则列创建匹配函数
+        for original_col, display_name in rule_columns.items():
+            # 创建规则结果列，初始值为空
+            equity_df[f'规则_{display_name}'] = None
+
+            # 检查规则列的数据类型和示例值
+            sample_values = price_data[original_col].dropna().head(5)
+            st.write(f"   规则列 '{original_col}' 样本值: {sample_values.tolist()}, 数据类型: {price_data[original_col].dtype}")
+
+            # 遍历净值记录的每一行
+            for idx, equity_row in equity_df.iterrows():
+                equity_time = equity_row[equity_time_col]
+
+                # 在价格数据中找到最接近的时间点
+                closest_idx = None
+                min_time_diff = None
+
+                for price_idx, price_time in enumerate(price_data_index):
+                    time_diff = abs((price_time - equity_time).total_seconds())
+                    if min_time_diff is None or time_diff < min_time_diff:
+                        min_time_diff = time_diff
+                        closest_idx = price_idx
+
+                # 如果找到匹配的时间点，获取规则结果
+                if closest_idx is not None and min_time_diff < 86400:  # 24小时内
+                    rule_result = price_data.iloc[closest_idx][original_col]
+
+                    # 将布尔值或数值转换为更易读的格式
+                    if isinstance(rule_result, (bool, np.bool_)):  # 包含 numpy.bool_
+                        equity_df.at[idx, f'规则_{display_name}'] = '触发' if rule_result else '未触发'
+                        match_count += 1
+                    elif isinstance(rule_result, (int, float, np.integer, np.floating)):  # 包含 numpy 数值类型
+                        equity_df.at[idx, f'规则_{display_name}'] = '触发' if rule_result > 0 else '未触发'
+                        match_count += 1
+                    else:
+                        st.write(f"   ⚠️ 未识别的规则结果类型: {type(rule_result)}, 值: {rule_result}")
+
+        st.write(f"✅ 调试信息: 成功匹配 {match_count} 个规则结果")
+        return equity_df
+
+    def _merge_by_row_number(self, equity_df: pd.DataFrame, price_data: pd.DataFrame, rule_columns: dict) -> pd.DataFrame:
+        """按行号匹配合并规则结果到净值记录"""
+        st.write(f"🔄 使用行号匹配方式合并数据")
+
+        # 检查净值记录和价格数据的行数是否匹配
+        min_rows = min(len(equity_df), len(price_data))
+        st.write(f"   将匹配前 {min_rows} 行数据")
+
+        match_count = 0
+        # 为每个规则列创建匹配
+        for original_col, display_name in rule_columns.items():
+            # 创建规则结果列，初始值为空
+            equity_df[f'规则_{display_name}'] = None
+
+            # 检查规则列的数据类型和示例值
+            sample_values = price_data[original_col].dropna().head(5)
+            st.write(f"   规则列 '{original_col}' 样本值: {sample_values.tolist()}, 数据类型: {price_data[original_col].dtype}")
+
+            # 按行号匹配
+            for i in range(min_rows):
+                rule_result = price_data.iloc[i][original_col]
+
+                # 检查规则结果是否为布尔值（True/False）或可以解释为布尔值
+                if isinstance(rule_result, (bool, np.bool_)):
+                    equity_df.at[i, f'规则_{display_name}'] = '触发' if rule_result else '未触发'
+                    match_count += 1
+                elif isinstance(rule_result, (int, float, str, np.integer, np.floating)):
+                    # 尝试将数值或字符串转换为布尔值判断
+                    try:
+                        if str(rule_result).lower() in ['true', '1', 'yes', 'on']:
+                            equity_df.at[i, f'规则_{display_name}'] = '触发'
+                            match_count += 1
+                        elif str(rule_result).lower() in ['false', '0', 'no', 'off', '']:
+                            equity_df.at[i, f'规则_{display_name}'] = '未触发'
+                            match_count += 1
+                        else:
+                            # 对于数值，检查是否大于0
+                            if float(rule_result) > 0:
+                                equity_df.at[i, f'规则_{display_name}'] = '触发'
+                                match_count += 1
+                            elif float(rule_result) == 0:
+                                equity_df.at[i, f'规则_{display_name}'] = '未触发'
+                                match_count += 1
+                    except (ValueError, TypeError):
+                        st.write(f"   ⚠️ 无法解释规则结果: {rule_result} (类型: {type(rule_result)})")
+
+        st.write(f"✅ 调试信息: 按行号成功匹配 {match_count} 个规则结果")
+        return equity_df
 
     def render_debug_data_tab(self, results: Dict[str, Any]) -> None:
         """渲染调试数据标签页"""

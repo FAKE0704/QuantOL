@@ -387,9 +387,8 @@ class BacktestEngine:
                     logger.debug(f"策略 {i}: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
 
             for strategy in self.strategies:
-                logger.debug(f"触发策略: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
+                # logger.debug(f"触发策略: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
                 strategy.on_schedule(self)
-            # logger.debug(f"已触发策略数量: {len(self.strategies)}")
 
             # 处理事件队列（处理非StrategySignalEvent和OrderEvent的其他事件）
             # logger.debug(f"处理前事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
@@ -516,11 +515,11 @@ class BacktestEngine:
 
             order_event = OrderEvent(
                 timestamp=event.timestamp,
+                strategy_id=event.strategy_id,
                 symbol=event.symbol,
-                quantity=quantity,
-                side="BUY",
+                direction="BUY",
                 price=float(event.price),
-                strategy_id=event.strategy_id
+                quantity=quantity
             )
 
             # 将订单事件添加到事件队列
@@ -539,11 +538,11 @@ class BacktestEngine:
 
             order_event = OrderEvent(
                 timestamp=event.timestamp,
+                strategy_id=event.strategy_id,
                 symbol=event.symbol,
-                quantity=quantity,
-                side="SELL",
+                direction="SELL",
                 price=float(event.price),
-                strategy_id=event.strategy_id
+                quantity=quantity
             )
 
             # 将订单事件添加到事件队列
@@ -589,6 +588,7 @@ class BacktestEngine:
             
             # 3. 创建OrderEvent
             order_event = OrderEvent(
+                timestamp=event.timestamp,
                 strategy_id=event.strategy_id,
                 symbol=event.symbol,
                 direction=direction,
@@ -830,6 +830,26 @@ class BacktestEngine:
 
         print(f"[DEBUG] 最终收集到的debug_data数量: {len(debug_data)}")
 
+        # 准备价格数据（包含信号信息）
+        price_data = self.data.copy() if hasattr(self, 'data') and not self.data.empty else None
+
+        # 准备信号数据（只包含有信号的记录）
+        signals_data = None
+        if price_data is not None and 'signal' in price_data.columns:
+            # 过滤出有信号的记录
+            signal_records = price_data[price_data['signal'] != 0].copy()
+            if not signal_records.empty:
+                # 创建信号数据格式
+                signals_data = pd.DataFrame({
+                    'timestamp': signal_records.index,
+                    'signal': signal_records['signal'],
+                    'price': signal_records['close'],
+                    'symbol': self.config.target_symbol
+                })
+                # 添加信号类型描述
+                signal_type_map = {1: 'BUY', -1: 'SELL', 2: 'HEDGE', 3: 'REBALANCE'}
+                signals_data['signal_type'] = signals_data['signal'].map(signal_type_map)
+
         return {
             "summary": {
                 "initial_capital": self.config.initial_capital,
@@ -849,7 +869,9 @@ class BacktestEngine:
                 "params": self.config.position_strategy_params
             },
             "performance_metrics": performance_metrics,
-            "debug_data": debug_data  # 添加调试数据
+            "debug_data": debug_data,  # 添加调试数据
+            "price_data": price_data,  # 添加价格数据
+            "signals": signals_data    # 添加信号数据
         }
 
     def _calculate_win_rate(self) -> float:
@@ -1161,6 +1183,7 @@ class BacktestEngine:
             direction = "SELL" if current_position.quantity > 0 else "BUY"
             
             order_event = OrderEvent(
+                timestamp=event.timestamp,
                 strategy_id=event.strategy_id,
                 symbol=event.symbol,
                 direction=direction,
@@ -1201,6 +1224,7 @@ class BacktestEngine:
             direction = "BUY" if adjust_quantity > 0 else "SELL"
             
             order_event = OrderEvent(
+                timestamp=event.timestamp,
                 strategy_id=event.strategy_id,
                 symbol=event.symbol,
                 direction=direction,

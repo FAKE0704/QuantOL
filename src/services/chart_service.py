@@ -1432,76 +1432,7 @@ class ChartService:
         )
         st.plotly_chart(fig_rsi)
 
-    def drawRSI(data, feature1, line1_col, RSI, line2_col, line_width):
-        """绘制RSI相关图表"""
-        fig4 = go.Figure()
-        fig4.add_trace(
-            go.Scatter(
-                x=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)].index,
-                y=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)][feature1],
-                yaxis="y1",
-                mode="markers",
-                marker=dict(color="white", size=line_width),
-                name=feature1,
-            )
-        )
-        fig4.add_trace(
-            go.Scatter(
-                x=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)].index,
-                y=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)][feature1],
-                yaxis="y1",
-                mode="markers",
-                marker=dict(color=line1_col, size=line_width),
-                name=feature1,
-            )
-        )
-        fig4.add_trace(
-            go.Scatter(
-                x=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)].index,
-                y=data[(data["12RSI"] > 70) | (data["12RSI"] < 30)]["RSI"],
-                yaxis="y2",
-                mode="markers",
-                marker=dict(color="white", size=line_width),
-                name="12RSI (Extremes)",
-            )
-        )
-        fig4.add_trace(
-            go.Scatter(
-                x=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)].index,
-                y=data[(data["12RSI"] < 70) & (data["12RSI"] > 30)]["RSI"],
-                yaxis="y2",
-                mode="markers",
-                marker=dict(color=line2_col, size=line_width),
-                name="12RSI (Moderate)",
-            )
-        )
-        fig4.update_layout(
-            title="xxx",
-            xaxis=dict(
-                title="时间",
-                tickvals=data.index[::1000],
-                ticktext=data["time"][::1000],
-                tickangle=45,
-            ),
-            yaxis=dict(
-                title=f"feature1",
-                titlefont=dict(color="blue"),
-                tickfont=dict(color="blue"),
-            ),
-            yaxis2=dict(
-                title=f"RSI",
-                titlefont=dict(color="orange"),
-                tickfont=dict(color="orange"),
-                overlaying="y",
-                side="right",
-            ),
-            template="plotly",
-            legend=dict(x=0.5, y=1.1),
-            hovermode="x unified",
-        )
-        st.title("股票图像")
-        st.plotly_chart(fig4)
-
+    
     def create_fund_flow_chart(self, fund_flow_data: pd.DataFrame) -> go.Figure:
         """创建资金流向图表"""
         fig = px.line(

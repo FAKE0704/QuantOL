@@ -95,6 +95,7 @@ class ResultsDisplayUI:
                 chart_service.drawMACD(price_data)
             with col2:
                 chart_service.drawBollingerBands(price_data)
+                # 使用实例方法的drawRSI，它只需要data参数
                 chart_service.drawRSI(price_data)
         else:
             st.warning("无价格数据可用")

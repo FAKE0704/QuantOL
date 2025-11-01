@@ -51,8 +51,8 @@ limitations under the License.
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/your-username/awesome-Qsys.git
-cd awesome-Qsys
+git clone https://github.com/your-username/QuantOL.git
+cd QuantOL
 ```
 
 2. **安装依赖**
@@ -233,7 +233,7 @@ class CustomIndicator(Indicator):
 
 本项目采用 Apache 2.0 许可证。详细信息请参见 [LICENSE](LICENSE) 文件。
 
-Copyright 2024 QuantOL Project
+Copyright 2025 QuantOL Project
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -256,10 +256,11 @@ limitations under the License.
 ## 📞 联系方式
 
 如有问题或建议，请通过以下方式联系：
-- 项目 Issues: [GitHub Issues](https://github.com/FAKE0704/awesome-Qsys/issues)
+- 项目 Issues: [GitHub Issues](https://github.com/FAKE0704/QuantOL/issues)
 - 邮箱: pengfeigaofake@gmail.com
 - 微信: ThomasGao0704
 
 ---
 
-⭐ 如果这个项目对您有帮助，请给我们一个 Star！
+
+⭐ 如果这个项目对您有帮助，请给我一个 Star！

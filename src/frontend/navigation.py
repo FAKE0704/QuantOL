@@ -14,7 +14,7 @@ def show_navigation():
     """, unsafe_allow_html=True)
 
     with st.sidebar:
-        st.title("🚀 智能量化平台")
+        st.title("🚀 QuantOL")
         st.markdown("---")
         
         page = st.radio(

@@ -959,28 +959,28 @@ class BacktestEngine:
             ], ignore_index=True)
 
     def _process_event_queue(self):
-        """处理事件队列中的事件（处理非StrategySignalEvent和OrderEvent的其他事件）"""
+        """处理事件队列中的事件（处理非StrategySignalEvent的其他事件）"""
         if not self.event_queue:
             return
-            
+
         logger.debug(f"处理事件队列，当前队列长度: {len(self.event_queue)}")
-        
+
         # 处理队列中的所有事件
         while self.event_queue:
             event = self.event_queue.pop(0)
             handler = self.handlers.get(type(event))
-            
+
             if handler:
                 try:
-                    # 跳过StrategySignalEvent和OrderEvent，因为它们已经直接处理
-                    if isinstance(event, (StrategySignalEvent, OrderEvent)):
+                    # 只跳过StrategySignalEvent，允许OrderEvent被处理
+                    if isinstance(event, StrategySignalEvent):
                         logger.debug(f"跳过直接处理的事件类型: {type(event).__name__}")
                         continue
-                        
-                    # 处理其他类型的事件
+
+                    # 处理其他类型的事件（包括OrderEvent）
                     handler(event)
                     logger.debug(f"成功处理事件: {type(event).__name__}")
-                    
+
                 except Exception as e:
                     self.log_error(f"处理事件失败: {type(event).__name__} - {str(e)}")
             else:

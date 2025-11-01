@@ -85,7 +85,44 @@ class ResultsDisplayUI:
         # 获取价格数据
         price_data = self._get_price_data(results)
         if price_data is not None:
-            # 使用ChartService绘制技术指标
+            # SMA参数选择和图表部分
+            st.subheader("📊 SMA移动平均线")
+
+            # 使用form来避免rerun
+            with st.form("sma_form"):
+                # 获取当前SMA周期值
+                current_sma_period = st.session_state.get('sma_period', 5)
+
+                col1, col2, col3 = st.columns([1, 1, 2])
+
+                with col1:
+                    sma_period = st.number_input(
+                        "SMA周期",
+                        min_value=1,
+                        max_value=200,
+                        value=current_sma_period,
+                        key="sma_period_input"
+                    )
+
+                with col2:
+                    submitted = st.form_submit_button("确认参数")
+
+                with col3:
+                    st.write(f"当前SMA周期: {current_sma_period}")
+
+                # 如果表单提交，更新session_state
+                if submitted:
+                    st.session_state.sma_period = sma_period
+                    st.success(f"SMA周期已更新为: {sma_period}")
+                    # 使用rerun来重新渲染图表，但由于是在form内部，只会重新渲染当前tab
+                    st.rerun()
+
+            # 绘制SMA图表，使用当前session_state中的值
+            self._render_sma_chart(price_data, st.session_state.get('sma_period', 5))
+
+            st.divider()
+
+            # 使用ChartService绘制其他技术指标
             from src.services.chart_service import DataBundle, ChartService
             data_bundle = DataBundle(raw_data=price_data)
             chart_service = ChartService.get_chart_service(data_bundle)
@@ -197,7 +234,50 @@ class ResultsDisplayUI:
         # 排除价格数据列（避免将OHLCV误认为规则列）
         price_columns = {'open', 'high', 'low', 'close', 'volume', 'time', 'date', 'datetime', 'signal'}
 
-        # 查找四种规则的判断结果列（只取第一个找到的）
+        # 详细分析每个列
+        st.write("**详细列分析:**")
+
+        # 专门搜索复合规则相关的列
+        compound_rule_keywords = ['&', '|', 'and', 'or', '>', '<', '>=', '<=', '==', '!=']
+
+        for col in price_data.columns:
+            col_lower = col.lower()
+            is_price_col = col_lower in price_columns
+
+            # 检查是否包含规则关键字
+            has_open = any(keyword in col_lower for keyword in ['open', '开仓'])
+            has_close = any(keyword in col_lower for keyword in ['close', '清仓'])
+            has_buy = any(keyword in col_lower for keyword in ['buy', '加仓'])
+            has_sell = any(keyword in col_lower for keyword in ['sell', '平仓'])
+
+            # 检查是否包含复合规则的特征
+            has_compound = any(keyword in col for keyword in compound_rule_keywords)
+
+            # 检查是否为规则结果列
+            sample_values = price_data[col].dropna().head(5)
+            is_rule_col = self._is_rule_result_column(sample_values)
+
+            # 如果是规则列，显示True的计数
+            true_count = 0
+            if is_rule_col and not sample_values.empty:
+                try:
+                    true_count = sample_values.sum() if sample_values.dtype in [bool, np.bool_] else (sample_values.astype(bool).sum())
+                except:
+                    pass
+
+            st.write(f"  • {col}: 价格列={is_price_col}, 包含关键字(开仓={has_open},清仓={has_close},加仓={has_buy},平仓={has_sell}), 复合规则={has_compound}, 规则列={is_rule_col}, True数量={true_count}")
+            if not sample_values.empty:
+                st.write(f"    样本值: {sample_values.tolist()}, 类型: {sample_values.dtype}")
+
+            # 如果列名看起来像复合规则，显示更多信息
+            if has_compound and is_rule_col:
+                st.write(f"    ⚠️ 发现可能的复合规则列: {col}")
+                # 显示这个列的一些True值对应的行索引
+                true_indices = price_data[price_data[col] == True].head(5).index.tolist()
+                if true_indices:
+                    st.write(f"    前5个True的索引: {true_indices}")
+
+        # 查找四种规则的判断结果列（放宽条件）
         for col in price_data.columns:
             col_lower = col.lower()
 
@@ -205,47 +285,31 @@ class ResultsDisplayUI:
             if col_lower in price_columns:
                 continue
 
-            # 检查列名是否包含规则相关的复杂表达式模式
-            if (any(keyword in col_lower for keyword in ['open', '开仓']) and
-                len(col) > 4 and  # 确保不是简单的'open'列
-                '开仓' not in rule_type_mapping.values()):
+            # 检查该列是否包含布尔值或数值类型的规则结果
+            sample_values = price_data[col].dropna().head(10)
+            if not self._is_rule_result_column(sample_values):
+                continue
 
-                # 检查该列是否包含布尔值或数值类型的规则结果
-                sample_values = price_data[col].dropna().head(10)
-                if self._is_rule_result_column(sample_values):
-                    rule_columns[col] = '开仓'
-                    rule_type_mapping[col] = '开仓'
-                    st.write(f"✓ 找到开仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
+            # 检查列名是否包含规则相关的关键词（放宽条件）
+            if any(keyword in col_lower for keyword in ['open', '开仓']) and '开仓' not in rule_type_mapping.values():
+                rule_columns[col] = '开仓'
+                rule_type_mapping[col] = '开仓'
+                st.write(f"✓ 找到开仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
 
-            elif (any(keyword in col_lower for keyword in ['close', '清仓']) and
-                  len(col) > 5 and  # 确保不是简单的'close'列
-                  '清仓' not in rule_type_mapping.values()):
+            elif any(keyword in col_lower for keyword in ['close', '清仓']) and '清仓' not in rule_type_mapping.values():
+                rule_columns[col] = '清仓'
+                rule_type_mapping[col] = '清仓'
+                st.write(f"✓ 找到清仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
 
-                sample_values = price_data[col].dropna().head(10)
-                if self._is_rule_result_column(sample_values):
-                    rule_columns[col] = '清仓'
-                    rule_type_mapping[col] = '清仓'
-                    st.write(f"✓ 找到清仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
+            elif any(keyword in col_lower for keyword in ['buy', '加仓']) and '加仓' not in rule_type_mapping.values():
+                rule_columns[col] = '加仓'
+                rule_type_mapping[col] = '加仓'
+                st.write(f"✓ 找到加仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
 
-            elif (any(keyword in col_lower for keyword in ['buy', '加仓']) and
-                  len(col) > 3 and  # 确保不是简单的'buy'列
-                  '加仓' not in rule_type_mapping.values()):
-
-                sample_values = price_data[col].dropna().head(10)
-                if self._is_rule_result_column(sample_values):
-                    rule_columns[col] = '加仓'
-                    rule_type_mapping[col] = '加仓'
-                    st.write(f"✓ 找到加仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
-
-            elif (any(keyword in col_lower for keyword in ['sell', '平仓']) and
-                  len(col) > 4 and  # 确保不是简单的'sell'列
-                  '平仓' not in rule_type_mapping.values()):
-
-                sample_values = price_data[col].dropna().head(10)
-                if self._is_rule_result_column(sample_values):
-                    rule_columns[col] = '平仓'
-                    rule_type_mapping[col] = '平仓'
-                    st.write(f"✓ 找到平仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
+            elif any(keyword in col_lower for keyword in ['sell', '平仓']) and '平仓' not in rule_type_mapping.values():
+                rule_columns[col] = '平仓'
+                rule_type_mapping[col] = '平仓'
+                st.write(f"✓ 找到平仓规则列: {col} (样本: {sample_values.tolist()[:3]})")
 
             # 如果四种规则都找到了，就停止搜索
             if len(rule_columns) == 4:
@@ -253,15 +317,63 @@ class ResultsDisplayUI:
 
         st.write(f"**调试信息:** 找到的规则列: {rule_columns}")
 
-        # 如果没有找到规则列，检查是否有布尔值列
-        if not rule_columns:
-            st.write("⚠️ 没有找到明显的规则列，搜索布尔值列...")
+        # 如果规则列不足4个，尝试其他方式识别
+        if len(rule_columns) < 4:
+            st.write(f"⚠️ 只找到 {len(rule_columns)} 个规则列，尝试其他识别方式...")
+
+            # 寻找所有布尔值列，按顺序分配给缺失的规则类型
+            missing_rules = []
+            if '开仓' not in rule_type_mapping.values():
+                missing_rules.append('开仓')
+            if '清仓' not in rule_type_mapping.values():
+                missing_rules.append('清仓')
+            if '加仓' not in rule_type_mapping.values():
+                missing_rules.append('加仓')
+            if '平仓' not in rule_type_mapping.values():
+                missing_rules.append('平仓')
+
+            rule_col_count = 0
             for col in price_data.columns:
                 if col_lower in price_columns:
                     continue
+                if col in rule_columns:
+                    continue
+
                 sample_values = price_data[col].dropna().head(10)
                 if self._is_rule_result_column(sample_values):
-                    st.write(f"发现可能的规则列: {col} (样本: {sample_values.tolist()[:3]})")
+                    if rule_col_count < len(missing_rules):
+                        rule_type = missing_rules[rule_col_count]
+                        rule_columns[col] = rule_type
+                        rule_type_mapping[col] = rule_type
+                        st.write(f"✓ 自动分配 {rule_type} 规则列: {col} (样本: {sample_values.tolist()[:3]})")
+                        rule_col_count += 1
+
+        # 特别检查开仓规则相关的列
+        if '开仓' in rule_type_mapping.values():
+            open_rule_col = None
+            for col, rule_type in rule_type_mapping.items():
+                if rule_type == '开仓':
+                    open_rule_col = col
+                    break
+
+            if open_rule_col:
+                st.write(f"🔍 深入分析开仓规则列: {open_rule_col}")
+                open_rule_data = price_data[open_rule_col]
+                true_count = open_rule_data.sum()
+                st.write(f"   总True数量: {true_count}")
+
+                # 查找可能的子条件列
+                st.write("   查找可能的子条件列:")
+                sub_conditions = []
+                for col in price_data.columns:
+                    if ('REF(SMA' in col and 'close' in col) or ('SMA' in col and 'close' in col):
+                        if col != open_rule_col and self._is_rule_result_column(price_data[col].dropna().head(10)):
+                            sub_conditions.append(col)
+                            true_count_sub = price_data[col].sum()
+                            st.write(f"     • {col}: True数量={true_count_sub}")
+
+                if sub_conditions:
+                    st.write(f"   找到 {len(sub_conditions)} 个可能的子条件列")
 
         return rule_columns
 
@@ -539,3 +651,71 @@ class ResultsDisplayUI:
         if "signals" in results:
             return pd.DataFrame(results["signals"])
         return None
+
+    
+    def _render_sma_chart(self, price_data: pd.DataFrame, sma_period: int):
+        """渲染SMA图表"""
+        try:
+            import plotly.graph_objects as go
+
+            # 计算SMA
+            price_data_copy = price_data.copy()
+            # 确保close列是数值类型，处理Decimal类型
+            price_data_copy['close'] = pd.to_numeric(price_data_copy['close'], errors='coerce')
+            price_data_copy['SMA'] = price_data_copy['close'].rolling(window=sma_period).mean()
+
+            # 创建图表 - 使用data.index作为x轴，与其他图表保持一致
+            fig = go.Figure()
+
+            # 添加收盘价线
+            fig.add_trace(go.Scatter(
+                x=price_data_copy.index,
+                y=price_data_copy['close'],
+                name='收盘价',
+                line=dict(color='blue', width=2)
+            ))
+
+            # 添加SMA线
+            fig.add_trace(go.Scatter(
+                x=price_data_copy.index,
+                y=price_data_copy['SMA'],
+                name=f'SMA({sma_period})',
+                line=dict(color='red', width=2)
+            ))
+
+            # 设置图表布局
+            fig.update_layout(
+                title=f'收盘价与SMA({sma_period})对比图',
+                xaxis_title='时间',
+                yaxis_title='价格',
+                hovermode='x unified',
+                legend=dict(x=0, y=1),
+                height=500
+            )
+
+            # 显示图表
+            st.plotly_chart(fig, key="sma_chart", use_container_width=True)
+
+            # 显示统计信息
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                current_price = price_data_copy['close'].iloc[-1]
+                st.metric("当前收盘价", f"{current_price:.2f}")
+
+            with col2:
+                current_sma = price_data_copy['SMA'].iloc[-1]
+                if not pd.isna(current_sma):
+                    st.metric(f"SMA({sma_period})", f"{current_sma:.2f}")
+                else:
+                    st.metric(f"SMA({sma_period})", "数据不足")
+
+            with col3:
+                if not pd.isna(current_sma):
+                    diff = current_price - current_sma
+                    diff_pct = (diff / current_sma) * 100
+                    st.metric("价格偏离", f"{diff:.2f} ({diff_pct:+.2f}%)")
+                else:
+                    st.metric("价格偏离", "数据不足")
+
+        except Exception as e:
+            st.error(f"绘制SMA图表时出错: {str(e)}")

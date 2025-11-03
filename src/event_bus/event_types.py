@@ -37,6 +37,7 @@ class MarketDataEvent:
 @dataclass
 class OrderEvent:
     """订单事件"""
+    timestamp: datetime
     strategy_id: str
     symbol: str
     direction: str  # BUY/SELL

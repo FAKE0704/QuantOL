@@ -144,9 +144,19 @@ class PortfolioManager(IPortfolio):
         # 直接调用新的update_position方法
         return self.update_position(symbol, quantity, price)
         
+    def get_total_value(self, use_cache: bool = False) -> float:
+        """获取组合总价值（支持缓存）
+
+        Args:
+            use_cache: 是否使用缓存，默认为True
+        Returns:
+            组合总价值
+        """
+        return self.get_portfolio_value(use_cache)
+
     def get_portfolio_value(self, use_cache: bool = False) -> float:
         """获取组合总价值（支持缓存）
-        
+
         Args:
             use_cache: 是否使用缓存，默认为True
         Returns:
@@ -241,6 +251,16 @@ class PortfolioManager(IPortfolio):
                 results.append(False)
                 
         return results
+
+    def get_position_size(self, symbol: str) -> float:
+        """获取指定标的的持仓数量
+        Args:
+            symbol: 股票代码
+        Returns:
+            持仓数量，如果不存在则返回0
+        """
+        position = self.positions.get(symbol)
+        return position.quantity if position else 0.0
 
     def get_position(self, symbol: str) -> Optional[Position]:
         """获取指定标的的持仓信息

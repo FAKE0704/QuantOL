@@ -1,4 +1,16 @@
-# Awesome QSys - 基于事件驱动的量化交易系统
+# QuantOL - 基于事件驱动的量化交易系统
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
@@ -39,8 +51,8 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/your-username/awesome-Qsys.git
-cd awesome-Qsys
+git clone https://github.com/your-username/QuantOL.git
+cd QuantOL
 ```
 
 2. **安装依赖**
@@ -56,7 +68,7 @@ docker-compose up -d
 
 4. **启动应用**
 ```bash
-streamlit run src/main.py
+streamlit run main.py
 ```
 
 ### 配置说明
@@ -219,7 +231,21 @@ class CustomIndicator(Indicator):
 
 ## 📄 许可证
 
-本项目采用 Apache 2.0 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+本项目采用 Apache 2.0 许可证。详细信息请参见 [LICENSE](LICENSE) 文件。
+
+Copyright 2025 QuantOL Project
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 ## 🙏 致谢
 
@@ -230,10 +256,12 @@ class CustomIndicator(Indicator):
 ## 📞 联系方式
 
 如有问题或建议，请通过以下方式联系：
-- 项目 Issues: [GitHub Issues](https://github.com/FAKE0704/awesome-Qsys/issues)
+- 项目 Issues: [GitHub Issues](https://github.com/FAKE0704/QuantOL/issues)
 - 邮箱: pengfeigaofake@gmail.com
 - 微信: ThomasGao0704
 
 ---
 
-⭐ 如果这个项目对您有帮助，请给我们一个 Star！
+
+⭐ 如果这个项目对您有帮助，请给我一个 Star！
+

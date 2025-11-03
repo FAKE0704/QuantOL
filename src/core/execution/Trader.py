@@ -160,6 +160,7 @@ class TradeOrderManager:
                     return None
             
             return OrderEvent(
+                timestamp=datetime.now(),
                 strategy_id=order_dict['strategy_id'],
                 symbol=symbol,
                 direction=order_dict['direction'],

@@ -47,16 +47,28 @@ class BacktestExecutionService:
 
     def _initialize_strategies(self, engine: BacktestEngine, backtest_config: Any, data: Any) -> None:
         """初始化策略实例"""
+        print(f"[DEBUG] 开始初始化策略")
+        print(f"[DEBUG] 是否多符号模式: {backtest_config.is_multi_symbol()}")
+
         if backtest_config.is_multi_symbol():
+            print(f"[DEBUG] 多符号模式，初始化多符号策略...")
             self._initialize_multi_symbol_strategies(engine, backtest_config, data)
         else:
+            print(f"[DEBUG] 单符号模式，初始化单符号策略...")
             self._initialize_single_symbol_strategies(engine, backtest_config, data)
 
     def _initialize_multi_symbol_strategies(self, engine: BacktestEngine, backtest_config: Any, data: Dict[str, Any]) -> None:
         """初始化多符号策略"""
+        print(f"[DEBUG] 多符号策略初始化开始")
+        print(f"[DEBUG] 符号列表: {list(data.keys())}")
+
         for symbol, symbol_data in data.items():
+            print(f"[DEBUG] 处理符号: {symbol}")
             symbol_strategy_config = backtest_config.get_strategy_for_symbol(symbol)
             strategy_type = symbol_strategy_config.get('type', '使用默认策略')
+
+            print(f"[DEBUG] 符号 {symbol} 策略类型: '{strategy_type}'")
+            print(f"[DEBUG] 符号 {symbol} 策略配置: {symbol_strategy_config}")
 
             if strategy_type == "月定投":
                 strategy = FixedInvestmentStrategy(
@@ -85,8 +97,28 @@ class BacktestExecutionService:
 
     def _initialize_single_symbol_strategies(self, engine: BacktestEngine, backtest_config: Any, data: Any) -> None:
         """初始化单符号策略"""
-        default_strategy = backtest_config.default_strategy
-        strategy_type = default_strategy.get('type', '使用默认策略')
+        print(f"[DEBUG] 单符号策略初始化开始")
+        print(f"[DEBUG] backtest_config 类型: {type(backtest_config)}")
+
+        try:
+            # 从 strategy_type 读取策略类型，而不是 default_strategy
+            strategy_type = backtest_config.strategy_type
+            print(f"[DEBUG] 从 backtest_config.strategy_type 获取到: '{strategy_type}'")
+
+            # 检查 default_strategy 是否有其他配置
+            default_strategy = backtest_config.default_strategy
+            print(f"[DEBUG] default_strategy 内容: {default_strategy}")
+        except AttributeError as e:
+            print(f"[DEBUG] 获取策略配置失败: {e}")
+            # 检查是否有其他属性
+            for attr in ['default_strategy_type', 'strategy_mapping']:
+                if hasattr(backtest_config, attr):
+                    print(f"[DEBUG] 找到属性 {attr}: {getattr(backtest_config, attr)}")
+            return
+
+        print(f"[DEBUG] 最终策略类型: '{strategy_type}'")
+
+        strategy = None  # 初始化为None
 
         if strategy_type == "月定投":
             strategy = FixedInvestmentStrategy(
@@ -96,36 +128,185 @@ class BacktestExecutionService:
                 sell_rule_expr="False"
             )
         elif strategy_type == "自定义规则":
-            strategy = RuleBasedStrategy(
-                Data=data,
-                name="自定义规则策略",
-                indicator_service=self.session_state.indicator_service,
-                buy_rule_expr=default_strategy.get('buy_rule', ''),
-                sell_rule_expr=default_strategy.get('sell_rule', ''),
-                open_rule_expr=default_strategy.get('open_rule', ''),
-                close_rule_expr=default_strategy.get('close_rule', ''),
-                portfolio_manager=engine.portfolio_manager
-            )
-        else:
-            return
+            print(f"[DEBUG] 处理自定义规则策略")
+            print(f"[DEBUG] 检查session_state中的rule_groups...")
 
-        engine.register_strategy(strategy)
+            # 检查是否有规则组配置
+            if 'rule_groups' in self.session_state:
+                print(f"[DEBUG] 可用规则组: {list(self.session_state.rule_groups.keys())}")
+
+                # 检查是否选择了规则组而不是单独的规则
+                if hasattr(self.session_state, 'selected_rule_group') and self.session_state.selected_rule_group:
+                    print(f"[DEBUG] 检测到选中的规则组: {self.session_state.selected_rule_group}")
+                    group_name = self.session_state.selected_rule_group
+
+                    if group_name in self.session_state.rule_groups:
+                        group = self.session_state.rule_groups[group_name]
+                        print(f"[DEBUG] 使用规则组配置: {group}")
+
+                        strategy = RuleBasedStrategy(
+                            Data=data,
+                            name=f"自定义规则策略_{group_name}",
+                            indicator_service=self.session_state.indicator_service,
+                            buy_rule_expr=group.get('buy_rule', ''),
+                            sell_rule_expr=group.get('sell_rule', ''),
+                            open_rule_expr=group.get('open_rule', ''),
+                            close_rule_expr=group.get('close_rule', ''),
+                            portfolio_manager=engine.portfolio_manager
+                        )
+                    else:
+                        print(f"[DEBUG] 规则组 '{group_name}' 不存在，使用默认配置")
+                        # 使用默认配置
+                        strategy = RuleBasedStrategy(
+                            Data=data,
+                            name="自定义规则策略",
+                            indicator_service=self.session_state.indicator_service,
+                            buy_rule_expr=default_strategy.get('buy_rule', ''),
+                            sell_rule_expr=default_strategy.get('sell_rule', ''),
+                            open_rule_expr=default_strategy.get('open_rule', ''),
+                            close_rule_expr=default_strategy.get('close_rule', ''),
+                            portfolio_manager=engine.portfolio_manager
+                        )
+                else:
+                    print(f"[DEBUG] 没有选中的规则组，检查session_state中的其他策略配置...")
+                    # 检查是否有其他策略配置
+                    found_config = False
+
+                    # 检查新的配置属性
+                    for attr in ['current_rule_group_config', 'buy_rule_default', 'sell_rule_default', 'open_rule_default', 'close_rule_default']:
+                        if hasattr(self.session_state, attr):
+                            config = getattr(self.session_state, attr)
+                            print(f"[DEBUG] 找到配置 {attr}: {config}")
+
+                            if attr == 'current_rule_group_config':
+                                # 使用规则组配置
+                                group_rules = config.get('rules', {})
+                                strategy = RuleBasedStrategy(
+                                    Data=data,
+                                    name=f"自定义规则策略_{config.get('group_name', 'unknown')}",
+                                    indicator_service=self.session_state.indicator_service,
+                                    buy_rule_expr=group_rules.get('buy_rule', ''),
+                                    sell_rule_expr=group_rules.get('sell_rule', ''),
+                                    open_rule_expr=group_rules.get('open_rule', ''),
+                                    close_rule_expr=group_rules.get('close_rule', ''),
+                                    portfolio_manager=engine.portfolio_manager
+                                )
+                                found_config = True
+                                break
+                            elif attr == 'buy_rule_default' and config:  # 如果有默认的买入规则
+                                # 使用默认规则配置
+                                strategy = RuleBasedStrategy(
+                                    Data=data,
+                                    name="自定义规则策略_default",
+                                    indicator_service=self.session_state.indicator_service,
+                                    buy_rule_expr=self.session_state.get('buy_rule_default', ''),
+                                    sell_rule_expr=self.session_state.get('sell_rule_default', ''),
+                                    open_rule_expr=self.session_state.get('open_rule_default', ''),
+                                    close_rule_expr=self.session_state.get('close_rule_default', ''),
+                                    portfolio_manager=engine.portfolio_manager
+                                )
+                                found_config = True
+                                break
+
+                    # 如果还没找到配置，检查旧的属性
+                    if not found_config:
+                        for attr in ['current_strategy_config', 'strategy_config', 'martingale_config']:
+                            if hasattr(self.session_state, attr):
+                                config = getattr(self.session_state, attr)
+                                print(f"[DEBUG] 找到旧配置 {attr}: {config}")
+                                if isinstance(config, dict) and 'buy_rule' in config:
+                                    # 使用找到的配置
+                                    strategy = RuleBasedStrategy(
+                                        Data=data,
+                                        name=f"自定义规则策略_{attr}",
+                                        indicator_service=self.session_state.indicator_service,
+                                        buy_rule_expr=config.get('buy_rule', ''),
+                                        sell_rule_expr=config.get('sell_rule', ''),
+                                        open_rule_expr=config.get('open_rule', ''),
+                                        close_rule_expr=config.get('close_rule', ''),
+                                        portfolio_manager=engine.portfolio_manager
+                                    )
+                                    found_config = True
+                                    break
+
+                    if not found_config:
+                        print(f"[DEBUG] 没有找到任何规则配置，使用默认配置")
+                        # 使用默认配置
+                        strategy = RuleBasedStrategy(
+                            Data=data,
+                            name="自定义规则策略",
+                            indicator_service=self.session_state.indicator_service,
+                            buy_rule_expr=default_strategy.get('buy_rule', ''),
+                            sell_rule_expr=default_strategy.get('sell_rule', ''),
+                            open_rule_expr=default_strategy.get('open_rule', ''),
+                            close_rule_expr=default_strategy.get('close_rule', ''),
+                            portfolio_manager=engine.portfolio_manager
+                        )
+            else:
+                print(f"[DEBUG] session_state中没有rule_groups")
+                # 使用默认配置
+                strategy = RuleBasedStrategy(
+                    Data=data,
+                    name="自定义规则策略",
+                    indicator_service=self.session_state.indicator_service,
+                    buy_rule_expr=default_strategy.get('buy_rule', ''),
+                    sell_rule_expr=default_strategy.get('sell_rule', ''),
+                    open_rule_expr=default_strategy.get('open_rule', ''),
+                    close_rule_expr=default_strategy.get('close_rule', ''),
+                    portfolio_manager=engine.portfolio_manager
+                )
+        else:
+            print(f"[DEBUG] 单符号模式未知策略类型: {strategy_type}，跳过注册")
+
+        # 统一注册策略（如果已创建）
+        if strategy is not None:
+            engine.register_strategy(strategy)
+            print(f"[DEBUG] 策略注册成功: {strategy.name}")
+        else:
+            print(f"[DEBUG] 没有策略需要注册")
 
     def _create_rule_group_strategy(self, engine: BacktestEngine, symbol: str, symbol_data: Any, strategy_type: str):
         """创建规则组策略"""
-        group_name = strategy_type.replace("规则组: ", "")
-        if 'rule_groups' in self.session_state and group_name in self.session_state.rule_groups:
-            group = self.session_state.rule_groups[group_name]
-            return RuleBasedStrategy(
-                Data=symbol_data,
-                name=f"规则组策略_{symbol}_{group_name}",
-                indicator_service=self.session_state.indicator_service,
-                buy_rule_expr=group.get('buy_rule', ''),
-                sell_rule_expr=group.get('sell_rule', ''),
-                open_rule_expr=group.get('open_rule', ''),
-                close_rule_expr=group.get('close_rule', ''),
-                portfolio_manager=engine.portfolio_manager
-            )
+        print(f"[DEBUG] 创建规则组策略: symbol={symbol}, strategy_type={strategy_type}")
+
+        # 处理两种格式: "规则组: Martingale" 或直接 "Martingale"
+        if strategy_type.startswith("规则组:"):
+            group_name = strategy_type.replace("规则组: ", "")
+        else:
+            group_name = strategy_type
+
+        print(f"[DEBUG] 解析规则组名称: {strategy_type} -> {group_name}")
+
+        if 'rule_groups' in self.session_state:
+            print(f"[DEBUG] 可用规则组: {list(self.session_state.rule_groups.keys())}")
+
+            if group_name in self.session_state.rule_groups:
+                group = self.session_state.rule_groups[group_name]
+                print(f"[DEBUG] 规则组内容: {group}")
+
+                strategy = RuleBasedStrategy(
+                    Data=symbol_data,
+                    name=f"规则组策略_{symbol}_{group_name}",
+                    indicator_service=self.session_state.indicator_service,
+                    buy_rule_expr=group.get('buy_rule', ''),
+                    sell_rule_expr=group.get('sell_rule', ''),
+                    open_rule_expr=group.get('open_rule', ''),
+                    close_rule_expr=group.get('close_rule', ''),
+                    portfolio_manager=engine.portfolio_manager
+                )
+
+                print(f"[DEBUG] 规则组策略创建成功: {strategy.name}")
+                print(f"[DEBUG] 开仓规则: {strategy.open_rule_expr}")
+                print(f"[DEBUG] 清仓规则: {strategy.close_rule_expr}")
+                print(f"[DEBUG] 加仓规则: {strategy.buy_rule_expr}")
+                print(f"[DEBUG] 平仓规则: {strategy.sell_rule_expr}")
+
+                return strategy
+            else:
+                print(f"[DEBUG] 规则组 '{group_name}' 不存在")
+        else:
+            print(f"[DEBUG] session_state 中没有 rule_groups")
+
         return None
 
     def execute_backtest(self, engine: BacktestEngine, backtest_config: Any) -> Dict[str, Any]:
@@ -142,6 +323,34 @@ class BacktestExecutionService:
         # 获取结果
         results = engine.get_results()
         return results
+
+    async def load_data_for_backtest(self, backtest_config: Any, start_date: str, end_date: str) -> Any:
+        """加载回测所需数据"""
+        print(f"[DEBUG] 开始加载回测数据")
+        symbols = backtest_config.get_symbols()
+        print(f"[DEBUG] 目标符号: {symbols}")
+        print(f"[DEBUG] 时间范围: {start_date} 至 {end_date}")
+        print(f"[DEBUG] 数据频率: {backtest_config.frequency}")
+
+        if backtest_config.is_multi_symbol():
+            # 多符号模式
+            print(f"[DEBUG] 多符号模式，加载数据...")
+            data = await self.session_state.db.load_multiple_stock_data(
+                symbols, start_date, end_date, backtest_config.frequency
+            )
+            print(f"[DEBUG] 多符号数据加载完成: {len(data)} 只股票")
+        else:
+            # 单符号模式
+            print(f"[DEBUG] 单符号模式，加载数据...")
+            data = await self.session_state.db.load_stock_data(
+                symbols[0], start_date, end_date, backtest_config.frequency
+            )
+            if data is not None:
+                print(f"[DEBUG] 单符号数据加载完成: {len(data)} 条记录")
+            else:
+                print(f"[DEBUG] 单符号数据加载失败")
+
+        return data
 
     def prepare_chart_service(self, data: Any, equity_data: Any) -> None:
         """准备图表服务"""

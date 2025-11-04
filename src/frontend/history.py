@@ -96,7 +96,7 @@ async def show_history_page():
         end_date = pd.to_datetime(end_date).strftime('%Y-%m-%d')
 
         if st.button("查看历史行情"):
-            from components.progress import show_progress
+            from src.components.progress import show_progress
             progress, status = show_progress("history_data", "正在获取数据...")
             
             # 生成包含完整信息的缓存键

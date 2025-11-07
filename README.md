@@ -38,7 +38,7 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/your-username/QuantOL.git
+git clone https://github.com/FAKE0704/QuantOL.git
 cd QuantOL
 ```
 
@@ -251,5 +251,6 @@ limitations under the License.
 
 
 ⭐ 如果这个项目对您有帮助，请给我一个 Star！
+
 
 

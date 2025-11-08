@@ -77,7 +77,8 @@ class BacktestConfigUI:
                     "选择股票（可多选）",
                     options=self.session_state.stock_cache,
                     format_func=lambda x: x[1],
-                    key="selected_stocks"
+                    key="selected_stocks",
+                    help="注意：不需要选择指数标的，部分股票可能缺少历史数据，建议选择个股进行分析"
                 )
             else:
                 st.warning("无法加载股票列表，请检查数据库连接")

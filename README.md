@@ -51,6 +51,9 @@ pip install -r requirements.txt
 ```bash
 # 使用Docker快速部署数据库
 docker-compose up -d
+
+# 使用本地版Postgresql
+参见文档@LOCAL_POSTGRES_SETUP.md
 ```
 
 4. **启动应用**

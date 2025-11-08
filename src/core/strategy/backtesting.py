@@ -871,7 +871,8 @@ class BacktestEngine:
             "performance_metrics": performance_metrics,
             "debug_data": debug_data,  # 添加调试数据
             "price_data": price_data,  # 添加价格数据
-            "signals": signals_data    # 添加信号数据
+            "signals": signals_data,   # 添加信号数据
+            "portfolio_manager": self.portfolio_manager  # 添加组合管理器以获取持仓信息
         }
 
     def _calculate_win_rate(self) -> float:

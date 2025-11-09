@@ -10,25 +10,48 @@ def show_navigation():
         [data-testid="stSidebar"] { padding: 5px !important; }
         .stRadio > div { padding: 10px 0; }
         .stButton > button { width: 100%; margin-top: 10px; }
+        .disabled-option {
+            color: #ccc !important;
+            opacity: 0.6 !important;
+            pointer-events: none !important;
+        }
+        .unavailable-option {
+            color: #888 !important;
+            font-style: italic !important;
+        }
+        [data-testid="stSelectbox"] > div > div {
+            background-color: transparent;
+        }
     </style>
     """, unsafe_allow_html=True)
 
     with st.sidebar:
         st.title("🚀 QuantOL")
         st.markdown("---")
-        
+
+        # 创建导航菜单，其中未完成的功能标记为不可用
+        available_options = ["首页", "历史行情", "回测"]
+        unavailable_options = ["技术指标 (开发中)", "交易管理 (开发中)", "系统设置 (开发中)", "全球市场资金分布 (开发中)", "市场研究 (开发中)"]
+
+        # 显示可用功能
+        st.markdown("**可用功能**")
         page = st.radio(
-            "导航菜单",
-            options=["首页", "历史行情", "技术指标", "回测", "交易管理", "系统设置", "全球市场资金分布", "市场研究"],
+            "功能选择",
+            options=available_options,
             index=0,
             help="选择要进入的功能模块"
         )
-        
+
+        # 显示不可用功能
+        st.markdown("**即将推出**")
+        for option in unavailable_options:
+            st.markdown(f"• {option}")
+
         st.markdown("---")
         if st.button("清空缓存", help="重置所有配置"):
             st.cache_data.clear()
             st.success("缓存已清空")
-        
+
     return page
 
 def show_user_status():

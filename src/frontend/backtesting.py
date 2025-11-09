@@ -25,6 +25,9 @@ from src.frontend.strategy_config_ui import StrategyConfigUI
 from src.frontend.position_config_ui import PositionConfigUI
 from src.frontend.results_display_ui import ResultsDisplayUI
 
+# 导入新的自适应策略配置UI
+from src.frontend.strategy_config import AdaptiveStrategyConfigUI
+
 # 导入服务模块
 from src.frontend.data_loader import DataLoader
 from src.frontend.callback_services import CallbackServices
@@ -48,6 +51,9 @@ async def show_backtesting_page():
     strategy_ui = StrategyConfigUI(st.session_state)
     position_ui = PositionConfigUI(st.session_state)
     results_ui = ResultsDisplayUI(st.session_state)
+
+    # 初始化新的自适应策略配置UI
+    adaptive_strategy_ui = AdaptiveStrategyConfigUI(st.session_state)
 
     # 初始化服务
     data_loader = DataLoader(st.session_state)
@@ -82,11 +88,9 @@ async def show_backtesting_page():
         config_ui.render_config_summary()
 
     with config_tab2:
-        # 使用StrategyConfigUI组件渲染策略配置
-        default_strategy_type = strategy_ui.render_strategy_selection_ui()
-        strategy_ui.render_custom_rules_ui(rule_group_manager, default_strategy_type)
-        strategy_ui.render_multi_symbol_strategy_ui(selected_options, rule_group_manager, config_manager)
-        strategy_ui.render_strategy_summary()
+        # 使用新的自适应策略配置UI
+        adaptive_strategy_ui.render_configuration(selected_options, rule_group_manager, config_manager)
+        adaptive_strategy_ui.render_strategy_summary()
 
     with config_tab3:
         # 使用PositionConfigUI组件渲染仓位配置
@@ -107,8 +111,17 @@ async def show_backtesting_page():
         key="start_backtest",
         on_click=on_backtest_click
     ):
-        # 使用存储在session_state中的配置对象
+        # 验证策略配置
+        is_valid, error_msg = adaptive_strategy_ui.validate_configuration()
+        if not is_valid:
+            st.error(f"❌ 配置验证失败: {error_msg}")
+            return
+
+        # 同步UI配置到回测配置对象
         backtest_config = st.session_state.backtest_config
+        adaptive_strategy_ui.sync_config_with_backtest_config(backtest_config)
+
+        st.success("✅ 配置验证通过，开始执行回测...")
 
         # 统一数据加载
         symbols = backtest_config.get_symbols()

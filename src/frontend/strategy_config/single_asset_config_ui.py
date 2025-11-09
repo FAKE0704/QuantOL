@@ -1,0 +1,420 @@
+"""
+单标策略配置UI组件
+处理单个标的的策略配置界面
+"""
+import streamlit as st
+from typing import Tuple
+
+
+class SingleAssetConfigUI:
+    """单标策略配置UI组件"""
+
+    def __init__(self, session_state):
+        self.session_state = session_state
+
+    def render_configuration(self, selected_option: Tuple[str, str],
+                           rule_group_manager, config_manager):
+        """
+        渲染单标策略配置界面
+
+        Args:
+            selected_option: 选择的标的 (symbol, name)
+            rule_group_manager: 规则组管理器
+            config_manager: 配置管理器
+        """
+        symbol, name = selected_option
+
+        # 策略类型选择
+        self._render_strategy_type_selection(symbol)
+
+        # 自定义规则配置（如果选择自定义规则）
+        self._render_custom_rules(symbol, rule_group_manager)
+
+        # 策略配置摘要
+        self._render_configuration_summary(symbol)
+
+    def _render_strategy_type_selection(self, symbol: str):
+        """
+        渲染策略类型选择界面
+
+        Args:
+            symbol: 标的代码
+        """
+        st.subheader("📊 策略类型选择")
+
+        # 策略类型选项
+        strategy_type = st.selectbox(
+            "选择策略类型",
+            options=["月定投", "移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"],
+            key=f"single_strategy_type_{symbol}",
+            help="选择适用于该标的的策略类型"
+        )
+
+        # 更新session state
+        self.session_state[f"strategy_type_{symbol}"] = strategy_type
+
+        # 显示策略说明
+        self._render_strategy_description(strategy_type)
+
+    def _render_strategy_description(self, strategy_type: str):
+        """
+        渲染策略类型说明
+
+        Args:
+            strategy_type: 策略类型
+        """
+        descriptions = {
+            "月定投": "每月固定时间进行定额投资，适合长期稳健投资",
+            "移动平均线交叉": "基于移动平均线的金叉死叉信号进行买卖操作",
+            "MACD交叉": "基于MACD指标的金叉死叉信号进行买卖操作",
+            "RSI超买超卖": "基于RSI指标的超买超卖信号进行买卖操作",
+            "自定义规则": "根据自定义的技术指标条件进行买卖操作"
+        }
+
+        if strategy_type in descriptions:
+            st.info(f"💡 **策略说明**: {descriptions[strategy_type]}")
+
+    def _render_custom_rules(self, symbol: str, rule_group_manager):
+        """
+        渲染自定义规则配置界面
+
+        Args:
+            symbol: 标的代码
+            rule_group_manager: 规则组管理器
+        """
+        strategy_type = self.session_state.get(f"strategy_type_{symbol}", "")
+
+        if strategy_type == "自定义规则":
+            st.subheader("⚙️ 自定义交易规则")
+
+            # 规则配置方式选择
+            rule_config_method = st.radio(
+                "规则配置方式",
+                options=["手动配置规则", "使用预定义规则组"],
+                key=f"rule_config_method_{symbol}",
+                horizontal=True,
+                help="选择规则配置方式：手动输入自定义规则或使用预定义规则组"
+            )
+
+            if rule_config_method == "使用预定义规则组":
+                # 预定义规则组选择
+                rule_groups = rule_group_manager.get_rule_options_for_display()
+                if rule_groups:
+                    selected_group = st.selectbox(
+                        "选择规则组",
+                        options=["请选择规则组"] + rule_groups,
+                        key=f"selected_rule_group_{symbol}",
+                        help="选择一个预定义的规则组"
+                    )
+
+                    if selected_group != "请选择规则组":
+                        # 显示规则组预览
+                        group = rule_group_manager.get_rule_group(selected_group)
+                        if group:
+                            st.info(f"**规则组预览 - {selected_group}**:")
+
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if group.get('open_rule'):
+                                    st.code(f"开仓: {group['open_rule']}")
+                                if group.get('close_rule'):
+                                    st.code(f"清仓: {group['close_rule']}")
+                            with col2:
+                                if group.get('buy_rule'):
+                                    st.code(f"加仓: {group['buy_rule']}")
+                                if group.get('sell_rule'):
+                                    st.code(f"平仓: {group['sell_rule']}")
+
+                            # 应用规则组按钮
+                            if st.button(f"✅ 应用规则组", key=f"apply_group_{symbol}"):
+                                self._apply_rule_group_settings(symbol, selected_group, rule_group_manager)
+                                st.success(f"✅ 已应用规则组 '{selected_group}'")
+                else:
+                    st.warning("⚠️ 暂无可用规则组，请先在规则组管理中创建")
+
+            else:
+                # 手动配置规则
+                st.write("**手动配置交易规则**")
+
+                # 快速操作按钮
+                col1, col2 = st.columns([1, 1])
+                with col1:
+                    if st.button(f"📋 填充示例规则", key=f"fill_example_{symbol}"):
+                        self._fill_example_rules(symbol)
+                        st.success(f"✅ 已填充示例规则")
+
+                with col2:
+                    if st.button(f"🧹 清空所有规则", key=f"clear_rules_{symbol}"):
+                        self._clear_asset_rules(symbol)
+                        st.success(f"✅ 已清空所有规则")
+
+                # 规则编辑器
+                rule_col1, rule_col2 = st.columns(2)
+
+                with rule_col1:
+                    st.text_area(
+                        "开仓条件",
+                        value=self.session_state.get(f"open_rule_{symbol}", ""),
+                        height=80,
+                        key=f"open_rule_{symbol}",
+                        help="输入开仓条件表达式，例如: close > ma20"
+                    )
+
+                    st.text_area(
+                        "清仓条件",
+                        value=self.session_state.get(f"close_rule_{symbol}", ""),
+                        height=80,
+                        key=f"close_rule_{symbol}",
+                        help="输入清仓条件表达式，例如: close < ma20"
+                    )
+
+                with rule_col2:
+                    st.text_area(
+                        "加仓条件",
+                        value=self.session_state.get(f"buy_rule_{symbol}", ""),
+                        height=80,
+                        key=f"buy_rule_{symbol}",
+                        help="输入加仓条件表达式，例如: rsi < 30"
+                    )
+
+                    st.text_area(
+                        "平仓条件",
+                        value=self.session_state.get(f"sell_rule_{symbol}", ""),
+                        height=80,
+                        key=f"sell_rule_{symbol}",
+                        help="输入平仓条件表达式，例如: rsi > 70"
+                    )
+
+                # 规则编写帮助按钮
+                if st.button(f"📖 规则编写帮助", key=f"help_rules_{symbol}"):
+                    self._show_rules_help_modal()
+
+    def _apply_rule_group_settings(self, symbol: str, group_name: str, rule_group_manager):
+        """
+        应用规则组设置
+
+        Args:
+            symbol: 标的代码
+            group_name: 规则组名称
+            rule_group_manager: 规则组管理器
+        """
+        group = rule_group_manager.get_rule_group(group_name)
+        if group:
+            # 更新session state中的规则值
+            self.session_state[f"open_rule_{symbol}"] = group.get('open_rule', '')
+            self.session_state[f"close_rule_{symbol}"] = group.get('close_rule', '')
+            self.session_state[f"buy_rule_{symbol}"] = group.get('buy_rule', '')
+            self.session_state[f"sell_rule_{symbol}"] = group.get('sell_rule', '')
+
+    def _clear_asset_rules(self, symbol: str):
+        """
+        清空标的所有规则
+
+        Args:
+            symbol: 标的代码
+        """
+        self.session_state[f"open_rule_{symbol}"] = ''
+        self.session_state[f"close_rule_{symbol}"] = ''
+        self.session_state[f"buy_rule_{symbol}"] = ''
+        self.session_state[f"sell_rule_{symbol}"] = ''
+
+    def _fill_example_rules(self, symbol: str):
+        """
+        填充示例规则
+
+        Args:
+            symbol: 标的代码
+        """
+        self.session_state[f"open_rule_{symbol}"] = "close > ma20 and volume > ma(volume, 20)"
+        self.session_state[f"close_rule_{symbol}"] = "close < ma20 or rsi > 70"
+        self.session_state[f"buy_rule_{symbol}"] = "rsi < 30 and close > ma60"
+        self.session_state[f"sell_rule_{symbol}"] = "rsi > 80 or macd < macd_signal"
+
+    def _show_rules_help_modal(self):
+        """显示规则编写帮助弹窗"""
+        # 使用Streamlit的expander作为帮助弹窗
+        with st.expander("📖 规则编写帮助", expanded=True):
+            st.markdown("### 📝 规则编写指南")
+
+            tab1, tab2, tab3 = st.tabs(["📊 常用指标", "⚡ 操作符", "💡 示例规则"])
+
+            with tab1:
+                st.markdown("#### **常用指标参考**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**价格数据**")
+                    st.code("close   # 收盘价")
+                    st.code("open    # 开盘价")
+                    st.code("high    # 最高价")
+                    st.code("low     # 最低价")
+                    st.code("volume  # 成交量")
+
+                with col2:
+                    st.markdown("**技术指标**")
+                    st.code("ma20, ma60        # 移动平均线")
+                    st.code("ema20, ema60      # 指数移动平均线")
+                    st.code("rsi              # RSI相对强弱指标")
+                    st.code("macd, macd_signal # MACD指标")
+                    st.code("bb_upper, bb_lower # 布林带上下轨")
+
+            with tab2:
+                st.markdown("#### **常用操作符**")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**比较操作符**")
+                    st.code(">   # 大于")
+                    st.code("<   # 小于")
+                    st.code(">=  # 大于等于")
+                    st.code("<=  # 小于等于")
+                    st.code("==  # 等于")
+                    st.code("!=  # 不等于")
+
+                with col2:
+                    st.markdown("**逻辑操作符**")
+                    st.code("and  # 逻辑与")
+                    st.code("or   # 逻辑或")
+                    st.code("not  # 逻辑非")
+                    st.markdown("**算术操作符**")
+                    st.code("+ - * /  # 四则运算")
+
+            with tab3:
+                st.markdown("#### **示例规则**")
+                st.markdown("**开仓条件示例**:")
+                examples_open = [
+                    "close > ma20 and volume > ma(volume, 20)",
+                    "rsi < 30 and close > ma60",
+                    "macd > macd_signal and close > bb_lower"
+                ]
+                for example in examples_open:
+                    st.code(example)
+
+                st.markdown("**清仓条件示例**:")
+                examples_close = [
+                    "close < ma20 or rsi > 70",
+                    "rsi > 80 or macd < macd_signal",
+                    "close < bb_lower"
+                ]
+                for example in examples_close:
+                    st.code(example)
+
+                st.markdown("**💡 编写技巧**:")
+                st.write("• 使用括号明确运算优先级")
+                st.write("• 结合多个指标提高准确性")
+                st.write("• 考虑成交量确认价格突破")
+                st.write("• 设置止损条件控制风险")
+
+    def _render_configuration_summary(self, symbol: str):
+        """
+        渲染配置摘要
+
+        Args:
+            symbol: 标的代码
+        """
+        st.subheader("📋 配置摘要")
+
+        strategy_type = self.session_state.get(f"strategy_type_{symbol}", "未设置")
+        st.info(f"**策略类型**: {strategy_type}")
+
+        if strategy_type == "自定义规则":
+            rules = {
+                "开仓条件": self.session_state.get(f"open_rule_{symbol}", ""),
+                "清仓条件": self.session_state.get(f"close_rule_{symbol}", ""),
+                "加仓条件": self.session_state.get(f"buy_rule_{symbol}", ""),
+                "平仓条件": self.session_state.get(f"sell_rule_{symbol}", "")
+            }
+
+            configured_rules = [k for k, v in rules.items() if v.strip()]
+            if configured_rules:
+                st.info(f"**已配置规则**: {', '.join(configured_rules)}")
+            else:
+                st.warning("⚠️ 尚未配置任何交易规则")
+
+    def get_strategy_summary(self) -> dict:
+        """
+        获取策略配置摘要
+
+        Returns:
+            策略配置摘要字典
+        """
+        # 获取第一个标的的信息（单标模式）
+        symbols = [k.replace('strategy_type_', '') for k in self.session_state.keys()
+                  if k.startswith('strategy_type_')]
+
+        if not symbols:
+            return {'mode': 'empty'}
+
+        symbol = symbols[0]
+
+        return {
+            'mode': 'single',
+            'symbol': symbol,
+            'strategy_type': self.session_state.get(f'strategy_type_{symbol}', ''),
+            'custom_rules': {
+                'open_rule': self.session_state.get(f'open_rule_{symbol}', ''),
+                'close_rule': self.session_state.get(f'close_rule_{symbol}', ''),
+                'buy_rule': self.session_state.get(f'buy_rule_{symbol}', ''),
+                'sell_rule': self.session_state.get(f'sell_rule_{symbol}', '')
+            }
+        }
+
+    def sync_config_with_backtest_config(self, backtest_config):
+        """
+        同步UI配置到回测配置对象
+
+        Args:
+            backtest_config: 回测配置对象
+        """
+        # 获取第一个标的的信息（单标模式）
+        symbols = [k.replace('strategy_type_', '') for k in self.session_state.keys()
+                  if k.startswith('strategy_type_')]
+
+        if not symbols:
+            return
+
+        symbol = symbols[0]
+
+        # 设置策略类型
+        backtest_config.strategy_type = self.session_state.get(f'strategy_type_{symbol}', '月定投')
+
+        # 如果是自定义规则，设置规则配置
+        if backtest_config.strategy_type == "自定义规则":
+            backtest_config.custom_rules = {
+                'open_rule': self.session_state.get(f'open_rule_{symbol}', ''),
+                'close_rule': self.session_state.get(f'close_rule_{symbol}', ''),
+                'buy_rule': self.session_state.get(f'buy_rule_{symbol}', ''),
+                'sell_rule': self.session_state.get(f'sell_rule_{symbol}', '')
+            }
+
+    def validate_configuration(self) -> tuple[bool, str]:
+        """
+        验证单标配置的合法性
+
+        Returns:
+            (is_valid, error_message): 验证结果和错误信息
+        """
+        # 获取第一个标的的信息（单标模式）
+        symbols = [k.replace('strategy_type_', '') for k in self.session_state.keys()
+                  if k.startswith('strategy_type_')]
+
+        if not symbols:
+            return False, "未找到标的配置"
+
+        symbol = symbols[0]
+        strategy_type = self.session_state.get(f'strategy_type_{symbol}', '')
+
+        if not strategy_type:
+            return False, "未选择策略类型"
+
+        if strategy_type == "自定义规则":
+            # 检查是否配置了必要的规则
+            has_any_rule = any([
+                self.session_state.get(f'open_rule_{symbol}', '').strip(),
+                self.session_state.get(f'close_rule_{symbol}', '').strip(),
+                self.session_state.get(f'buy_rule_{symbol}', '').strip(),
+                self.session_state.get(f'sell_rule_{symbol}', '').strip()
+            ])
+
+            if not has_any_rule:
+                return False, "自定义策略模式下必须配置至少一个交易规则"
+
+        return True, "配置验证通过"

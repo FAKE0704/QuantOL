@@ -335,19 +335,53 @@ class DatabaseManager(DatabaseAdapter):
             missing_ranges = await self.check_data_completeness(symbol, start_dt, end_dt,frequency)
             logger.info(f"数据完整性检查完成，发现 {len(missing_ranges)} 个缺失区间")
 
-            # Fetch missing data ranges from Baostock
+            # Fetch missing data ranges from selected data source
             if missing_ranges:
                 logger.info(f"missing_ranges {missing_ranges}")
-                logger.info(f"Fetching missing data ranges for {symbol}")  
-                from .baostock_source import BaostockDataSource
-                data_source = BaostockDataSource(frequency)
+                logger.info(f"Fetching missing data ranges for {symbol}")
+
+                # 获取当前选择的数据源
+                try:
+                    from .config.data_source_config import get_data_source_manager
+                    data_source_manager = get_data_source_manager()
+                    current_source = data_source_manager.get_current_data_source()
+                    logger.info(f"使用当前选择的数据源: {current_source}")
+
+                    if current_source and current_source.lower() == 'tushare':
+                        # 使用Tushare数据源
+                        from .adapters.tushare_service_adapter import TushareServiceAdapter
+                        from .config.tushare_config import TushareConfig
+
+                        # 获取Tushare配置
+                        tushare_config = data_source_manager.get_data_source('Tushare')
+                        if tushare_config and tushare_config.settings.enabled:
+                            config = TushareConfig(
+                                token=tushare_config.credentials.token,
+                                cache_enabled=tushare_config.settings.cache_enabled,
+                                cache_ttl=tushare_config.settings.cache_ttl,
+                                rate_limit=tushare_config.settings.rate_limit
+                            )
+                            data_source = TushareServiceAdapter(config)
+                        else:
+                            logger.warning("Tushare数据源未启用或配置不完整，回退到Baostock")
+                            from .baostock_source import BaostockDataSource
+                            data_source = BaostockDataSource(frequency)
+                    else:
+                        # 默认使用Baostock数据源
+                        from .baostock_source import BaostockDataSource
+                        data_source = BaostockDataSource(frequency)
+
+                except Exception as e:
+                    logger.error(f"获取数据源配置失败，使用默认Baostock: {str(e)}")
+                    from .baostock_source import BaostockDataSource
+                    data_source = BaostockDataSource(frequency)
+
                 data = pd.DataFrame()
                 for range_start, range_end in missing_ranges:
-                    logger.info(f"Fetching data from {range_start} to {range_end}")
-                    # 转换为 Baostock 需要的格式
-                    
+                    logger.info(f"Fetching data from {range_start} to {range_end} using {current_source}")
+
                     new_data = await data_source.load_data(symbol, range_start, range_end, frequency)
-                    
+
                     await self.save_stock_data(symbol, new_data, frequency)  # save stock data into table Stockdata
                     data = pd.concat([data, new_data])
 
@@ -499,13 +533,50 @@ class DatabaseManager(DatabaseAdapter):
                     rows = await conn.fetch("SELECT * FROM StockInfo")
                     return pd.DataFrame(rows, columns=['code', 'code_name', 'ipoDate', 'outDate', 'type', 'status'])
             else:
-                # 调用baostock_source更新数据
-                from .baostock_source import BaostockDataSource
-                data_source = BaostockDataSource()
-                df = await data_source._get_all_stocks()
-                # 将数据保存到数据库
-                await self._update_stock_info(df)
-                return df
+                # 根据当前选择的数据源获取股票列表
+                try:
+                    from .config.data_source_config import get_data_source_manager
+                    data_source_manager = get_data_source_manager()
+                    current_source = data_source_manager.get_current_data_source()
+                    logger.info(f"使用 {current_source} 数据源获取股票列表")
+
+                    if current_source and current_source.lower() == 'tushare':
+                        # 使用Tushare数据源获取股票列表
+                        from .adapters.tushare_service_adapter import TushareServiceAdapter
+                        from .config.tushare_config import TushareConfig
+
+                        tushare_config = data_source_manager.get_data_source('Tushare')
+                        if tushare_config and tushare_config.settings.enabled:
+                            config = TushareConfig(
+                                token=tushare_config.credentials.token,
+                                cache_enabled=tushare_config.settings.cache_enabled,
+                                cache_ttl=tushare_config.settings.cache_ttl,
+                                rate_limit=tushare_config.settings.rate_limit
+                            )
+                            data_source = TushareServiceAdapter(config)
+                            df = await data_source.get_stock_list()
+                        else:
+                            logger.warning("Tushare配置不完整，回退到Baostock")
+                            from .baostock_source import BaostockDataSource
+                            data_source = BaostockDataSource()
+                            df = await data_source._get_all_stocks()
+                    else:
+                        # 使用Baostock数据源
+                        from .baostock_source import BaostockDataSource
+                        data_source = BaostockDataSource()
+                        df = await data_source._get_all_stocks()
+
+                    # 将数据保存到数据库
+                    await self._update_stock_info(df)
+                    return df
+
+                except Exception as e:
+                    logger.error(f"获取股票列表失败，使用默认Baostock: {str(e)}")
+                    from .baostock_source import BaostockDataSource
+                    data_source = BaostockDataSource()
+                    df = await data_source._get_all_stocks()
+                    await self._update_stock_info(df)
+                    return df
         except Exception as e:
             logger.error(f"获取所有股票信息失败: {str(e)}")
             raise

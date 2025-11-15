@@ -12,7 +12,7 @@
 ### 🚀 核心功能
 - **事件驱动架构** - 基于消息总线的松耦合设计
 - **双数据库模式** - 支持SQLite(快速体验)和PostgreSQL(生产环境)
-- **多数据源支持** - Baostock、AkShare等数据源集成
+- **多数据源支持** - Tushare、Baostock、AkShare等数据源集成
 - **策略回测引擎** - 支持多股票组合回测和规则组管理
 - **风险控制系统** - 完整的资金管理和风险控制机制
 - **实时可视化** - 基于Streamlit的交互式界面
@@ -82,7 +82,7 @@ python -m src.cli.database_switch switch --type postgresql
 ```
 
 #### 方式二：Web界面切换
-1. 启动应用后，在左侧导航栏选择"数据库设置"
+1. 启动应用后，在左侧导航栏选择"系统设置-数据库设置"
 2. 点击相应按钮切换数据库类型
 3. 系统会自动处理配置和初始化
 
@@ -178,9 +178,28 @@ streamlit run main.py --server.address 0.0.0.0
 - 检查配置文件格式和参数
 
 #### 数据源配置
-系统支持多种数据源，默认使用Baostock：
-- Baostock: 免费A股数据
-- AkShare: 多市场数据源
+系统支持多种数据源，可通过系统设置页面灵活切换：
+
+| 数据源 | 特点 | 配置要求 | 适用场景 |
+|--------|------|----------|----------|
+| **Tushare** | 专业级金融数据接口 | 需要注册获取Token | 生产环境、专业分析 |
+| **Baostock** | 免费开源证券数据平台 | 无需配置 | 学习测试、快速体验 |
+| **AkShare** | 多市场数据源 | 可选API密钥 | 多市场数据获取 |
+
+##### Tushare配置 (推荐)
+1. 访问 [Tushare官网](https://tushare.pro/register?reg=693641) 注册账户
+2. 在个人中心获取API Token
+3. 在系统设置 → 数据源配置中输入Token
+4. 或在 `.env` 文件中配置：
+   ```bash
+   TUSHARE_TOKEN=your_32_character_token_here
+   SELECTED_DATA_SOURCE=Tushare
+   ```
+
+##### Baostock配置 (默认)
+- 无需任何配置，开箱即用
+- 适合快速体验和学习测试
+- 在系统设置中直接选择即可使用
 
 ## 🏗️ 项目架构
 

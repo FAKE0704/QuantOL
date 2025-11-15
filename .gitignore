@@ -225,6 +225,11 @@ src/core/logs/
 *.sqlite
 *.sqlite3
 
+# Tushare缓存文件
+data/tushare/
+*.pkl
+!src/**/*.pkl  # 保留代码中的pkl文件
+
 # Streamlit 敏感配置
 .streamlit/secrets.toml
 

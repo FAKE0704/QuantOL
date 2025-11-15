@@ -47,6 +47,7 @@ class TushareServiceAdapter(DataSource):
         self.service = TushareMarketService(self.config)
         self._default_frequency = kwargs.get('default_frequency', 'D')
 
+
     async def load_data(self, symbol: str, start_date: str, end_date: str, frequency: str) -> pd.DataFrame:
         """
         实现DataSource抽象方法 - 加载数据
@@ -71,6 +72,9 @@ class TushareServiceAdapter(DataSource):
                 end_date_str = end_date.strftime('%Y%m%d')
             else:
                 end_date_str = end_date.replace('-', '')
+
+            # 直接使用ts_code格式
+            print(f"[DEBUG] 使用股票代码: {symbol}")
 
             # 调用tushare服务
             data = await self.service.get_market_data(

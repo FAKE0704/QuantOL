@@ -7,7 +7,7 @@
       "description": "Tushare数据源",
       "credentials": {
         "api_key": null,
-        "token": null,
+        "token": "a2fb17ef3159218fabee30c54f270a64b4e6a448252436e6b548da5c",
         "username": null,
         "password": null,
         "proxy_url": null,
@@ -16,7 +16,7 @@
         "retry_times": 3
       },
       "settings": {
-        "enabled": false,
+        "enabled": true,
         "priority": "primary",
         "cache_enabled": true,
         "cache_ttl": 3600,

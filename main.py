@@ -29,6 +29,11 @@ async def init_global_services():
     if 'db' not in st.session_state:
         # 使用工厂函数获取数据库适配器
         db_adapter = get_db_adapter()
+
+        # 如果是SQLite适配器，传递session_state引用
+        if hasattr(db_adapter, '_session_state_ref'):
+            db_adapter._session_state_ref = st.session_state
+
         await db_adapter.initialize()
         st.session_state.db = db_adapter
 

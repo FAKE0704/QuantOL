@@ -123,7 +123,29 @@ def show_data_source_settings():
             st.session_state.current_data_source = selected_source
             # 保存到环境变量
             os.environ['SELECTED_DATA_SOURCE'] = selected_source
-            st.success(f"已切换到 {selected_source}")
+
+            # 更新DataSourceManager
+            try:
+                from ..core.data.config.data_source_config import get_data_source_manager
+                data_source_manager = get_data_source_manager()
+
+                # 先启用数据源，再设置为当前数据源
+                data_source_config = data_source_manager.get_data_source(selected_source)
+                if data_source_config and not data_source_config.settings.enabled:
+                    data_source_config.settings.enabled = True
+                    data_source_manager.update_data_source(selected_source, data_source_config)
+                    logger.info(f"已启用数据源: {selected_source}")
+
+                success = data_source_manager.set_current_data_source(selected_source)
+                if success:
+                    st.success(f"已切换到 {selected_source}")
+                    logger.info(f"数据源管理器已更新为: {selected_source}")
+                else:
+                    st.warning(f"切换到 {selected_source} 失败")
+            except Exception as e:
+                logger.error(f"更新数据源管理器失败: {e}")
+                st.warning(f"已切换到 {selected_source}，但数据源管理器更新失败")
+
             # 刷新界面以更新显示
             st.rerun()
 

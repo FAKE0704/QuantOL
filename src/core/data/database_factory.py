@@ -9,25 +9,35 @@ from .postgresql_adapter import PostgreSQLAdapter
 class DatabaseFactory:
     """数据库工厂类，负责根据配置创建相应的数据库适配器"""
 
-    @staticmethod
-    def create_adapter() -> DatabaseAdapter:
+    # 简单的单例缓存
+    _adapter_instance: Optional[DatabaseAdapter] = None
+
+    @classmethod
+    def create_adapter(cls) -> DatabaseAdapter:
         """
-        根据环境变量创建数据库适配器
+        根据环境变量创建数据库适配器（单例模式）
 
         Returns:
             DatabaseAdapter: 数据库适配器实例
         """
+        # 如果已有实例，直接返回
+        if cls._adapter_instance is not None:
+            logger.info("使用已存在的数据库适配器实例")
+            return cls._adapter_instance
+
         database_type = os.getenv('DATABASE_TYPE', 'postgresql').lower()
 
         try:
             if database_type == 'sqlite':
                 sqlite_path = os.getenv('SQLITE_DB_PATH', './data/quantdb.sqlite')
-                logger.info(f"创建SQLite适配器，数据库路径: {sqlite_path}")
-                return SQLiteAdapter(sqlite_path)
+                logger.info(f"创建新的SQLite适配器，数据库路径: {sqlite_path}")
+                cls._adapter_instance = SQLiteAdapter(sqlite_path)
+                return cls._adapter_instance
 
             elif database_type in ['postgresql', 'postgres']:
-                logger.info("创建PostgreSQL适配器")
-                return PostgreSQLAdapter()
+                logger.info("创建新的PostgreSQL适配器")
+                cls._adapter_instance = PostgreSQLAdapter()
+                return cls._adapter_instance
 
             else:
                 raise ValueError(f"不支持的数据库类型: {database_type}")
@@ -44,7 +54,18 @@ def get_db_adapter() -> DatabaseAdapter:
     Returns:
         DatabaseAdapter: 数据库适配器实例
     """
-    return DatabaseFactory.create_adapter()
+    adapter = DatabaseFactory.create_adapter()
+
+    # 如果是SQLite适配器，设置数据源管理器引用
+    try:
+        from .config.data_source_config import get_data_source_manager
+        data_source_manager = get_data_source_manager()
+        if hasattr(adapter, 'set_data_source_manager'):
+            adapter.set_data_source_manager(data_source_manager)
+    except ImportError:
+        logger.warning("无法导入数据源管理器，使用默认数据源")
+
+    return adapter
 
 
 def get_database_type() -> str:

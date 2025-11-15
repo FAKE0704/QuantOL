@@ -150,6 +150,10 @@ class DataSourceManager:
         self.data_sources: Dict[str, DataSourceConfig] = {}
         self.load_config()
 
+        # 当前选择的数据源
+        self.current_data_source: Optional[str] = None
+        self._load_current_selection()
+
     def _get_supported_sources(self) -> Dict[DataSourceType, Dict[str, Any]]:
         """获取支持的数据源定义"""
         return {
@@ -378,16 +382,85 @@ class DataSourceManager:
             self.logger.error(f"保存配置失败: {e}")
             return False
 
+    def _load_current_selection(self):
+        """加载当前选择的数据源"""
+        try:
+            # 尝试从环境变量读取
+            env_selection = os.getenv('SELECTED_DATA_SOURCE')
+            if env_selection:
+                self.current_data_source = env_selection
+                self.logger.info(f"从环境变量加载数据源选择: {env_selection}")
+                return
+
+            # 从环境变量读取备选
+            env_selection = os.getenv('DATA_SOURCE_TYPE')
+            if env_selection:
+                # 转换为标准名称
+                if env_selection.lower() in ['tushare', 'baostock']:
+                    self.current_data_source = env_selection.title()
+                    self.logger.info(f"从备选环境变量加载数据源选择: {self.current_data_source}")
+                    return
+
+            # 默认选择第一个可用的数据源
+            enabled_sources = self.get_enabled_data_sources()
+            if enabled_sources:
+                self.current_data_source = list(enabled_sources.keys())[0]
+                self.logger.info(f"使用默认数据源: {self.current_data_source}")
+            else:
+                self.logger.warning("没有可用的数据源")
+
+        except Exception as e:
+            self.logger.error(f"加载数据源选择失败: {e}")
+            self.current_data_source = "Baostock"  # 默认值
+
+    def set_current_data_source(self, name: str) -> bool:
+        """设置当前使用的数据源"""
+        try:
+            if name not in self.data_sources:
+                self.logger.error(f"数据源不存在: {name}")
+                return False
+
+            if not self.data_sources[name].settings.enabled:
+                self.logger.error(f"数据源未启用: {name}")
+                return False
+
+            self.current_data_source = name
+            # 保存到环境变量
+            os.environ['SELECTED_DATA_SOURCE'] = name
+
+            self.logger.info(f"设置当前数据源: {name}")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"设置数据源失败: {e}")
+            return False
+
+    def get_current_data_source(self) -> Optional[str]:
+        """获取当前使用的数据源名称"""
+        return self.current_data_source
+
+    def get_current_data_source_config(self) -> Optional[DataSourceConfig]:
+        """获取当前使用的数据源配置"""
+        if self.current_data_source:
+            return self.data_sources.get(self.current_data_source)
+        return None
+
     def _create_default_config(self):
         """创建默认配置"""
+        # 从环境变量加载Tushare token
+        tushare_token = os.getenv('TUSHARE_TOKEN')
+
         # 添加一些常用的数据源配置模板
         default_configs = [
             DataSourceConfig(
                 source_type=DataSourceType.TUSHARE,
                 name="Tushare",
                 description="Tushare数据源",
+                credentials=DataSourceCredentials(
+                    token=tushare_token if tushare_token and tushare_token.strip() != "" else None
+                ),
                 settings=DataSourceSettings(
-                    enabled=False,  # 默认禁用，需要用户配置token
+                    enabled=bool(tushare_token and tushare_token.strip() != ""),  # 有token则启用
                     priority=DataSourcePriority.PRIMARY
                 )
             ),
@@ -405,7 +478,47 @@ class DataSourceManager:
         for config in default_configs:
             self.data_sources[config.name] = config
 
+        # 记录Tushare配置状态
+        if tushare_token and tushare_token.strip() != "":
+            self.logger.info("从环境变量加载Tushare token，Tushare数据源已启用")
+        else:
+            self.logger.info("未找到有效的Tushare token，Tushare数据源保持禁用状态")
+
         self.save_config()
+
+    def update_tushare_token_from_env(self):
+        """从环境变量更新Tushare token"""
+        try:
+            tushare_token = os.getenv('TUSHARE_TOKEN')
+
+            if 'Tushare' not in self.data_sources:
+                self.logger.warning("Tushare数据源配置不存在")
+                return False
+
+            tushare_config = self.data_sources['Tushare']
+
+            # 更新token
+            old_token = tushare_config.credentials.token
+            tushare_config.credentials.token = tushare_token if tushare_token and tushare_token.strip() != "" else None
+
+            # 更新启用状态
+            was_enabled = tushare_config.settings.enabled
+            tushare_config.settings.enabled = bool(tushare_config.credentials.token)
+
+            self.save_config()
+
+            if old_token != tushare_config.credentials.token:
+                self.logger.info(f"Tushare token已从环境变量更新")
+                if tushare_config.credentials.token:
+                    self.logger.info("Tushare数据源已启用")
+                else:
+                    self.logger.info("Tushare数据源已禁用（无有效token）")
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"更新Tushare token失败: {e}")
+            return False
 
     def export_config(self, file_path: str) -> bool:
         """导出配置到指定文件"""

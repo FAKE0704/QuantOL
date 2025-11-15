@@ -30,8 +30,8 @@ def show_navigation():
         st.markdown("---")
 
         # 创建导航菜单，其中未完成的功能标记为不可用
-        available_options = ["首页", "历史行情", "回测"]
-        unavailable_options = ["技术指标 (开发中)", "交易管理 (开发中)", "系统设置 (开发中)", "全球市场资金分布 (开发中)", "市场研究 (开发中)"]
+        available_options = ["首页", "历史行情", "回测", "系统设置"]
+        unavailable_options = ["技术指标 (开发中)", "交易管理 (开发中)", "全球市场资金分布 (开发中)", "市场研究 (开发中)"]
 
         # 显示可用功能
         st.markdown("**可用功能**")
@@ -46,6 +46,12 @@ def show_navigation():
         st.markdown("**即将推出**")
         for option in unavailable_options:
             st.markdown(f"• {option}")
+
+        st.markdown("---")
+
+        # 系统状态显示
+        from src.frontend.system_settings import show_database_status_widget
+        show_database_status_widget()
 
         st.markdown("---")
         if st.button("清空缓存", help="重置所有配置"):

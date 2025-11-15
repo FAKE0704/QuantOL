@@ -1,0 +1,61 @@
+{
+  "version": "1.0",
+  "data_sources": [
+    {
+      "source_type": "tushare",
+      "name": "Tushare",
+      "description": "Tushare数据源",
+      "credentials": {
+        "api_key": null,
+        "token": null,
+        "username": null,
+        "password": null,
+        "proxy_url": null,
+        "custom_headers": {},
+        "timeout": 30,
+        "retry_times": 3
+      },
+      "settings": {
+        "enabled": false,
+        "priority": "primary",
+        "cache_enabled": true,
+        "cache_ttl": 3600,
+        "rate_limit": 120,
+        "max_concurrent_requests": 5,
+        "use_as_backup": true,
+        "custom_params": {}
+      },
+      "is_configured": false,
+      "last_test_time": null,
+      "test_status": null
+    },
+    {
+      "source_type": "baostock",
+      "name": "Baostock",
+      "description": "Baostock数据源",
+      "credentials": {
+        "api_key": null,
+        "token": null,
+        "username": null,
+        "password": null,
+        "proxy_url": null,
+        "custom_headers": {},
+        "timeout": 30,
+        "retry_times": 3
+      },
+      "settings": {
+        "enabled": true,
+        "priority": "fallback",
+        "cache_enabled": true,
+        "cache_ttl": 3600,
+        "rate_limit": 120,
+        "max_concurrent_requests": 5,
+        "use_as_backup": true,
+        "custom_params": {}
+      },
+      "is_configured": false,
+      "last_test_time": null,
+      "test_status": null
+    }
+  ]
+}

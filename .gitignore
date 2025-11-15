@@ -32,6 +32,8 @@ MANIFEST
 *.manifest
 *.spec
 
+
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -209,6 +211,9 @@ $RECYCLE.BIN/
 # 临时文件
 *.tmp*
 *.temp
+.DS_Store
+.spec-workflow/
+
 
 # 日志文件
 *.log

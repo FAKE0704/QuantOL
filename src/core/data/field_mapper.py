@@ -16,10 +16,11 @@ class FieldMapper:
     SOURCE_FIELD_MAPPINGS = {
         'baostock': {
             'code': 'code',
-            'name': 'code_name',
+            'code_name': 'code_name',  # Baostock直接返回code_name字段
             'ipo_date': 'ipoDate',
             'out_date': 'outDate',
-            'type': 'type'
+            'type': 'type',
+            'status': 'status'  # 添加status字段映射
         },
         'tushare': {
             'code': 'ts_code',          # 带交易所后缀的完整代码

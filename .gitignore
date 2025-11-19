@@ -224,6 +224,8 @@ src/core/logs/
 *.db
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
 
 # Tushare缓存文件
 data/tushare/

@@ -967,9 +967,8 @@ class SQLiteAdapter(DatabaseAdapter):
                     logger.error(f"事务回滚失败: {rollback_error}")
             raise
         finally:
-            # 确保连接被正确释放
-            if conn:
-                await conn.close()
+            # 连接池中的连接不需要显式关闭，连接池会自动管理
+            pass
 
     async def save_money_supply_data(self, data: pd.DataFrame) -> bool:
         """保存货币供应量数据（优化版）"""

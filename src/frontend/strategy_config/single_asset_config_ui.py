@@ -87,107 +87,135 @@ class SingleAssetConfigUI:
         if strategy_type == "自定义规则":
             st.subheader("⚙️ 自定义交易规则")
 
-            # 规则配置方式选择
-            rule_config_method = st.radio(
-                "规则配置方式",
-                options=["手动配置规则", "使用预定义规则组"],
-                key=f"rule_config_method_{symbol}",
-                horizontal=True,
-                help="选择规则配置方式：手动输入自定义规则或使用预定义规则组"
-            )
+            # 预定义规则组加载区域
+            self._render_rule_group_loader(symbol, rule_group_manager)
 
-            if rule_config_method == "使用预定义规则组":
-                # 预定义规则组选择
-                rule_groups = rule_group_manager.get_rule_options_for_display()
-                if rule_groups:
-                    selected_group = st.selectbox(
-                        "选择规则组",
-                        options=["请选择规则组"] + rule_groups,
-                        key=f"selected_rule_group_{symbol}",
-                        help="选择一个预定义的规则组"
-                    )
+            st.divider()  # 分割线
 
-                    if selected_group != "请选择规则组":
-                        # 显示规则组预览
-                        group = rule_group_manager.get_rule_group(selected_group)
-                        if group:
-                            st.info(f"**规则组预览 - {selected_group}**:")
+            # 手动配置规则区域
+            st.write("**手动配置交易规则**")
+            st.info("💡 您可以直接在下方编辑规则，或者先加载预定义规则组后进行修改")
 
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if group.get('open_rule'):
-                                    st.code(f"开仓: {group['open_rule']}")
-                                if group.get('close_rule'):
-                                    st.code(f"清仓: {group['close_rule']}")
-                            with col2:
-                                if group.get('buy_rule'):
-                                    st.code(f"加仓: {group['buy_rule']}")
-                                if group.get('sell_rule'):
-                                    st.code(f"平仓: {group['sell_rule']}")
+            # 快速操作按钮
+            col1, col2, col3 = st.columns([1, 1, 1.2])
+            with col1:
+                if st.button(f"📋 填充示例规则", key=f"fill_example_{symbol}"):
+                    self._fill_example_rules(symbol)
+                    st.success(f"✅ 已填充示例规则")
 
-                            # 应用规则组按钮
-                            if st.button(f"✅ 应用规则组", key=f"apply_group_{symbol}"):
-                                self._apply_rule_group_settings(symbol, selected_group, rule_group_manager)
-                                st.success(f"✅ 已应用规则组 '{selected_group}'")
-                else:
-                    st.warning("⚠️ 暂无可用规则组，请先在规则组管理中创建")
+            with col2:
+                if st.button(f"🧹 清空所有规则", key=f"clear_rules_{symbol}"):
+                    self._clear_asset_rules(symbol)
+                    st.success(f"✅ 已清空所有规则")
 
-            else:
-                # 手动配置规则
-                st.write("**手动配置交易规则**")
-
-                # 快速操作按钮
-                col1, col2 = st.columns([1, 1])
-                with col1:
-                    if st.button(f"📋 填充示例规则", key=f"fill_example_{symbol}"):
-                        self._fill_example_rules(symbol)
-                        st.success(f"✅ 已填充示例规则")
-
-                with col2:
-                    if st.button(f"🧹 清空所有规则", key=f"clear_rules_{symbol}"):
-                        self._clear_asset_rules(symbol)
-                        st.success(f"✅ 已清空所有规则")
-
-                # 规则编辑器
-                rule_col1, rule_col2 = st.columns(2)
-
-                with rule_col1:
-                    st.text_area(
-                        "开仓条件",
-                        value=self.session_state.get(f"open_rule_{symbol}", ""),
-                        height=80,
-                        key=f"open_rule_{symbol}",
-                        help="输入开仓条件表达式，例如: close > ma20"
-                    )
-
-                    st.text_area(
-                        "清仓条件",
-                        value=self.session_state.get(f"close_rule_{symbol}", ""),
-                        height=80,
-                        key=f"close_rule_{symbol}",
-                        help="输入清仓条件表达式，例如: close < ma20"
-                    )
-
-                with rule_col2:
-                    st.text_area(
-                        "加仓条件",
-                        value=self.session_state.get(f"buy_rule_{symbol}", ""),
-                        height=80,
-                        key=f"buy_rule_{symbol}",
-                        help="输入加仓条件表达式，例如: rsi < 30"
-                    )
-
-                    st.text_area(
-                        "平仓条件",
-                        value=self.session_state.get(f"sell_rule_{symbol}", ""),
-                        height=80,
-                        key=f"sell_rule_{symbol}",
-                        help="输入平仓条件表达式，例如: rsi > 70"
-                    )
-
-                # 规则编写帮助按钮
+            with col3:
                 if st.button(f"📖 规则编写帮助", key=f"help_rules_{symbol}"):
                     self._show_rules_help_modal()
+
+            # 规则编辑器
+            rule_col1, rule_col2 = st.columns(2)
+
+            # 确保widget session state存在，如果不存在则从存储session state初始化
+            if f"ta_open_rule_{symbol}" not in self.session_state:
+                self.session_state[f"ta_open_rule_{symbol}"] = self.session_state.get(f"open_rule_{symbol}", "")
+            if f"ta_close_rule_{symbol}" not in self.session_state:
+                self.session_state[f"ta_close_rule_{symbol}"] = self.session_state.get(f"close_rule_{symbol}", "")
+            if f"ta_buy_rule_{symbol}" not in self.session_state:
+                self.session_state[f"ta_buy_rule_{symbol}"] = self.session_state.get(f"buy_rule_{symbol}", "")
+            if f"ta_sell_rule_{symbol}" not in self.session_state:
+                self.session_state[f"ta_sell_rule_{symbol}"] = self.session_state.get(f"sell_rule_{symbol}", "")
+
+            with rule_col1:
+                st.text_area(
+                    "开仓条件",
+                    height=80,
+                    key=f"ta_open_rule_{symbol}",
+                    help="输入开仓条件表达式，例如: close > ma20"
+                )
+
+                st.text_area(
+                    "清仓条件",
+                    height=80,
+                    key=f"ta_close_rule_{symbol}",
+                    help="输入清仓条件表达式，例如: close < ma20"
+                )
+
+            with rule_col2:
+                st.text_area(
+                    "加仓条件",
+                    height=80,
+                    key=f"ta_buy_rule_{symbol}",
+                    help="输入加仓条件表达式，例如: rsi < 30"
+                )
+
+                st.text_area(
+                    "平仓条件",
+                    height=80,
+                    key=f"ta_sell_rule_{symbol}",
+                    help="输入平仓条件表达式，例如: rsi > 70"
+                )
+
+    def _render_rule_group_loader(self, symbol: str, rule_group_manager):
+        """
+        渲染规则组加载区域
+
+        Args:
+            symbol: 标的代码
+            rule_group_manager: 规则组管理器
+        """
+        # 获取可用的规则组
+        rule_groups = rule_group_manager.get_rule_options_for_display()
+
+        if rule_groups:
+            st.write("**📦 加载预定义规则组**")
+
+            # 清理规则组名称，移除前缀
+            clean_rule_groups = [group.replace("规则组: ", "").strip() for group in rule_groups]
+
+            # 使用columns布局，左侧选择框，右侧按钮
+            col1, col2 = st.columns([3, 1])
+
+            with col1:
+                selected_group = st.selectbox(
+                    "选择预定义规则组",
+                    options=["请选择规则组"] + clean_rule_groups,
+                    key=f"selected_rule_group_{symbol}",
+                    help="选择要加载的预定义规则组"
+                )
+
+            with col2:
+                # 将按钮垂直居中对齐
+                st.markdown("<br>", unsafe_allow_html=True)  # 添加一些间距
+                load_button_disabled = selected_group == "请选择规则组"
+                if st.button(
+                    f"🔄 加载规则组",
+                    key=f"load_group_{symbol}",
+                    disabled=load_button_disabled,
+                    help="加载选择的规则组到下方编辑器中"
+                ):
+                    if selected_group != "请选择规则组":
+                        self._apply_rule_group_settings(symbol, selected_group, rule_group_manager)
+                        st.success(f"✅ 已加载规则组 '{selected_group}' 到编辑器中")
+                        # st.rerun() 现在在 _apply_rule_group_settings 中调用
+
+            # 显示规则组预览（当选择了规则组时）
+            if selected_group != "请选择规则组":
+                group = rule_group_manager.get_rule_group(selected_group)
+                if group:
+                    with st.expander(f"👀 预览规则组: {selected_group}", expanded=False):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if group.get('open_rule'):
+                                st.code(f"开仓: {group['open_rule']}")
+                            if group.get('close_rule'):
+                                st.code(f"清仓: {group['close_rule']}")
+                        with col2:
+                            if group.get('buy_rule'):
+                                st.code(f"加仓: {group['buy_rule']}")
+                            if group.get('sell_rule'):
+                                st.code(f"平仓: {group['sell_rule']}")
+        else:
+            st.warning("⚠️ 暂无可用规则组，请先在规则组管理中创建")
 
     def _apply_rule_group_settings(self, symbol: str, group_name: str, rule_group_manager):
         """
@@ -199,12 +227,29 @@ class SingleAssetConfigUI:
             rule_group_manager: 规则组管理器
         """
         group = rule_group_manager.get_rule_group(group_name)
+
         if group:
-            # 更新session state中的规则值
-            self.session_state[f"open_rule_{symbol}"] = group.get('open_rule', '')
-            self.session_state[f"close_rule_{symbol}"] = group.get('close_rule', '')
-            self.session_state[f"buy_rule_{symbol}"] = group.get('buy_rule', '')
-            self.session_state[f"sell_rule_{symbol}"] = group.get('sell_rule', '')
+            # 获取规则值
+            open_rule = group.get('open_rule', '')
+            close_rule = group.get('close_rule', '')
+            buy_rule = group.get('buy_rule', '')
+            sell_rule = group.get('sell_rule', '')
+
+            # 更新存储session state key（用于其他逻辑）
+            self.session_state[f"open_rule_{symbol}"] = open_rule
+            self.session_state[f"close_rule_{symbol}"] = close_rule
+            self.session_state[f"buy_rule_{symbol}"] = buy_rule
+            self.session_state[f"sell_rule_{symbol}"] = sell_rule
+
+            # 更新widget session state key（用于显示）
+            self.session_state[f"ta_open_rule_{symbol}"] = open_rule
+            self.session_state[f"ta_close_rule_{symbol}"] = close_rule
+            self.session_state[f"ta_buy_rule_{symbol}"] = buy_rule
+            self.session_state[f"ta_sell_rule_{symbol}"] = sell_rule
+
+            # 强制触发重新运行以更新UI
+            import streamlit as st
+            st.rerun()
 
     def _clear_asset_rules(self, symbol: str):
         """
@@ -213,10 +258,17 @@ class SingleAssetConfigUI:
         Args:
             symbol: 标的代码
         """
+        # 清空存储session state key
         self.session_state[f"open_rule_{symbol}"] = ''
         self.session_state[f"close_rule_{symbol}"] = ''
         self.session_state[f"buy_rule_{symbol}"] = ''
         self.session_state[f"sell_rule_{symbol}"] = ''
+
+        # 清空widget session state key
+        self.session_state[f"ta_open_rule_{symbol}"] = ''
+        self.session_state[f"ta_close_rule_{symbol}"] = ''
+        self.session_state[f"ta_buy_rule_{symbol}"] = ''
+        self.session_state[f"ta_sell_rule_{symbol}"] = ''
 
     def _fill_example_rules(self, symbol: str):
         """
@@ -225,10 +277,23 @@ class SingleAssetConfigUI:
         Args:
             symbol: 标的代码
         """
-        self.session_state[f"open_rule_{symbol}"] = "close > ma20 and volume > ma(volume, 20)"
-        self.session_state[f"close_rule_{symbol}"] = "close < ma20 or rsi > 70"
-        self.session_state[f"buy_rule_{symbol}"] = "rsi < 30 and close > ma60"
-        self.session_state[f"sell_rule_{symbol}"] = "rsi > 80 or macd < macd_signal"
+        # 定义示例规则
+        open_rule = "close > ma20 and volume > ma(volume, 20)"
+        close_rule = "close < ma20 or rsi > 70"
+        buy_rule = "rsi < 30 and close > ma60"
+        sell_rule = "rsi > 80 or macd < macd_signal"
+
+        # 更新存储session state key
+        self.session_state[f"open_rule_{symbol}"] = open_rule
+        self.session_state[f"close_rule_{symbol}"] = close_rule
+        self.session_state[f"buy_rule_{symbol}"] = buy_rule
+        self.session_state[f"sell_rule_{symbol}"] = sell_rule
+
+        # 更新widget session state key
+        self.session_state[f"ta_open_rule_{symbol}"] = open_rule
+        self.session_state[f"ta_close_rule_{symbol}"] = close_rule
+        self.session_state[f"ta_buy_rule_{symbol}"] = buy_rule
+        self.session_state[f"ta_sell_rule_{symbol}"] = sell_rule
 
     def _show_rules_help_modal(self):
         """显示规则编写帮助弹窗"""

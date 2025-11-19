@@ -67,32 +67,130 @@ class MultiAssetConfigUI:
         """渲染全局自定义规则设置"""
         st.write("**全局默认自定义规则**")
 
-        # 规则配置方式选择
-        global_rule_method = st.radio(
-            "全局规则配置方式",
-            options=["手动配置规则", "使用预定义规则组"],
-            key="global_rule_method",
-            horizontal=True,
-            help="选择全局默认规则的配置方式"
-        )
+        # 预定义规则组加载区域
+        self._render_global_rule_group_loader(rule_group_manager)
 
-        if global_rule_method == "使用预定义规则组":
-            # 预定义规则组选择
-            rule_groups = rule_group_manager.get_rule_options_for_display()
-            if rule_groups:
+        st.divider()  # 分割线
+
+        # 手动配置全局规则区域
+        st.write("**手动配置全局默认规则**")
+        st.info("💡 您可以直接在下方编辑全局默认规则，或者先加载预定义规则组后进行修改")
+
+        # 快速操作按钮
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("🧹 清空所有全局规则", key="clear_global_rules"):
+                self._clear_global_rules()
+                st.success("✅ 已清空所有全局默认规则")
+
+        with col2:
+            if st.button("📋 填充示例规则", key="fill_global_example"):
+                self._fill_global_example_rules()
+                st.success("✅ 已填充示例规则")
+
+        # 规则编辑器
+        rule_col1, rule_col2 = st.columns(2)
+
+        # 获取当前全局规则值
+        global_open_rule = self.session_state.get("global_open_rule", "")
+        global_close_rule = self.session_state.get("global_close_rule", "")
+        global_buy_rule = self.session_state.get("global_buy_rule", "")
+        global_sell_rule = self.session_state.get("global_sell_rule", "")
+
+        with rule_col1:
+            global_open_rule_value = st.text_area(
+                "全局默认开仓条件",
+                value=global_open_rule,
+                height=80,
+                key="global_open_rule_widget",
+                help="所有标的的默认开仓条件"
+            )
+            # 手动同步到session_state
+            if global_open_rule_value != global_open_rule:
+                self.session_state["global_open_rule"] = global_open_rule_value
+
+            global_close_rule_value = st.text_area(
+                "全局默认清仓条件",
+                value=global_close_rule,
+                height=80,
+                key="global_close_rule_widget",
+                help="所有标的的默认清仓条件"
+            )
+            # 手动同步到session_state
+            if global_close_rule_value != global_close_rule:
+                self.session_state["global_close_rule"] = global_close_rule_value
+
+        with rule_col2:
+            global_buy_rule_value = st.text_area(
+                "全局默认加仓条件",
+                value=global_buy_rule,
+                height=80,
+                key="global_buy_rule_widget",
+                help="所有标的的默认加仓条件"
+            )
+            # 手动同步到session_state
+            if global_buy_rule_value != global_buy_rule:
+                self.session_state["global_buy_rule"] = global_buy_rule_value
+
+            global_sell_rule_value = st.text_area(
+                "全局默认平仓条件",
+                value=global_sell_rule,
+                height=80,
+                key="global_sell_rule_widget",
+                help="所有标的的默认平仓条件"
+            )
+            # 手动同步到session_state
+            if global_sell_rule_value != global_sell_rule:
+                self.session_state["global_sell_rule"] = global_sell_rule_value
+
+        # 规则编写帮助按钮
+        if st.button("📖 规则编写帮助", key="help_global_rules"):
+            self._show_rules_help_modal()
+
+    def _render_global_rule_group_loader(self, rule_group_manager):
+        """
+        渲染全局规则组加载区域
+
+        Args:
+            rule_group_manager: 规则组管理器
+        """
+        # 获取可用的规则组
+        rule_groups = rule_group_manager.get_rule_options_for_display()
+
+        if rule_groups:
+            st.write("**📦 加载全局预定义规则组**")
+
+            # 使用columns布局，左侧选择框，右侧按钮
+            col1, col2 = st.columns([3, 1])
+
+            with col1:
                 selected_global_group = st.selectbox(
-                    "选择全局规则组",
+                    "选择全局预定义规则组",
                     options=["请选择规则组"] + rule_groups,
                     key="global_rule_group",
-                    help="选择一个规则组作为全局默认设置"
+                    help="选择要加载为全局默认的预定义规则组"
                 )
 
-                if selected_global_group != "请选择规则组":
-                    # 显示规则组预览
-                    group = rule_group_manager.get_rule_group(selected_global_group)
-                    if group:
-                        st.info(f"**全局规则组预览 - {selected_global_group}**:")
+            with col2:
+                # 将按钮垂直居中对齐
+                st.markdown("<br>", unsafe_allow_html=True)  # 添加一些间距
+                load_button_disabled = selected_global_group == "请选择规则组"
+                if st.button(
+                    f"🔄 加载规则组",
+                    key="load_global_group",
+                    disabled=load_button_disabled,
+                    help="加载选择的规则组为全局默认规则"
+                ):
+                    if selected_global_group != "请选择规则组":
+                        self._apply_global_rule_group(selected_global_group, rule_group_manager)
+                        st.success(f"✅ 已加载规则组 '{selected_global_group}' 为全局默认规则")
+                        # st.rerun() 现在在 _apply_global_rule_group 中调用
 
+            # 显示规则组预览（当选择了规则组时）
+            if selected_global_group != "请选择规则组":
+                group = rule_group_manager.get_rule_group(selected_global_group)
+                if group:
+                    with st.expander(f"👀 预览全局规则组: {selected_global_group}", expanded=False):
                         col1, col2 = st.columns(2)
                         with col1:
                             if group.get('open_rule'):
@@ -104,70 +202,8 @@ class MultiAssetConfigUI:
                                 st.code(f"加仓: {group['buy_rule']}")
                             if group.get('sell_rule'):
                                 st.code(f"平仓: {group['sell_rule']}")
-
-                        # 应用规则组按钮
-                        if st.button("✅ 应用为全局默认", key="apply_global_group"):
-                            self._apply_global_rule_group(selected_global_group, rule_group_manager)
-                            st.success(f"✅ 已应用 '{selected_global_group}' 为全局默认规则")
-            else:
-                st.warning("⚠️ 暂无可用规则组，请先在规则组管理中创建")
-
         else:
-            # 手动配置全局规则
-            st.write("**手动配置全局默认规则**")
-
-            # 快速操作按钮
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("🧹 清空所有全局规则", key="clear_global_rules"):
-                    self._clear_global_rules()
-                    st.success("✅ 已清空所有全局默认规则")
-
-            with col2:
-                if st.button("📋 填充示例规则", key="fill_global_example"):
-                    self._fill_global_example_rules()
-                    st.success("✅ 已填充示例规则")
-
-            # 规则编辑器
-            rule_col1, rule_col2 = st.columns(2)
-
-            with rule_col1:
-                st.text_area(
-                    "全局默认开仓条件",
-                    value=self.session_state.get("global_open_rule", ""),
-                    height=80,
-                    key="global_open_rule",
-                    help="所有标的的默认开仓条件"
-                )
-
-                st.text_area(
-                    "全局默认清仓条件",
-                    value=self.session_state.get("global_close_rule", ""),
-                    height=80,
-                    key="global_close_rule",
-                    help="所有标的的默认清仓条件"
-                )
-
-            with rule_col2:
-                st.text_area(
-                    "全局默认加仓条件",
-                    value=self.session_state.get("global_buy_rule", ""),
-                    height=80,
-                    key="global_buy_rule",
-                    help="所有标的的默认加仓条件"
-                )
-
-                st.text_area(
-                    "全局默认平仓条件",
-                    value=self.session_state.get("global_sell_rule", ""),
-                    height=80,
-                    key="global_sell_rule",
-                    help="所有标的的默认平仓条件"
-                )
-
-            # 规则编写帮助按钮
-            if st.button("📖 规则编写帮助", key="help_global_rules"):
-                self._show_rules_help_modal()
+            st.warning("⚠️ 暂无可用规则组，请先在规则组管理中创建")
 
     def _render_batch_operations(self, selected_options: List[Tuple[str, str]], rule_group_manager):
         """
@@ -239,10 +275,8 @@ class MultiAssetConfigUI:
 
         for symbol, name in selected_options:
             # 为每个标的创建可折叠的配置区域
-            config_status = self._get_asset_config_status(symbol)
-            status_icon = "✏️" if config_status['has_custom'] else "🔧"
-
-            with st.expander(f"{status_icon} {symbol} - {name}", expanded=False):
+            with st.expander(f"🔧 {symbol} - {name}", expanded=False):
+                config_status = self._get_asset_config_status(symbol)
                 self._render_single_asset_config(symbol, name, rule_group_manager, config_status)
 
     def _render_single_asset_config(self, symbol: str, name: str, rule_group_manager, config_status: Dict[str, Any]):
@@ -255,18 +289,6 @@ class MultiAssetConfigUI:
             rule_group_manager: 规则组管理器
             config_status: 配置状态
         """
-        # 配置模式选择（简化版本）
-        enable_custom_config = st.checkbox(
-            f"启用自定义策略配置 - {symbol}",
-            key=f"enable_custom_{symbol}",
-            help="勾选后为此标的配置独立的策略"
-        )
-
-        if not enable_custom_config:
-            st.info(f"⚠️ 未启用自定义配置，此标的将使用默认策略")
-            self.session_state[f"{symbol}_has_custom_config"] = False
-            return
-
         # 启用自定义策略配置
         self.session_state[f"{symbol}_has_custom_config"] = True
 
@@ -303,32 +325,139 @@ class MultiAssetConfigUI:
         """
         st.write(f"**自定义交易规则 - {symbol}**")
 
-        # 规则配置方式选择
-        rule_config_method = st.radio(
-            f"规则配置方式 - {symbol}",
-            options=["手动配置规则", "使用预定义规则组"],
-            key=f"rule_config_method_{symbol}",
-            horizontal=True,
-            help="选择规则配置方式：手动输入自定义规则或使用预定义规则组"
-        )
+        # 预定义规则组加载区域
+        self._render_asset_rule_group_loader(symbol, rule_group_manager)
 
-        if rule_config_method == "使用预定义规则组":
-            # 预定义规则组选择
-            rule_groups = rule_group_manager.get_rule_options_for_display()
-            if rule_groups:
+        st.divider()  # 分割线
+
+        # 手动配置规则区域
+        st.write(f"**手动配置交易规则 - {symbol}**")
+        st.info("💡 您可以直接在下方编辑规则，或者先加载预定义规则组后进行修改")
+
+        # 快速操作按钮
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+        with col1:
+            if st.button(f"📋 从全局默认复制", key=f"copy_global_{symbol}"):
+                self._copy_global_rules_to_asset(symbol)
+                st.success(f"✅ 已从全局默认规则复制到 {symbol}")
+
+        with col2:
+            if st.button(f"🧹 清空所有规则", key=f"clear_rules_{symbol}"):
+                self._clear_asset_rules(symbol)
+                st.success(f"✅ 已清空 {symbol} 的所有规则")
+
+        with col3:
+            if st.button(f"📤 导出规则配置", key=f"export_rules_{symbol}"):
+                self._export_rules_to_json(symbol)
+
+        with col4:
+            if st.button(f"📥 导入规则配置", key=f"import_rules_{symbol}"):
+                self._import_rules_from_json(symbol)
+
+        # 规则编辑器
+        rule_editor_col1, rule_editor_col2 = st.columns(2)
+
+        # 获取当前规则值
+        open_rule = self.session_state.get(f"open_rule_{symbol}", "")
+        close_rule = self.session_state.get(f"close_rule_{symbol}", "")
+        buy_rule = self.session_state.get(f"buy_rule_{symbol}", "")
+        sell_rule = self.session_state.get(f"sell_rule_{symbol}", "")
+
+        with rule_editor_col1:
+            open_rule_value = st.text_area(
+                "开仓条件",
+                value=open_rule,
+                height=80,
+                key=f"open_rule_{symbol}_widget",
+                help="输入开仓条件表达式，例如: close > ma20"
+            )
+            # 手动同步到session_state
+            if open_rule_value != open_rule:
+                self.session_state[f"open_rule_{symbol}"] = open_rule_value
+
+            close_rule_value = st.text_area(
+                "清仓条件",
+                value=close_rule,
+                height=80,
+                key=f"close_rule_{symbol}_widget",
+                help="输入清仓条件表达式，例如: close < ma20"
+            )
+            # 手动同步到session_state
+            if close_rule_value != close_rule:
+                self.session_state[f"close_rule_{symbol}"] = close_rule_value
+
+        with rule_editor_col2:
+            buy_rule_value = st.text_area(
+                "加仓条件",
+                value=buy_rule,
+                height=80,
+                key=f"buy_rule_{symbol}_widget",
+                help="输入加仓条件表达式，例如: rsi < 30"
+            )
+            # 手动同步到session_state
+            if buy_rule_value != buy_rule:
+                self.session_state[f"buy_rule_{symbol}"] = buy_rule_value
+
+            sell_rule_value = st.text_area(
+                "平仓条件",
+                value=sell_rule,
+                height=80,
+                key=f"sell_rule_{symbol}_widget",
+                help="输入平仓条件表达式，例如: rsi > 70"
+            )
+            # 手动同步到session_state
+            if sell_rule_value != sell_rule:
+                self.session_state[f"sell_rule_{symbol}"] = sell_rule_value
+
+        # 规则编写帮助按钮
+        if st.button(f"📖 规则编写帮助", key=f"help_rules_{symbol}"):
+            self._show_rules_help_modal()
+
+    def _render_asset_rule_group_loader(self, symbol: str, rule_group_manager):
+        """
+        渲染单个标的的规则组加载区域
+
+        Args:
+            symbol: 标的代码
+            rule_group_manager: 规则组管理器
+        """
+        # 获取可用的规则组
+        rule_groups = rule_group_manager.get_rule_options_for_display()
+
+        if rule_groups:
+            st.write(f"**📦 加载预定义规则组 - {symbol}**")
+
+            # 使用columns布局，左侧选择框，右侧按钮
+            col1, col2 = st.columns([3, 1])
+
+            with col1:
                 selected_group = st.selectbox(
-                    f"选择规则组 - {symbol}",
+                    "选择预定义规则组",
                     options=["请选择规则组"] + rule_groups,
                     key=f"selected_rule_group_{symbol}",
-                    help="选择一个预定义的规则组"
+                    help="选择要加载的预定义规则组"
                 )
 
-                if selected_group != "请选择规则组":
-                    # 显示规则组预览
-                    group = rule_group_manager.get_rule_group(selected_group)
-                    if group:
-                        st.info(f"**规则组预览 - {selected_group}**:")
+            with col2:
+                # 将按钮垂直居中对齐
+                st.markdown("<br>", unsafe_allow_html=True)  # 添加一些间距
+                load_button_disabled = selected_group == "请选择规则组"
+                if st.button(
+                    f"🔄 加载规则组",
+                    key=f"load_group_{symbol}",
+                    disabled=load_button_disabled,
+                    help="加载选择的规则组到下方编辑器中"
+                ):
+                    if selected_group != "请选择规则组":
+                        self._apply_rule_group_to_asset(symbol, selected_group, rule_group_manager)
+                        st.success(f"✅ 已加载规则组 '{selected_group}' 到 {symbol} 的编辑器中")
+                        # st.rerun() 现在在 _apply_rule_group_to_asset 中调用
 
+            # 显示规则组预览（当选择了规则组时）
+            if selected_group != "请选择规则组":
+                group = rule_group_manager.get_rule_group(selected_group)
+                if group:
+                    with st.expander(f"👀 预览规则组: {selected_group}", expanded=False):
                         col1, col2 = st.columns(2)
                         with col1:
                             if group.get('open_rule'):
@@ -340,78 +469,8 @@ class MultiAssetConfigUI:
                                 st.code(f"加仓: {group['buy_rule']}")
                             if group.get('sell_rule'):
                                 st.code(f"平仓: {group['sell_rule']}")
-
-                        # 自动应用规则组（当选择时立即应用）
-                        if st.session_state.get(f'selected_rule_group_{symbol}', '') == selected_group:
-                            self._apply_rule_group_to_asset(symbol, selected_group, rule_group_manager)
-                            st.success(f"✅ 已自动应用规则组 '{selected_group}' 到 {symbol}")
-            else:
-                st.warning("⚠️ 暂无可用规则组，请先在规则组管理中创建")
-
         else:
-            # 手动配置规则
-            st.write("**手动配置交易规则**")
-
-            # 快速操作按钮
-            col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
-            with col1:
-                if st.button(f"📋 从全局默认复制", key=f"copy_global_{symbol}"):
-                    self._copy_global_rules_to_asset(symbol)
-                    st.success(f"✅ 已从全局默认规则复制到 {symbol}")
-
-            with col2:
-                if st.button(f"🧹 清空所有规则", key=f"clear_rules_{symbol}"):
-                    self._clear_asset_rules(symbol)
-                    st.success(f"✅ 已清空 {symbol} 的所有规则")
-
-            with col3:
-                if st.button(f"📤 导出规则配置", key=f"export_rules_{symbol}"):
-                    self._export_rules_to_json(symbol)
-
-            with col4:
-                if st.button(f"📥 导入规则配置", key=f"import_rules_{symbol}"):
-                    self._import_rules_from_json(symbol)
-
-            # 规则编辑器
-            rule_editor_col1, rule_editor_col2 = st.columns(2)
-
-            with rule_editor_col1:
-                st.text_area(
-                    "开仓条件",
-                    value=self.session_state.get(f"open_rule_{symbol}", ""),
-                    height=80,
-                    key=f"open_rule_{symbol}",
-                    help="输入开仓条件表达式，例如: close > ma20"
-                )
-
-                st.text_area(
-                    "清仓条件",
-                    value=self.session_state.get(f"close_rule_{symbol}", ""),
-                    height=80,
-                    key=f"close_rule_{symbol}",
-                    help="输入清仓条件表达式，例如: close < ma20"
-                )
-
-            with rule_editor_col2:
-                st.text_area(
-                    "加仓条件",
-                    value=self.session_state.get(f"buy_rule_{symbol}", ""),
-                    height=80,
-                    key=f"buy_rule_{symbol}",
-                    help="输入加仓条件表达式，例如: rsi < 30"
-                )
-
-                st.text_area(
-                    "平仓条件",
-                    value=self.session_state.get(f"sell_rule_{symbol}", ""),
-                    height=80,
-                    key=f"sell_rule_{symbol}",
-                    help="输入平仓条件表达式，例如: rsi > 70"
-                )
-
-            # 规则编写帮助按钮
-            if st.button(f"📖 规则编写帮助", key=f"help_rules_{symbol}"):
-                self._show_rules_help_modal()
+            st.warning("⚠️ 暂无可用规则组，请先在规则组管理中创建")
 
     def _render_configuration_summary(self, selected_options: List[Tuple[str, str]]):
         """
@@ -597,10 +656,27 @@ class MultiAssetConfigUI:
         """
         group = rule_group_manager.get_rule_group(group_name)
         if group:
-            self.session_state["global_open_rule"] = group.get('open_rule', '')
-            self.session_state["global_close_rule"] = group.get('close_rule', '')
-            self.session_state["global_buy_rule"] = group.get('buy_rule', '')
-            self.session_state["global_sell_rule"] = group.get('sell_rule', '')
+            # 获取规则值
+            global_open_rule = group.get('open_rule', '')
+            global_close_rule = group.get('close_rule', '')
+            global_buy_rule = group.get('buy_rule', '')
+            global_sell_rule = group.get('sell_rule', '')
+
+            # 更新原始session state key
+            self.session_state["global_open_rule"] = global_open_rule
+            self.session_state["global_close_rule"] = global_close_rule
+            self.session_state["global_buy_rule"] = global_buy_rule
+            self.session_state["global_sell_rule"] = global_sell_rule
+
+            # 更新widget的session state key
+            self.session_state["global_open_rule_widget"] = global_open_rule
+            self.session_state["global_close_rule_widget"] = global_close_rule
+            self.session_state["global_buy_rule_widget"] = global_buy_rule
+            self.session_state["global_sell_rule_widget"] = global_sell_rule
+
+            # 强制触发重新运行以更新UI
+            import streamlit as st
+            st.rerun()
 
     def _apply_rule_group_to_asset(self, symbol: str, group_name: str, rule_group_manager):
         """
@@ -613,10 +689,27 @@ class MultiAssetConfigUI:
         """
         group = rule_group_manager.get_rule_group(group_name)
         if group:
-            self.session_state[f"open_rule_{symbol}"] = group.get('open_rule', '')
-            self.session_state[f"close_rule_{symbol}"] = group.get('close_rule', '')
-            self.session_state[f"buy_rule_{symbol}"] = group.get('buy_rule', '')
-            self.session_state[f"sell_rule_{symbol}"] = group.get('sell_rule', '')
+            # 获取规则值
+            open_rule = group.get('open_rule', '')
+            close_rule = group.get('close_rule', '')
+            buy_rule = group.get('buy_rule', '')
+            sell_rule = group.get('sell_rule', '')
+
+            # 更新原始session state key
+            self.session_state[f"open_rule_{symbol}"] = open_rule
+            self.session_state[f"close_rule_{symbol}"] = close_rule
+            self.session_state[f"buy_rule_{symbol}"] = buy_rule
+            self.session_state[f"sell_rule_{symbol}"] = sell_rule
+
+            # 更新widget的session state key
+            self.session_state[f"open_rule_{symbol}_widget"] = open_rule
+            self.session_state[f"close_rule_{symbol}_widget"] = close_rule
+            self.session_state[f"buy_rule_{symbol}_widget"] = buy_rule
+            self.session_state[f"sell_rule_{symbol}_widget"] = sell_rule
+
+            # 强制触发重新运行以更新UI
+            import streamlit as st
+            st.rerun()
 
     def _clear_asset_rules(self, symbol: str):
         """

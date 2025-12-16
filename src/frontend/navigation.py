@@ -1,4 +1,5 @@
 import streamlit as st
+from src.frontend.auth.auth_utils import check_authentication, logout
 
 def show_navigation():
     """
@@ -29,8 +30,30 @@ def show_navigation():
         st.title("🚀 QuantOL")
         st.markdown("---")
 
-        # 创建导航菜单，其中未完成的功能标记为不可用
-        available_options = ["首页", "历史行情", "回测", "系统设置"]
+        # 检查登录状态
+        is_authenticated = check_authentication()
+
+        if is_authenticated:
+            # 显示用户信息
+            user = st.session_state.current_user
+            st.success(f"👤 {user.get('username', '用户')}")
+
+            if user.get('role') == 'admin':
+                st.info("🔧 管理员")
+
+        # 创建导航菜单
+        if is_authenticated:
+            # 已登录用户的菜单
+            available_options = ["首页", "历史行情", "回测"]
+
+            # 管理员额外菜单
+            if st.session_state.current_user.get('role') == 'admin':
+                available_options.append("系统设置")
+                available_options.append("用户管理")
+        else:
+            # 未登录用户只能看到首页和系统设置
+            available_options = ["首页", "系统设置"]
+
         unavailable_options = ["技术指标 (开发中)", "交易管理 (开发中)", "全球市场资金分布 (开发中)", "市场研究 (开发中)"]
 
         # 显示可用功能
@@ -49,9 +72,33 @@ def show_navigation():
 
         st.markdown("---")
 
+        # 登录/登出按钮
+        if is_authenticated:
+            if st.button("🚪 退出登录", use_container_width=True):
+                logout()
+        else:
+            if st.button("🔐 登录/注册", use_container_width=True):
+                st.session_state.show_page = 'login'
+                st.rerun()
+
+        st.markdown("---")
+
+        # 显示注册状态（未登录时）
+        if not is_authenticated:
+            try:
+                auth_service = st.session_state.auth_service
+                import asyncio
+                status = asyncio.run(auth_service.get_registration_status())
+                st.info(f"📊 测试名额: {status['registered']}/{status['max_users']}")
+            except:
+                pass
+
         # 系统状态显示
-        from src.frontend.system_settings import show_database_status_widget
-        show_database_status_widget()
+        try:
+            from src.frontend.system_settings import show_database_status_widget
+            show_database_status_widget()
+        except:
+            pass
 
         st.markdown("---")
         if st.button("清空缓存", help="重置所有配置"):

@@ -14,6 +14,9 @@ from src.frontend.settings import show_settings_page
 from src.frontend.global_market import show_global_market
 from src.frontend.market_research import show_market_research_page
 from src.frontend.system_settings import show_system_settings_page
+from src.frontend.auth.login_page import show_auth_page
+from src.frontend.auth.admin_panel import show_admin_panel
+from src.frontend.auth.auth_utils import check_authentication, require_auth
 
 import streamlit as st
 from src.core.data.database_factory import get_db_adapter
@@ -48,34 +51,98 @@ async def init_global_services():
 
     if 'search_service' not in st.session_state:
         st.session_state.search_service = StockSearchService(st.session_state.db)
+
+    # 初始化认证服务（但不立即初始化，让需要时再初始化）
+    # 这里是为了避免在用户表创建前就初始化认证服务
         
 
 def show_home_page():
     st.title("欢迎使用智能量化平台")
-    st.write("请从左侧导航栏选择功能")
+
+    # 检查登录状态
+    if check_authentication():
+        user = st.session_state.current_user
+        st.success(f"👋 欢迎回来，{user.get('username', '用户')}！")
+
+        st.markdown("---")
+        st.write("请从左侧导航栏选择功能")
+    else:
+        st.warning("请先登录以使用完整功能")
+
+        # 显示注册状态
+        try:
+            auth_service = st.session_state.get('auth_service')
+            if auth_service:
+                import asyncio
+                status = asyncio.run(auth_service.get_registration_status())
+
+                st.markdown("---")
+                col1, col2, col3 = st.columns(3)
+                with col2:
+                    st.metric("测试名额", f"{status['registered']}/{status['max_users']}")
+
+                if not status['is_full']:
+                    st.info(f"🎉 还有 {status['remaining']} 个名额，快来注册吧！")
+                    if st.button("立即注册", use_container_width=True):
+                        st.session_state.show_page = 'register'
+                        st.rerun()
+                else:
+                    st.warning("😔 测试名额已满，请等待下一批开放")
+        except:
+            pass
 
 async def main():
     # 初始化全局服务
     await init_global_services()
-    
+
+    # 检查是否需要显示登录/注册页面
+    if st.session_state.get('show_page') in ['login', 'register']:
+        show_auth_page()
+        return
+
     page = initialize_navigation()
-    
+
     if page == "首页":
         show_home_page()
     elif page == "历史行情":
-        await show_history_page()
+        # 历史行情需要登录
+        if check_authentication():
+            await show_history_page()
+        else:
+            st.error("请先登录")
+            st.session_state.show_page = 'login'
     elif page == "技术指标":
         show_indicators_page()
     elif page == "回测":
-        await show_backtesting_page()
+        # 回测需要登录
+        if check_authentication():
+            await show_backtesting_page()
+        else:
+            st.error("请先登录")
+            st.session_state.show_page = 'login'
     elif page == "交易管理":
         show_trading_page()
     elif page == "系统设置":
-        show_system_settings_page()
+        # 系统设置需要登录
+        if check_authentication():
+            await show_system_settings_page()
+        else:
+            st.error("请先登录")
+            st.session_state.show_page = 'login'
     elif page == "市场研究":
         await show_market_research_page()
     elif page == "全球市场资金分布":
         await show_global_market()
+    elif page == "用户管理":
+        # 用户管理需要管理员权限
+        if check_authentication():
+            if st.session_state.current_user.get('role') == 'admin':
+                await show_admin_panel()
+            else:
+                st.error("权限不足，需要管理员权限")
+        else:
+            st.error("请先登录")
+            st.session_state.show_page = 'login'
 
 
 

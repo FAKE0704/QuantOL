@@ -168,45 +168,80 @@ class BacktestExecutionService:
                             portfolio_manager=engine.portfolio_manager
                         )
                 else:
-                    print(f"[DEBUG] 没有选中的规则组，检查session_state中的其他策略配置...")
-                    # 检查是否有其他策略配置
+                    print(f"[DEBUG] 没有选中的规则组，检查session_state中的单资产规则配置...")
+                    # 检查单资产配置的规则
                     found_config = False
 
-                    # 检查新的配置属性
-                    for attr in ['current_rule_group_config', 'buy_rule_default', 'sell_rule_default', 'open_rule_default', 'close_rule_default']:
-                        if hasattr(self.session_state, attr):
-                            config = getattr(self.session_state, attr)
-                            print(f"[DEBUG] 找到配置 {attr}: {config}")
+                    # 获取标的符号
+                    symbol = data['code'].iloc[0] if 'code' in data.columns else 'unknown'
 
-                            if attr == 'current_rule_group_config':
-                                # 使用规则组配置
-                                group_rules = config.get('rules', {})
-                                strategy = RuleBasedStrategy(
-                                    Data=data,
-                                    name=f"自定义规则策略_{config.get('group_name', 'unknown')}",
-                                    indicator_service=self.session_state.indicator_service,
-                                    buy_rule_expr=group_rules.get('buy_rule', ''),
-                                    sell_rule_expr=group_rules.get('sell_rule', ''),
-                                    open_rule_expr=group_rules.get('open_rule', ''),
-                                    close_rule_expr=group_rules.get('close_rule', ''),
-                                    portfolio_manager=engine.portfolio_manager
-                                )
-                                found_config = True
-                                break
-                            elif attr == 'buy_rule_default' and config:  # 如果有默认的买入规则
-                                # 使用默认规则配置
-                                strategy = RuleBasedStrategy(
-                                    Data=data,
-                                    name="自定义规则策略_default",
-                                    indicator_service=self.session_state.indicator_service,
-                                    buy_rule_expr=self.session_state.get('buy_rule_default', ''),
-                                    sell_rule_expr=self.session_state.get('sell_rule_default', ''),
-                                    open_rule_expr=self.session_state.get('open_rule_default', ''),
-                                    close_rule_expr=self.session_state.get('close_rule_default', ''),
-                                    portfolio_manager=engine.portfolio_manager
-                                )
-                                found_config = True
-                                break
+                    # 检查单资产配置的规则键
+                    buy_rule = self.session_state.get(f'buy_rule_{symbol}', '')
+                    sell_rule = self.session_state.get(f'sell_rule_{symbol}', '')
+                    open_rule = self.session_state.get(f'open_rule_{symbol}', '')
+                    close_rule = self.session_state.get(f'close_rule_{symbol}', '')
+
+                    # 检查是否有任何规则配置
+                    has_any_rule = any([buy_rule.strip(), sell_rule.strip(), open_rule.strip(), close_rule.strip()])
+
+                    if has_any_rule:
+                        print(f"[DEBUG] 找到单资产规则配置:")
+                        print(f"  开仓规则: '{open_rule}'")
+                        print(f"  清仓规则: '{close_rule}'")
+                        print(f"  加仓规则: '{buy_rule}'")
+                        print(f"  平仓规则: '{sell_rule}'")
+
+                        strategy = RuleBasedStrategy(
+                            Data=data,
+                            name=f"自定义规则策略_{symbol}",
+                            indicator_service=self.session_state.indicator_service,
+                            buy_rule_expr=buy_rule,
+                            sell_rule_expr=sell_rule,
+                            open_rule_expr=open_rule,
+                            close_rule_expr=close_rule,
+                            portfolio_manager=engine.portfolio_manager
+                        )
+                        found_config = True
+
+                    # 如果单资产配置没找到，再检查默认配置
+                    if not found_config:
+                        print(f"[DEBUG] 单资产配置为空，检查默认配置...")
+
+                        # 检查新的配置属性
+                        for attr in ['current_rule_group_config', 'buy_rule_default', 'sell_rule_default', 'open_rule_default', 'close_rule_default']:
+                            if hasattr(self.session_state, attr):
+                                config = getattr(self.session_state, attr)
+                                print(f"[DEBUG] 找到配置 {attr}: {config}")
+
+                                if attr == 'current_rule_group_config':
+                                    # 使用规则组配置
+                                    group_rules = config.get('rules', {})
+                                    strategy = RuleBasedStrategy(
+                                        Data=data,
+                                        name=f"自定义规则策略_{config.get('group_name', 'unknown')}",
+                                        indicator_service=self.session_state.indicator_service,
+                                        buy_rule_expr=group_rules.get('buy_rule', ''),
+                                        sell_rule_expr=group_rules.get('sell_rule', ''),
+                                        open_rule_expr=group_rules.get('open_rule', ''),
+                                        close_rule_expr=group_rules.get('close_rule', ''),
+                                        portfolio_manager=engine.portfolio_manager
+                                    )
+                                    found_config = True
+                                    break
+                                elif attr == 'buy_rule_default' and config:  # 如果有默认的买入规则
+                                    # 使用默认规则配置
+                                    strategy = RuleBasedStrategy(
+                                        Data=data,
+                                        name="自定义规则策略_default",
+                                        indicator_service=self.session_state.indicator_service,
+                                        buy_rule_expr=self.session_state.get('buy_rule_default', ''),
+                                        sell_rule_expr=self.session_state.get('sell_rule_default', ''),
+                                        open_rule_expr=self.session_state.get('open_rule_default', ''),
+                                        close_rule_expr=self.session_state.get('close_rule_default', ''),
+                                        portfolio_manager=engine.portfolio_manager
+                                    )
+                                    found_config = True
+                                    break
 
                     # 如果还没找到配置，检查旧的属性
                     if not found_config:

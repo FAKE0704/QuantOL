@@ -127,6 +127,11 @@ class RuleParser:
             tree = ast.parse(rule, mode='eval')
             result = self._eval(tree.body)
             final_result = bool(result) if mode == 'rule' else result
+
+            # 如果是规则模式，保存结果到DataFrame
+            if mode == 'rule' and hasattr(self, 'current_index') and self.current_index is not None:
+                self._save_rule_result(rule, final_result)
+
             if mode == 'rule':
                 pass
                 # logger.info(f"[RULE_RESULT] {rule} = {final_result}")
@@ -139,6 +144,62 @@ class RuleParser:
     def clear_cache(self):
         """清除序列缓存"""
         self.series_cache = {}
+
+    def _save_rule_result(self, rule: str, result: bool):
+        """
+        保存规则结果到DataFrame
+
+        Args:
+            rule: 规则表达式
+            result: 规则评估结果
+        """
+        try:
+            # 清理规则表达式作为列名
+            clean_rule = self._clean_rule_name(rule)
+
+            # 如果列不存在，初始化为全False
+            if clean_rule not in self.data.columns:
+                self.data[clean_rule] = False
+
+            # 在当前索引位置保存结果
+            if 0 <= self.current_index < len(self.data):
+                old_value = self.data.at[self.current_index, clean_rule]
+                self.data.at[self.current_index, clean_rule] = result
+
+                # 调试信息
+                logger.debug(f"保存规则结果: {clean_rule}[{self.current_index}] = {result} (原值: {old_value})")
+
+                # 保存表达式信息到attrs属性中
+                if not hasattr(self.data, 'attrs'):
+                    self.data.attrs = {}
+                self.data.attrs[f"{clean_rule}_expr"] = rule
+            else:
+                logger.warning(f"索引超出范围: {self.current_index} >= {len(self.data)}")
+
+        except Exception as e:
+            logger.warning(f"保存规则结果失败: {str(e)}, 规则: {rule}")
+
+    def _clean_rule_name(self, rule: str) -> str:
+        """
+        清理规则表达式作为列名
+
+        Args:
+            rule: 规则表达式
+
+        Returns:
+            清理后的列名
+        """
+        # 替换特殊字符为下划线
+        import re
+        clean_rule = re.sub(r'[^\w\s-]', '_', rule)
+        # 替换空格为下划线
+        clean_rule = re.sub(r'\s+', '_', clean_rule)
+        # 移除多余的下划线
+        clean_rule = re.sub(r'_+', '_', clean_rule)
+        # 移除首尾下划线
+        clean_rule = clean_rule.strip('_')
+
+        return clean_rule
     
     def get_or_create_series(self, expr: str) -> pd.Series:
         """获取或创建指标序列"""
@@ -465,23 +526,119 @@ class RuleParser:
         if func_name == 'REF':
             if func_name not in self._indicators:
                 raise ValueError(f"不支持的指标函数: {func_name}")
-                
+
             indicator = self._indicators[func_name]
-            
+
             if len(node.args) != 2:
                 raise ValueError("REF需要2个参数 (REF(expr, period))")
-                
+
             expr_node = node.args[0]
             period_node = node.args[1]
-            
+
             # 获取表达式字符串
             expr_str = self._node_to_expr(expr_node)
             period = self._eval(period_node)
-            
+
             if not isinstance(period, (int, float)):
                 raise ValueError("REF周期必须是数字")
-                
+
             return indicator.func(expr_str, int(period))
+
+        # 特殊处理C_P函数: (REF(high, n)+REF(low, n))/2
+        if func_name.upper() == 'C_P':
+            if len(node.args) != 1:
+                raise ValueError("C_P需要1个参数 (C_P(period))")
+
+            period = self._eval(node.args[0])
+            if not isinstance(period, (int, float)) or period < 0:
+                raise ValueError("C_P周期必须是非负整数")
+
+            period = int(period)
+
+            # 检查数据长度是否足够
+            if self.current_index < period:
+                return 0.0
+
+            # 计算C_P值
+            try:
+                high_ref = self._ref("high", period)
+                low_ref = self._ref("low", period)
+                return (high_ref + low_ref) / 2.0
+            except Exception as e:
+                logger.error(f"C_P计算失败: {str(e)}")
+                return 0.0
+
+        # 特殊处理VWAP函数: 成交量加权平均价
+        if func_name.upper() == 'VWAP':
+            if len(node.args) != 1:
+                raise ValueError("VWAP需要1个参数 (VWAP(period))")
+
+            period = self._eval(node.args[0])
+            if not isinstance(period, (int, float)) or period <= 0:
+                raise ValueError("VWAP周期必须是正整数")
+
+            period = int(period)
+
+            # 检查数据长度是否足够
+            if self.current_index < period:
+                return 0.0
+
+            # 计算VWAP值
+            try:
+                total_price_volume = 0.0
+                total_volume = 0.0
+
+                for i in range(period):
+                    # 计算当前期的C_P值
+                    high_ref = self._ref("high", i)
+                    low_ref = self._ref("low", i)
+                    cp_value = (high_ref + low_ref) / 2.0
+
+                    # 获取对应期的成交量
+                    volume_ref = self._ref("volume", i)
+
+                    total_price_volume += cp_value * volume_ref
+                    total_volume += volume_ref
+
+                if total_volume == 0:
+                    return 0.0
+
+                return total_price_volume / total_volume
+            except Exception as e:
+                logger.error(f"VWAP计算失败: {str(e)}")
+                return 0.0
+
+        # 特殊处理SQRT函数: 对x开n次方
+        if func_name.upper() == 'SQRT':
+            if len(node.args) != 2:
+                raise ValueError("SQRT需要2个参数 (SQRT(x, n))")
+
+            x_value = self._eval(node.args[0])
+            n_value = self._eval(node.args[1])
+
+            # 验证参数
+            if not isinstance(x_value, (int, float)):
+                raise ValueError("SQRT的第一个参数必须是数字")
+            if not isinstance(n_value, (int, float)):
+                raise ValueError("SQRT的第二个参数必须是数字")
+
+            # 特殊处理：如果开偶数次方，底数不能为负数
+            if int(n_value) % 2 == 0 and x_value < 0:
+                logger.warning(f"SQRT: 负数{x_value}开偶数次方{n_value}，返回0.0")
+                return 0.0
+
+            # 如果n为0，返回1（任何数的0次方都是1）
+            if n_value == 0:
+                return 1.0
+
+            try:
+                import math
+                # 使用数学公式：x^(1/n)
+                result = math.pow(x_value, 1.0 / n_value)
+                return float(result)
+            except Exception as e:
+                logger.error(f"SQRT计算失败: {str(e)}")
+                return 0.0
         
         # 其他指标函数委托给IndicatorService
         # 从第一个参数获取数据列名
@@ -690,6 +847,12 @@ class RuleParser:
                     int(float(args[1])) if len(args)>1 else 26,
                     int(float(args[2])) if len(args)>2 else 9
                 )
+            elif func_name == 'c_p':
+                return int(float(args[0])) if args else 0
+            elif func_name == 'vwap':
+                return int(float(args[0])) if args else 1
+            elif func_name == 'sqrt':
+                return 0  # SQRT函数不需要历史数据
             return 1  # 默认最小长度
         except (ValueError, TypeError):
             return 1  # 参数转换失败时返回默认值

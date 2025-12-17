@@ -123,16 +123,21 @@ async def main():
     elif page == "交易管理":
         show_trading_page()
     elif page == "系统设置":
+<<<<<<< HEAD
         # 系统设置需要登录
         if check_authentication():
             await show_system_settings_page()
         else:
             st.error("请先登录")
             st.session_state.show_page = 'login'
+=======
+        show_system_settings_page()
+>>>>>>> 5c999a0c9fdabfd0fd3e79262bd62a84ca093f7e
     elif page == "市场研究":
         await show_market_research_page()
     elif page == "全球市场资金分布":
         await show_global_market()
+<<<<<<< HEAD
     elif page == "用户管理":
         # 用户管理需要管理员权限
         if check_authentication():
@@ -143,6 +148,8 @@ async def main():
         else:
             st.error("请先登录")
             st.session_state.show_page = 'login'
+=======
+>>>>>>> 5c999a0c9fdabfd0fd3e79262bd62a84ca093f7e
 
 
 

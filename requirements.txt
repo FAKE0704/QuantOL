@@ -11,11 +11,6 @@ plotly
 pillow==11.2.1
 pyarrow
 
-# 图像处理依赖
-# PyAutoGUI==0.9.54
-# PyGetWindow==0.0.9
-# PyScreze==1.0.1
-
 PyMsgBox==1.0.9
 pyperclip==1.9.0
 PyRect==0.2.0

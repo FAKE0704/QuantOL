@@ -360,49 +360,55 @@ class BacktestEngine:
         logger.debug(f"数据预览: {self.data.head(1).to_dict()}")
 
         for idx in range(len(self.data)):
-            if idx % 100 == 0:  # 每100条记录输出一次进度
-                logger.debug(f"回测进度: {idx}/{len(self.data)}")
+            if idx % 1 == 0:  # 每次记录进度（临时调试用）
+                logger.info(f"回测进度: {idx}/{len(self.data)}")
 
-            current_time = self.data.iloc[idx]['combined_time']
-            self.current_time = current_time
-            self.current_index = idx
-            self.current_price = self.data.loc[self.current_index,'close']
-            
-            # 仓位策略的资金更新现在通过PortfolioManager接口进行
-            # 在_calculate_position_amount方法中实时获取账户价值，确保状态一致性
-            
-            # 系统初始化（首个交易日）
-            if idx == 0:
-                self._initialize_backtest_system()
-            
-            # 更新RuleParser数据引用和当前索引
-            self.update_rule_parser_data()
-            self.rule_parser.current_index = idx
-            
-            
-            # 触发所有注册策略的定时检查
-            if idx == 0:
-                logger.debug(f"已注册策略数量: {len(self.strategies)}")
-                for i, strategy in enumerate(self.strategies):
-                    logger.debug(f"策略 {i}: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
+            try:
+                current_time = self.data.iloc[idx]['combined_time']
+                self.current_time = current_time
+                self.current_index = idx
+                self.current_price = self.data.loc[self.current_index,'close']
 
-            for strategy in self.strategies:
-                # logger.debug(f"触发策略: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
-                strategy.on_schedule(self)
+                # 仓位策略的资金更新现在通过PortfolioManager接口进行
+                # 在_calculate_position_amount方法中实时获取账户价值，确保状态一致性
 
-            # 处理事件队列（处理非StrategySignalEvent和OrderEvent的其他事件）
-            # logger.debug(f"处理前事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
-            self._process_event_queue()
-            # logger.debug(f"处理后事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
+                # 系统初始化（首个交易日）
+                if idx == 0:
+                    self._initialize_backtest_system()
 
-            # 在每个数据点通过PortfolioManager记录净值历史
-            price_data = {
-                'close': self.current_price
-            }
-            self.portfolio_manager.record_equity_history(current_time, price_data)
+                # 更新RuleParser数据引用和当前索引
+                self.update_rule_parser_data()
+                self.rule_parser.current_index = idx
 
-            # 添加详细调试日志
-            # logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
+
+                # 触发所有注册策略的定时检查
+                if idx == 0:
+                    logger.debug(f"已注册策略数量: {len(self.strategies)}")
+                    for i, strategy in enumerate(self.strategies):
+                        logger.debug(f"策略 {i}: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
+
+                for strategy in self.strategies:
+                    # logger.debug(f"触发策略: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
+                    strategy.on_schedule(self)
+
+                # 处理事件队列（处理非StrategySignalEvent和OrderEvent的其他事件）
+                # logger.debug(f"处理前事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
+                self._process_event_queue()
+                # logger.debug(f"处理后事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
+
+                # 在每个数据点通过PortfolioManager记录净值历史
+                price_data = {
+                    'close': self.current_price
+                }
+                self.portfolio_manager.record_equity_history(current_time, price_data)
+
+                # 添加详细调试日志
+                # logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
+
+            except Exception as e:
+                logger.error(f"回测循环第{idx}次迭代发生异常: {str(e)}", exc_info=True)
+                # 不中断回测，继续下一个数据点
+                continue
         
 
     def handle_trading_day_event(self, event):

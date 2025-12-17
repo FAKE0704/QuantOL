@@ -4,6 +4,7 @@
 """
 import streamlit as st
 from typing import List, Tuple, Dict, Any
+from .rule_validator import RuleValidator
 
 
 class MultiAssetConfigUI:
@@ -11,6 +12,7 @@ class MultiAssetConfigUI:
 
     def __init__(self, session_state):
         self.session_state = session_state
+        self.rule_validator = RuleValidator()
 
     def render_configuration(self, selected_options: List[Tuple[str, str]],
                            rule_group_manager, config_manager):
@@ -375,6 +377,9 @@ class MultiAssetConfigUI:
             if open_rule_value != open_rule:
                 self.session_state[f"open_rule_{symbol}"] = open_rule_value
 
+            # 开仓条件验证结果
+            self._render_rule_validation(f"open_rule_{symbol}", "开仓条件")
+
             close_rule_value = st.text_area(
                 "清仓条件",
                 value=close_rule,
@@ -385,6 +390,9 @@ class MultiAssetConfigUI:
             # 手动同步到session_state
             if close_rule_value != close_rule:
                 self.session_state[f"close_rule_{symbol}"] = close_rule_value
+
+            # 清仓条件验证结果
+            self._render_rule_validation(f"close_rule_{symbol}", "清仓条件")
 
         with rule_editor_col2:
             buy_rule_value = st.text_area(
@@ -398,6 +406,9 @@ class MultiAssetConfigUI:
             if buy_rule_value != buy_rule:
                 self.session_state[f"buy_rule_{symbol}"] = buy_rule_value
 
+            # 加仓条件验证结果
+            self._render_rule_validation(f"buy_rule_{symbol}", "加仓条件")
+
             sell_rule_value = st.text_area(
                 "平仓条件",
                 value=sell_rule,
@@ -408,6 +419,9 @@ class MultiAssetConfigUI:
             # 手动同步到session_state
             if sell_rule_value != sell_rule:
                 self.session_state[f"sell_rule_{symbol}"] = sell_rule_value
+
+            # 平仓条件验证结果
+            self._render_rule_validation(f"sell_rule_{symbol}", "平仓条件")
 
         # 规则编写帮助按钮
         if st.button(f"📖 规则编写帮助", key=f"help_rules_{symbol}"):

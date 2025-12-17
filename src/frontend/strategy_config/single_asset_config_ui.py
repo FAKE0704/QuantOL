@@ -4,6 +4,7 @@
 """
 import streamlit as st
 from typing import Tuple
+from .rule_validator import RuleValidator
 
 
 class SingleAssetConfigUI:
@@ -11,6 +12,7 @@ class SingleAssetConfigUI:
 
     def __init__(self, session_state):
         self.session_state = session_state
+        self.rule_validator = RuleValidator()
 
     def render_configuration(self, selected_option: Tuple[str, str],
                            rule_group_manager, config_manager):
@@ -126,6 +128,7 @@ class SingleAssetConfigUI:
                 self.session_state[f"ta_sell_rule_{symbol}"] = self.session_state.get(f"sell_rule_{symbol}", "")
 
             with rule_col1:
+                # 开仓条件输入框
                 st.text_area(
                     "开仓条件",
                     height=80,
@@ -133,6 +136,10 @@ class SingleAssetConfigUI:
                     help="输入开仓条件表达式，例如: close > ma20"
                 )
 
+                # 开仓条件验证结果
+                self._render_rule_validation(f"ta_open_rule_{symbol}", "开仓条件", symbol)
+
+                # 清仓条件输入框
                 st.text_area(
                     "清仓条件",
                     height=80,
@@ -140,7 +147,11 @@ class SingleAssetConfigUI:
                     help="输入清仓条件表达式，例如: close < ma20"
                 )
 
+                # 清仓条件验证结果
+                self._render_rule_validation(f"ta_close_rule_{symbol}", "清仓条件", symbol)
+
             with rule_col2:
+                # 加仓条件输入框
                 st.text_area(
                     "加仓条件",
                     height=80,
@@ -148,12 +159,19 @@ class SingleAssetConfigUI:
                     help="输入加仓条件表达式，例如: rsi < 30"
                 )
 
+                # 加仓条件验证结果
+                self._render_rule_validation(f"ta_buy_rule_{symbol}", "加仓条件", symbol)
+
+                # 平仓条件输入框
                 st.text_area(
                     "平仓条件",
                     height=80,
                     key=f"ta_sell_rule_{symbol}",
                     help="输入平仓条件表达式，例如: rsi > 70"
                 )
+
+                # 平仓条件验证结果
+                self._render_rule_validation(f"ta_sell_rule_{symbol}", "平仓条件", symbol)
 
     def _render_rule_group_loader(self, symbol: str, rule_group_manager):
         """
@@ -483,3 +501,29 @@ class SingleAssetConfigUI:
                 return False, "自定义策略模式下必须配置至少一个交易规则"
 
         return True, "配置验证通过"
+
+    def _render_rule_validation(self, rule_key: str, rule_name: str, symbol: str):
+        """
+        渲染规则验证结果
+
+        Args:
+            rule_key: 规则在session state中的键
+            rule_name: 规则显示名称
+            symbol: 标的代码
+        """
+        rule_expr = self.session_state.get(rule_key, "").strip()
+
+        if not rule_expr:
+            # 空规则显示灰色提示
+            st.markdown(f"<small style='color: #888888;'>📝 {rule_name}: 未输入规则</small>", unsafe_allow_html=True)
+            return
+
+        # 验证规则
+        is_valid, error_message = self.rule_validator.validate_rule_syntax(rule_expr)
+
+        if is_valid:
+            # 验证成功显示绿色提示
+            st.markdown(f"<small style='color: #00AA00;'>✅ {rule_name}: 语法正确</small>", unsafe_allow_html=True)
+        else:
+            # 验证失败显示红色错误
+            st.markdown(f"<small style='color: #FF0000;'>❌ {rule_name}: {error_message}</small>", unsafe_allow_html=True)

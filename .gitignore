@@ -232,8 +232,8 @@ data/tushare/
 *.pkl
 !src/**/*.pkl  # 保留代码中的pkl文件
 
-# Streamlit 敏感配置
-.streamlit/secrets.toml
+# Streamlit 配置
+.streamlit/
 
 # 配置文件中的敏感信息
 src/support/config/user_settings.json

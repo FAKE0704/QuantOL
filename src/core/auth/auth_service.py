@@ -20,6 +20,13 @@ class AuthService:
         self.db = db_adapter
         self.jwt_service = JWTService()
         self.user_manager = UserManager(db_adapter)
+        self._initialized = False
+
+    async def _ensure_initialized(self):
+        """确保用户表已初始化"""
+        if not self._initialized:
+            await self.user_manager._init_user_tables()
+            self._initialized = True
 
     async def register(self, username: str, email: str, password: str) -> Tuple[bool, str]:
         """
@@ -33,6 +40,7 @@ class AuthService:
         Returns:
             (是否成功, 消息)
         """
+        await self._ensure_initialized()
         success, msg = await self.user_manager.create_user(username, email, password)
         return success, msg
 
@@ -127,4 +135,5 @@ class AuthService:
 
     async def get_registration_status(self) -> Dict:
         """获取注册状态"""
+        await self._ensure_initialized()
         return await self.user_manager.get_registration_status()

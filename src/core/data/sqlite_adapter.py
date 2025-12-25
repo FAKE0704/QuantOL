@@ -217,9 +217,16 @@ class SQLiteAdapter(DatabaseAdapter):
                 return [dict(zip(columns, row)) for row in rows]
             else:
                 await self._execute_with_retry(conn, sqlite_query, args if args else ())
+                # 提交事务，释放锁
+                await conn.commit()
                 return None
 
         except Exception as e:
+            # 回滚事务，释放锁
+            try:
+                await conn.rollback()
+            except:
+                pass
             logger.error(f"SQLite查询执行失败: {str(e)}")
             raise
 

@@ -20,19 +20,19 @@ class UserManager:
         """
         self.db = db_adapter
         self.MAX_USERS = int(os.getenv("MAX_USERS", "100"))  # 最大测试用户数
-        self._init_user_tables()
+        # 表初始化需要异步调用，由外部调用 initialize() 方法
 
     async def _init_user_tables(self):
         """初始化用户相关数据表"""
         # 创建用户表
-        await self.db.execute("""
+        await self.db.execute_query("""
             CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                username VARCHAR(50) UNIQUE NOT NULL,
-                email VARCHAR(100) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                role VARCHAR(20) DEFAULT 'user',
-                status VARCHAR(20) DEFAULT 'active',
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                role TEXT DEFAULT 'user',
+                status TEXT DEFAULT 'active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_login TIMESTAMP
@@ -40,11 +40,11 @@ class UserManager:
         """)
 
         # 创建用户会话表
-        await self.db.execute("""
+        await self.db.execute_query("""
             CREATE TABLE IF NOT EXISTS user_sessions (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER REFERENCES users(id),
-                token_hash VARCHAR(255) NOT NULL,
+                token_hash TEXT NOT NULL,
                 expires_at TIMESTAMP NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -52,11 +52,11 @@ class UserManager:
         """)
 
         # 创建操作日志表
-        await self.db.execute("""
+        await self.db.execute_query("""
             CREATE TABLE IF NOT EXISTS user_operation_logs (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER REFERENCES users(id),
-                operation_type VARCHAR(50) NOT NULL,
+                operation_type TEXT NOT NULL,
                 operation_detail TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -71,17 +71,18 @@ class UserManager:
         admin_password = os.getenv("ADMIN_PASSWORD", "admin123456")
 
         # 检查管理员是否存在
-        admin_exists = await self.db.fetch_one(
+        result = await self.db.execute_query(
             "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
         )
+        admin_exists = result and len(result) > 0
 
         if not admin_exists:
             # 创建管理员
             password_hash = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            await self.db.execute("""
+            await self.db.execute_query("""
                 INSERT INTO users (username, email, password_hash, role)
-                VALUES (%s, %s, %s, %s)
-            """, ("admin", admin_email, password_hash, "admin"))
+                VALUES (?, ?, ?, ?)
+            """, "admin", admin_email, password_hash, "admin")
             print(f"默认管理员已创建: {admin_email} / {admin_password}")
 
     def _hash_password(self, password: str) -> str:
@@ -103,8 +104,8 @@ class UserManager:
     async def can_register(self) -> Tuple[bool, str]:
         """检查是否可以注册新用户"""
         # 查询当前用户总数
-        result = await self.db.fetch_one("SELECT COUNT(*) as count FROM users")
-        current_count = result['count']
+        result = await self.db.execute_query("SELECT COUNT(*) as count FROM users")
+        current_count = result[0]['count'] if result else 0
 
         if current_count >= self.MAX_USERS:
             return False, f"测试名额已满（{self.MAX_USERS}/{self.MAX_USERS}），请等待下一批开放"
@@ -114,8 +115,8 @@ class UserManager:
 
     async def get_registration_status(self) -> Dict:
         """获取注册状态信息"""
-        result = await self.db.fetch_one("SELECT COUNT(*) as count FROM users")
-        current_count = result['count']
+        result = await self.db.execute_query("SELECT COUNT(*) as count FROM users")
+        current_count = result[0]['count'] if result else 0
 
         return {
             'max_users': self.MAX_USERS,
@@ -147,21 +148,21 @@ class UserManager:
             return False, msg
 
         # 检查用户名是否已存在
-        existing = await self.db.fetch_one(
-            "SELECT id FROM users WHERE username = %s OR email = %s",
-            (username, email)
+        existing = await self.db.execute_query(
+            "SELECT id FROM users WHERE username = ? OR email = ?",
+            username, email
         )
-        if existing:
+        if existing and len(existing) > 0:
             return False, "用户名或邮箱已存在"
 
         # 密码加密
         password_hash = self._hash_password(password)
 
         # 创建用户
-        await self.db.execute("""
+        await self.db.execute_query("""
             INSERT INTO users (username, email, password_hash)
-            VALUES (%s, %s, %s)
-        """, (username, email, password_hash))
+            VALUES (?, ?, ?)
+        """, username, email, password_hash)
 
         # 记录日志
         await self.log_operation(None, "user_register", f"新用户注册: {username}")
@@ -180,22 +181,24 @@ class UserManager:
             用户信息字典，验证失败返回None
         """
         # 查询用户
-        user = await self.db.fetch_one(
-            "SELECT * FROM users WHERE (username = %s OR email = %s) AND status = 'active'",
-            (username_or_email, username_or_email)
+        users = await self.db.execute_query(
+            "SELECT * FROM users WHERE (username = ? OR email = ?) AND status = 'active'",
+            username_or_email, username_or_email
         )
 
-        if not user:
+        if not users or len(users) == 0:
             return None
+
+        user = users[0]
 
         # 验证密码
         if not self._verify_password(password, user['password_hash']):
             return None
 
         # 更新最后登录时间
-        await self.db.execute(
-            "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = %s",
-            (user['id'],)
+        await self.db.execute_query(
+            "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
+            user['id']
         )
 
         # 记录登录日志
@@ -210,15 +213,15 @@ class UserManager:
 
     async def get_user_by_id(self, user_id: int) -> Optional[Dict]:
         """根据ID获取用户信息"""
-        user = await self.db.fetch_one(
-            "SELECT id, username, email, role, created_at FROM users WHERE id = %s",
-            (user_id,)
+        users = await self.db.execute_query(
+            "SELECT id, username, email, role, created_at FROM users WHERE id = ?",
+            user_id
         )
-        return user
+        return users[0] if users else None
 
     async def log_operation(self, user_id: Optional[int], operation_type: str, detail: str = None):
         """记录用户操作日志"""
-        await self.db.execute("""
+        await self.db.execute_query("""
             INSERT INTO user_operation_logs (user_id, operation_type, operation_detail)
-            VALUES (%s, %s, %s)
-        """, (user_id, operation_type, detail))
+            VALUES (?, ?, ?)
+        """, user_id, operation_type, detail)

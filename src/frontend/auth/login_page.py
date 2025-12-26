@@ -5,7 +5,7 @@
 import streamlit as st
 from src.core.auth.auth_service import AuthService
 
-def show_login_page():
+async def show_login_page():
     """显示登录页面"""
     st.title("🔐 用户登录")
     st.markdown("---")
@@ -28,7 +28,7 @@ def show_login_page():
                 st.error("请填写完整的登录信息")
             else:
                 with st.spinner("正在验证..."):
-                    result, msg = st.session_state.auth_service.login(username, password)
+                    result, msg = await st.session_state.auth_service.login(username, password)
 
                     if result:
                         # 保存登录状态
@@ -47,16 +47,16 @@ def show_login_page():
 
     st.markdown("---")
 
-    # 注册链接
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        if st.button("没有账号？点击注册", use_container_width=True):
-            st.session_state.show_page = 'register'
-            st.rerun()
+    # 注册链接（已禁用）
+    # col1, col2, col3 = st.columns([1, 2, 1])
+    # with col2:
+    #     if st.button("没有账号？点击注册", use_container_width=True):
+    #         st.session_state.show_page = 'register'
+    #         st.rerun()
 
     # 显示注册状态
     auth_service = st.session_state.auth_service
-    status = auth_service.get_registration_status()
+    status = await auth_service.get_registration_status()
 
     st.info(f"""
     📊 **当前系统状态**:
@@ -64,7 +64,7 @@ def show_login_page():
     - 剩余名额: {status['remaining']}
     """)
 
-def show_register_page():
+async def show_register_page():
     """显示注册页面"""
     st.title("📝 用户注册")
     st.markdown("---")
@@ -75,7 +75,7 @@ def show_register_page():
 
     # 检查是否还有注册名额
     auth_service = st.session_state.auth_service
-    status = auth_service.get_registration_status()
+    status = await auth_service.get_registration_status()
 
     if status['is_full']:
         st.error("😔 测试名额已满，请等待下一批开放！")
@@ -142,12 +142,24 @@ def show_register_page():
         - 邮箱: admin@quantol.com
         """)
 
-def show_auth_page():
+async def show_auth_page():
     """显示认证页面（登录或注册）"""
+
+    # 隐藏侧边栏和菜单
+    st.markdown("""
+    <style>
+        [data-testid="stSidebar"] { display: none !important; }
+        [data-testid="stHeader"] { display: none !important; }
+        #MainMenu { visibility: hidden; }
+        footer { visibility: hidden; }
+        .stApp { margin-top: -50px; }
+    </style>
+    """, unsafe_allow_html=True)
+
     # 确定显示哪个页面
     page_type = st.session_state.get('show_page', 'login')
 
     if page_type == 'register':
-        show_register_page()
+        await show_register_page()
     else:
-        show_login_page()
+        await show_login_page()

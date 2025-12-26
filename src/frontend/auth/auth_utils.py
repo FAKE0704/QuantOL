@@ -8,25 +8,9 @@ from src.core.auth.auth_service import AuthService
 
 def check_authentication():
     """检查用户是否已登录"""
-    if 'auth_service' not in st.session_state:
-        st.session_state.auth_service = AuthService(st.session_state.db)
-
-    if 'auth_token' not in st.session_state:
-        return False
-
-    token = st.session_state.auth_token
-    if token:
-        payload = st.session_state.auth_service.verify_token(token)
-        if payload:
-            st.session_state.current_user = payload
-            return True
-        else:
-            # Token无效，清除
-            st.session_state.auth_token = None
-            st.session_state.current_user = None
-            return False
-
-    return False
+    # 简化检查：只检查 current_user 是否存在
+    # Token 验证在登录时已完成，无需重复验证
+    return 'current_user' in st.session_state and st.session_state.current_user is not None
 
 def require_auth(func):
     """认证装饰器，确保用户已登录"""

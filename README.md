@@ -32,8 +32,8 @@
 ## 🚀 快速开始
 
 ### 环境要求
-- Python 3.9+
-- Streamlit 1.28+
+- Python 3.12+
+- uv (包管理器)
 - **数据库**: SQLite 3.0+ (默认) 或 PostgreSQL 13+ (可选)
 
 ### 🗄️ 数据库模式选择
@@ -47,27 +47,39 @@
 
 ### 📦 安装步骤
 
-1. **克隆项目**
+1. **安装 uv**
+```bash
+# Linux/macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 或使用包管理器
+pip install uv
+
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+2. **克隆项目**
 ```bash
 git clone https://github.com/FAKE0704/QuantOL.git
 cd QuantOL
 ```
 
-2. **安装依赖**
+3. **安装依赖**
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
-3. **配置环境**
+4. **配置环境**
 ```bash
 # 复制配置文件
 cp .env.example .env
 ```
 
-4. **启动应用**
+5. **启动应用**
 ```bash
 # 默认使用SQLite模式，无需额外配置
-streamlit run main.py
+uv run streamlit run main.py
 ```
 
 ### 🔄 数据库模式切换
@@ -75,10 +87,10 @@ streamlit run main.py
 #### 方式一：命令行切换
 ```bash
 # 切换到SQLite模式（默认）
-python -m src.cli.database_switch switch --type sqlite
+uv run python -m src.cli.database_switch switch --type sqlite
 
 # 切换到PostgreSQL模式
-python -m src.cli.database_switch switch --type postgresql
+uv run python -m src.cli.database_switch switch --type postgresql
 ```
 
 #### 方式二：Web界面切换
@@ -133,29 +145,41 @@ psql -d quantdb -c "GRANT ALL PRIVILEGES ON DATABASE quantdb TO quant;"
 
 ### 🛠️ 常用命令
 
+#### 包管理
+```bash
+# 同步依赖（安装/更新虚拟环境）
+uv sync
+
+# 添加新依赖
+uv add <package>
+
+# 更新所有依赖
+uv lock --upgrade
+```
+
 #### 数据库管理
 ```bash
 # 查看当前数据库状态
-python -m src.cli.database_switch status
+uv run python -m src.cli.database_switch status
 
 # 重新初始化数据库
-python -m src.cli.database_switch init
+uv run python -m src.cli.database_switch init
 
 # 切换数据库类型
-python -m src.cli.database_switch switch --type sqlite
-python -m src.cli.database_switch switch --type postgresql
+uv run python -m src.cli.database_switch switch --type sqlite
+uv run python -m src.cli.database_switch switch --type postgresql
 ```
 
 #### 应用管理
 ```bash
 # 启动应用
-streamlit run main.py
+uv run streamlit run main.py
 
 # 指定端口启动
-streamlit run main.py --server.port 8501
+uv run streamlit run main.py --server.port 8501
 
 # 允许外部访问
-streamlit run main.py --server.address 0.0.0.0
+uv run streamlit run main.py --server.address 0.0.0.0
 ```
 
 ### ⚠️ 注意事项

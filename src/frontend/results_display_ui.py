@@ -255,12 +255,27 @@ class ResultsDisplayUI:
     def _find_rule_columns(self, price_data: pd.DataFrame) -> dict:
         """查找规则结果列并返回映射关系"""
         rule_columns = {}
-        rule_type_mapping = {}
 
         # 添加调试信息
         st.write(f"**调试信息:** 价格数据列名: {list(price_data.columns)}")
 
-        # 排除价格数据列（避免将OHLCV误认为规则列）
+        # 方法1：从 attrs 中读取规则类型映射（最准确）
+        if hasattr(price_data, 'attrs') and 'rule_type_mapping' in price_data.attrs:
+            rule_type_mapping = price_data.attrs['rule_type_mapping']
+            st.write(f"**调试信息:** 从 attrs 读取规则类型映射: {rule_type_mapping}")
+
+            for col_name, rule_type in rule_type_mapping.items():
+                if col_name in price_data.columns:
+                    rule_columns[col_name] = rule_type
+                    st.write(f"✓ 从映射找到 {rule_type} 规则列: {col_name}")
+
+            if rule_columns:
+                st.write(f"**调试信息:** 从映射找到的规则列: {rule_columns}")
+                return rule_columns
+
+        # 方法2：如果没有映射，使用关键词匹配（降级方案）
+        st.write(f"**调试信息:** attrs 中没有规则类型映射，使用关键词匹配")
+        rule_type_mapping = {}
         price_columns = {'open', 'high', 'low', 'close', 'volume', 'time', 'date', 'datetime', 'signal', 'code', 'combined_time'}
 
         # 查找规则表达式的存储结果
@@ -432,81 +447,11 @@ class ResultsDisplayUI:
             st.write("⚠️ 调试信息: 没有找到规则列，无法合并")
             return equity_df
 
-        st.write(f"📊 调试信息: 开始合并规则结果到净值记录")
+        st.write(f"📊 调试信息: 开始合并规则结果到净值记录（使用行号匹配）")
         st.write(f"   净值记录行数: {len(equity_df)}, 价格数据行数: {len(price_data)}")
 
-        # 确保时间戳列名一致
-        equity_time_col = 'timestamp'
-        price_time_col = price_data.index.name if price_data.index.name else 'index'
-
-        # 检查价格数据是否有日期时间列
-        datetime_col = None
-        for col in price_data.columns:
-            if 'time' in col.lower() or 'date' in col.lower() or col == 'datetime':
-                datetime_col = col
-                break
-
-        # 如果净值记录有timestamp列，将其转换为datetime类型以便匹配
-        if equity_time_col in equity_df.columns:
-            equity_df[equity_time_col] = pd.to_datetime(equity_df[equity_time_col])
-
-        if datetime_col:
-            # 使用价格数据中的日期时间列
-            price_data_index = pd.to_datetime(price_data[datetime_col])
-            st.write(f"   找到价格数据时间列: {datetime_col}")
-        else:
-            # 检查价格数据索引是否已经是数值型（0, 1, 2...），如果是则按行号匹配
-            if price_data.index.dtype in ['int64', 'int32']:
-                st.write(f"   价格数据使用数值索引，将按行号匹配净值记录")
-                # 使用行号匹配的逻辑
-                return self._merge_by_row_number(equity_df, price_data, rule_columns)
-            else:
-                # 尝试将索引转换为datetime
-                price_data_index = pd.to_datetime(price_data.index)
-
-        st.write(f"   净值记录时间范围: {equity_df[equity_time_col].min()} 到 {equity_df[equity_time_col].max()}")
-        st.write(f"   价格数据时间范围: {price_data_index.min()} 到 {price_data_index.max()}")
-
-        match_count = 0
-        # 为每个规则列创建匹配函数
-        for original_col, display_name in rule_columns.items():
-            # 创建规则结果列，初始值为空
-            equity_df[f'规则_{display_name}'] = None
-
-            # 检查规则列的数据类型和示例值
-            sample_values = price_data[original_col].dropna().head(5)
-            st.write(f"   规则列 '{original_col}' 样本值: {sample_values.tolist()}, 数据类型: {price_data[original_col].dtype}")
-
-            # 遍历净值记录的每一行
-            for idx, equity_row in equity_df.iterrows():
-                equity_time = equity_row[equity_time_col]
-
-                # 在价格数据中找到最接近的时间点
-                closest_idx = None
-                min_time_diff = None
-
-                for price_idx, price_time in enumerate(price_data_index):
-                    time_diff = abs((price_time - equity_time).total_seconds())
-                    if min_time_diff is None or time_diff < min_time_diff:
-                        min_time_diff = time_diff
-                        closest_idx = price_idx
-
-                # 如果找到匹配的时间点，获取规则结果
-                if closest_idx is not None and min_time_diff < 86400:  # 24小时内
-                    rule_result = price_data.iloc[closest_idx][original_col]
-
-                    # 将布尔值或数值转换为更易读的格式
-                    if isinstance(rule_result, (bool, np.bool_)):  # 包含 numpy.bool_
-                        equity_df.at[idx, f'规则_{display_name}'] = '触发' if rule_result else '未触发'
-                        match_count += 1
-                    elif isinstance(rule_result, (int, float, np.integer, np.floating)):  # 包含 numpy 数值类型
-                        equity_df.at[idx, f'规则_{display_name}'] = '触发' if rule_result > 0 else '未触发'
-                        match_count += 1
-                    else:
-                        st.write(f"   ⚠️ 未识别的规则结果类型: {type(rule_result)}, 值: {rule_result}")
-
-        st.write(f"✅ 调试信息: 成功匹配 {match_count} 个规则结果")
-        return equity_df
+        # 直接使用行号匹配，与后端保持一致
+        return self._merge_by_row_number(equity_df, price_data, rule_columns)
 
     def _merge_by_row_number(self, equity_df: pd.DataFrame, price_data: pd.DataFrame, rule_columns: dict) -> pd.DataFrame:
         """按行号匹配合并规则结果到净值记录"""

@@ -57,13 +57,14 @@ class PortfolioManager(IPortfolio):
         self._cache_ttl: float = 1.0  # 缓存有效期1秒
         self._last_update_time: float = time.time()
         
-    def update_position(self, symbol: str, quantity: float, price: float) -> bool:
+    def update_position(self, symbol: str, quantity: float, price: float, commission: float = 0.0) -> bool:
         """更新持仓
-        
+
         Args:
             symbol: 股票代码
             quantity: 数量(正为买入，负为卖出)
             price: 交易价格
+            commission: 手续费（默认0）
         Returns:
             是否执行成功
         """
@@ -106,7 +107,10 @@ class PortfolioManager(IPortfolio):
                 current_value=quantity * price
             )
             
-        self.current_cash -= cost
+        # 手续费从现金账户直接扣除（无论买卖）
+        # cost = quantity * price（买入为正，卖出为负）
+        # commission 始终为正（从配置 BacktestConfig.commission_rate 计算）
+        self.current_cash -= (cost + commission)
         
         # 使缓存失效
         self.invalidate_cache()

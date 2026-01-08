@@ -71,6 +71,9 @@ class BacktestConfigUI:
         """渲染股票选择UI，返回选中的股票列表"""
         st.subheader("📈 选择交易标的")
 
+        # 获取动态 key 后缀（用于在加载配置后强制刷新 widget）
+        key_suffix = self.session_state.get('_stock_key_suffix', '')
+
         col1, col2 = st.columns([3, 1])
         selected_options = []
 
@@ -88,13 +91,29 @@ class BacktestConfigUI:
                         st.error(f"加载股票列表失败: {e}")
                         self.session_state.stock_cache = []
 
+            # 获取默认值（从加载的配置或当前配置）
+            if '_load_symbols' in self.session_state:
+                default_symbols = self.session_state._load_symbols
+                del self.session_state._load_symbols
+            else:
+                default_symbols = self.session_state.backtest_config.target_symbols
+
+            # 将股票代码转换为 (code, name) 格式用于显示
+            default_options = []
+            if self.session_state.stock_cache:
+                available_codes = {code: name for code, name in self.session_state.stock_cache}
+                for symbol in default_symbols:
+                    if symbol in available_codes:
+                        default_options.append((symbol, available_codes[symbol]))
+
             # 多选股票组件
             if self.session_state.stock_cache:
                 selected_options = st.multiselect(
                     "选择股票（可多选）",
                     options=self.session_state.stock_cache,
                     format_func=lambda x: x[1],
-                    key="selected_stocks",
+                    default=default_options,
+                    key=f"selected_stocks_{key_suffix}",
                     help="注意：不需要选择指数标的，部分股票可能缺少历史数据，建议选择个股进行分析"
                 )
             else:

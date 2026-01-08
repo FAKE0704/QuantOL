@@ -44,16 +44,34 @@ class SingleAssetConfigUI:
         """
         st.subheader("📊 策略类型选择")
 
+        # 获取动态 key 后缀（用于在加载配置后强制刷新 widget）
+        key_suffix = self.session_state.get('_strategy_key_suffix', '')
+
+        # 获取当前策略类型（优先从 session_state 读取加载的值）
+        current_strategy_type = self.session_state.get(f'strategy_type_{symbol}', '月定投')
+        from src.support.log.logger import logger
+        logger.info(f"[策略类型UI] symbol={symbol}, key_suffix={key_suffix}, current_strategy_type={current_strategy_type}")
+
+        # 计算索引
+        strategy_options = ["月定投", "移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"]
+        try:
+            index = strategy_options.index(current_strategy_type)
+        except ValueError:
+            index = 0
+            current_strategy_type = strategy_options[0]
+
         # 策略类型选项
         strategy_type = st.selectbox(
             "选择策略类型",
-            options=["月定投", "移动平均线交叉", "MACD交叉", "RSI超买超卖", "自定义规则"],
-            key=f"single_strategy_type_{symbol}",
+            index=index,
+            options=strategy_options,
+            key=f"single_strategy_type_{symbol}_{key_suffix}",
             help="选择适用于该标的的策略类型"
         )
 
         # 更新session state
         self.session_state[f"strategy_type_{symbol}"] = strategy_type
+        logger.info(f"[策略类型UI] 用户选择: strategy_type={strategy_type}")
 
         # 显示策略说明
         self._render_strategy_description(strategy_type)

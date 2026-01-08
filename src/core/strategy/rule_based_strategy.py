@@ -38,6 +38,10 @@ class RuleBasedStrategy(BaseStrategy):
         # 在初始化时完整评估所有规则以生成规则列
         self._initialize_rule_columns()
 
+        # 调试：验证数据对象关系
+        logger.info(f"策略初始化完成 - Data地址: {id(self.Data)}, parser.data地址: {id(self.parser.data)}, 是否同一对象: {id(self.Data) == id(self.parser.data)}")
+        logger.info(f"              debug_data地址: {id(self.debug_data)}, 与parser.data同一: {id(self.debug_data) == id(self.parser.data)}")
+
     def _initialize_rule_columns(self):
         """初始化规则列：完整评估所有规则以生成所有数据点的结果"""
         try:
@@ -70,7 +74,18 @@ class RuleBasedStrategy(BaseStrategy):
 
             # 初始化完成后，保存debug_data
             self.debug_data = self.parser.data.copy()
+
+            # 保存规则类型映射到 attrs 中，供前端使用
+            if not hasattr(self.debug_data, 'attrs'):
+                self.debug_data.attrs = {}
+            self.debug_data.attrs['rule_type_mapping'] = {}
+            for rule_expr, rule_type in all_rules:
+                if rule_expr:
+                    clean_rule = self.parser._clean_rule_name(rule_expr)
+                    self.debug_data.attrs['rule_type_mapping'][clean_rule] = rule_type
+
             logger.info(f"规则列初始化完成，总列数: {len(self.debug_data.columns)}")
+            logger.info(f"规则类型映射: {self.debug_data.attrs['rule_type_mapping']}")
 
         except Exception as e:
             logger.error(f"规则列初始化失败: {str(e)}")
@@ -111,22 +126,23 @@ class RuleBasedStrategy(BaseStrategy):
             clean_rule = self.parser._clean_rule_name(rule_expr)
 
             # 使用初始化时保存的规则列值（不重新解析，确保一致性）
+            logger.debug(f"{rule_type}原始表达式: '{rule_expr}'")
+            logger.debug(f"{rule_type}清理后列名: '{clean_rule}'")
+
             if clean_rule in self.parser.data.columns:
+                # 检查索引3附近的值
+                if self.parser.current_index >= 2 and self.parser.current_index <= 4:
+                    logger.warning(f"{rule_type}当前索引={self.parser.current_index}, 显示周围索引的规则列值:")
+                    for i in range(max(0, self.parser.current_index-2), min(len(self.parser.data), self.parser.current_index+3)):
+                        parser_val = self.parser.data.at[i, clean_rule]
+                        debug_val = self.debug_data.at[i, clean_rule] if clean_rule in self.debug_data.columns else "N/A"
+                        logger.warning(f"  索引{i}: parser.data={parser_val}, debug_data={debug_val}")
+
                 should_trade = bool(self.parser.data.at[self.parser.current_index, clean_rule])
                 logger.debug(f"{rule_type}使用规则列[{clean_rule}]值: {should_trade}, 当前索引: {self.parser.current_index}")
-
-                # 调试：检查 debug_data 中的值
-                if clean_rule in self.debug_data.columns:
-                    debug_value = self.debug_data.at[self.parser.current_index, clean_rule]
-                    if bool(debug_value) != should_trade:
-                        logger.warning(f"{rule_type}数据不一致！parser.data值: {should_trade}, debug_data值: {debug_value}, 索引: {self.parser.current_index}")
-                        logger.warning(f"  parser.data地址: {id(self.parser.data)}, debug_data地址: {id(self.debug_data)}, 同一对象: {id(self.parser.data) == id(self.debug_data)}")
-                        logger.warning(f"  parser.Data地址: {id(self.Data)}, 与parser.data同一: {id(self.Data) == id(self.parser.data)}")
-                else:
-                    logger.warning(f"{rule_type}debug_data中没有规则列[{clean_rule}]")
             else:
                 # 规则列不存在的fallback情况（不应该发生）
-                logger.warning(f"{rule_type}规则列[{clean_rule}]不存在，实时解析")
+                logger.warning(f"{rule_type}规则列[{clean_rule}]不存在于parser.data")
                 should_trade = self.parser.parse(rule_expr)
                 logger.debug(f"{rule_type}规则解析结果: {should_trade}, 当前索引: {self.parser.current_index}")
 

@@ -78,16 +78,54 @@ async def show_backtesting_page():
     # 检测并应用待加载的配置（必须在render_date_config_ui之前执行）
     if st.session_state.get('pending_load_config'):
         pending_config = st.session_state.pending_load_config
+        logger.info(f"[加载配置] 待加载配置: target_symbol={pending_config.target_symbol}, target_symbols={pending_config.target_symbols}, strategy_type={pending_config.strategy_type}")
+
+        # 清除旧的标的相关的 session_state 键（避免验证时检查到旧标的）
+        old_symbols = [k.replace('_has_custom_config', '') for k in st.session_state.keys()
+                      if k.endswith('_has_custom_config')]
+        for old_symbol in old_symbols:
+            if old_symbol not in pending_config.target_symbols:
+                logger.info(f"[加载配置] 清除旧标的 session_state: {old_symbol}")
+                # 清除旧标的策略类型和规则相关键
+                keys_to_remove = [k for k in st.session_state.keys()
+                                   if k.startswith(f'strategy_type_{old_symbol}') or
+                                      k.startswith(f'open_rule_{old_symbol}') or
+                                      k.startswith(f'close_rule_{old_symbol}') or
+                                      k.startswith(f'buy_rule_{old_symbol}') or
+                                      k.startswith(f'sell_rule_{old_symbol}') or
+                                      k == f'{old_symbol}_has_custom_config']
+                for key in keys_to_remove:
+                    del st.session_state[key]
+
         st.session_state.backtest_config = pending_config
 
         # 改变 widget key 后缀，强制创建新实例
         import time
         key_suffix = int(time.time() * 1000)
         st.session_state._date_key_suffix = key_suffix
+        st.session_state._stock_key_suffix = key_suffix  # 股票选择也使用相同后缀
 
         # 设置临时标记，用于初始化新值
         st.session_state._load_start_date = pending_config.start_date
         st.session_state._load_end_date = pending_config.end_date
+        st.session_state._load_symbols = pending_config.target_symbols  # 加载股票列表
+
+        # 同步策略类型到 session_state
+        for symbol in pending_config.target_symbols:
+            st.session_state[f"strategy_type_{symbol}"] = pending_config.strategy_type
+            # 设置 has_custom_config 标记
+            st.session_state[f"{symbol}_has_custom_config"] = True
+            # 如果是自定义规则，同步规则
+            if pending_config.strategy_type == "自定义规则" and pending_config.custom_rules:
+                st.session_state[f"open_rule_{symbol}"] = pending_config.custom_rules.get('open_rule', '')
+                st.session_state[f"close_rule_{symbol}"] = pending_config.custom_rules.get('close_rule', '')
+                st.session_state[f"buy_rule_{symbol}"] = pending_config.custom_rules.get('buy_rule', '')
+                st.session_state[f"sell_rule_{symbol}"] = pending_config.custom_rules.get('sell_rule', '')
+
+        # 设置策略 key 后缀，强制刷新策略选择 UI
+        st.session_state._strategy_key_suffix = key_suffix
+
+        logger.info(f"[加载配置] 已同步策略类型到 session_state, 设置 _strategy_key_suffix={key_suffix}")
 
         # 清除待加载配置标记并设置成功消息标记
         st.session_state.pending_load_config = None
@@ -112,8 +150,9 @@ async def show_backtesting_page():
         # 更新配置对象中的股票代码
         if selected_options:
             selected_symbols = [symbol[0] for symbol in selected_options]
-            # 使用统一接口设置符号
+            # 使用统一接口设置符号（同时更新 target_symbol 和 target_symbols）
             st.session_state.backtest_config.target_symbols = selected_symbols
+            st.session_state.backtest_config.target_symbol = selected_symbols[0] if selected_symbols else ""
 
         # 显示配置摘要
         config_ui.render_config_summary()

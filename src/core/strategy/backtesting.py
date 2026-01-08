@@ -88,21 +88,27 @@ class BacktestConfig:
         self.end_date = self._normalize_date_format(self.end_date)
 
         # 增强的符号兼容性处理
-        if not self.target_symbols and self.target_symbol:
-            # 只有target_symbol时，自动转换为target_symbols
-            self.target_symbols = [self.target_symbol]
-        elif self.target_symbols and not self.target_symbol:
-            # 只有target_symbols时，设置target_symbol为首个符号
+        # 优先使用 target_symbols，确保它不包含 target_symbol 中不存在的值
+        if self.target_symbols:
+            # 如果 target_symbols 存在，基于它来设置 target_symbol
             self.target_symbol = self.target_symbols[0]
-        elif self.target_symbols and self.target_symbol and self.target_symbol not in self.target_symbols:
-            # 如果target_symbol不在target_symbols中，添加到列表开头
-            self.target_symbols.insert(0, self.target_symbol)
+            # 去重
+            seen = set()
+            unique_symbols = []
+            for symbol in self.target_symbols:
+                if symbol not in seen:
+                    unique_symbols.append(symbol)
+                    seen.add(symbol)
+            self.target_symbols = unique_symbols
+        elif self.target_symbol:
+            # 只有 target_symbol 时，转换为 target_symbols
+            self.target_symbols = [self.target_symbol]
+        else:
+            raise ValueError("必须指定至少一个交易标的")
 
         # 确保target_symbol始终是target_symbols的第一个元素
         if self.target_symbols and self.target_symbol != self.target_symbols[0]:
             self.target_symbol = self.target_symbols[0]
-        elif not self.target_symbol and not self.target_symbols:
-            raise ValueError("必须指定至少一个交易标的")
 
         # 资金分配逻辑（多符号模式下）
         if len(self.target_symbols) > 1:
@@ -211,13 +217,16 @@ class BacktestConfig:
 
     def to_dict(self) -> Dict[str, Any]:
         """将配置转换为字典"""
+        # 确保 target_symbol 是 target_symbols 的第一个元素（使用同步后的值）
+        synced_target_symbol = self.target_symbols[0] if self.target_symbols else self.target_symbol
+
         config_dict = {
             "initial_capital": self.initial_capital,
             "commission_rate": self.commission_rate,
             "slippage": self.slippage,
             "start_date": self.start_date,
             "end_date": self.end_date,
-            "target_symbol": self.target_symbol,
+            "target_symbol": synced_target_symbol,  # 使用同步后的值
             "target_symbols": self.target_symbols,
             "frequency": self.frequency,
 
@@ -362,9 +371,11 @@ class BacktestEngine:
         
     def update_rule_parser_data(self):
         """更新RuleParser的数据引用"""
+        logger.debug(f"update_rule_parser_data: self.data地址={id(self.data)}, 当前rule_parser.data地址={id(self.rule_parser.data)}")
         self.rule_parser.data = self.data
         self.rule_parser.indicator_service = self.indicator_service
         self.rule_parser.portfolio_manager = self.portfolio_manager
+        logger.debug(f"update_rule_parser_data: 更新后rule_parser.data地址={id(self.rule_parser.data)}")
 
     def run(self, start_date: datetime, end_date: datetime):
         """执行事件驱动的回测"""
@@ -496,6 +507,9 @@ class BacktestEngine:
 
         # 使用current_index参数（如果存在）或默认使用当前索引
         idx = getattr(event, 'current_index', self.current_index)
+
+        # 调试：记录信号事件
+        logger.info(f"处理信号事件: 信号类型={event.signal_type}, symbol={event.symbol}, price={event.price}, current_index={idx}")
 
         # 记录信号到数据中
         if event.signal_type in [SignalType.OPEN, SignalType.BUY]:
@@ -761,7 +775,8 @@ class BacktestEngine:
             success = self.portfolio_manager.update_position(
                 symbol=event.symbol,
                 quantity=quantity,
-                price=event.price
+                price=event.price,
+                commission=commission
             )
             
             if not success:
@@ -1063,7 +1078,8 @@ class BacktestEngine:
             success = self.portfolio_manager.update_position(
                 symbol=event.symbol,
                 quantity=quantity,
-                price=fill_price
+                price=fill_price,
+                commission=commission
             )
             
             if not success:

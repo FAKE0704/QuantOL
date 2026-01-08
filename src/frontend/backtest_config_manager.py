@@ -1,6 +1,6 @@
 import streamlit as st
 from src.core.strategy.backtesting import BacktestConfig
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 class BacktestConfigManager:
     """回测配置管理类，负责配置的创建、验证和会话状态管理"""
@@ -180,3 +180,40 @@ class BacktestConfigManager:
                 "multiplier": multiplier,
                 "clear_on_insufficient": True
             }
+
+    def load_config_to_session(self, config_dict: Dict[str, Any]) -> None:
+        """从字典加载配置到会话
+
+        Args:
+            config_dict: 配置字典（不含元数据）
+        """
+        try:
+            self.session_state.backtest_config = BacktestConfig.from_dict(config_dict)
+            st.success("配置加载成功")
+        except Exception as e:
+            st.error(f"配置加载失败: {e}")
+            raise
+
+    def get_current_config_dict(self) -> Dict[str, Any]:
+        """获取当前配置的字典表示
+
+        Returns:
+            配置字典
+        """
+        return self.session_state.backtest_config.to_dict()
+
+    def replace_config(self, new_config: BacktestConfig) -> None:
+        """替换当前配置
+
+        Args:
+            new_config: 新的配置对象
+        """
+        self.session_state.backtest_config = new_config
+
+    def get_current_config(self) -> Optional[BacktestConfig]:
+        """获取当前配置对象
+
+        Returns:
+            当前配置对象，如果不存在则返回 None
+        """
+        return self.session_state.get('backtest_config')

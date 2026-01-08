@@ -100,20 +100,35 @@ class RuleBasedStrategy(BaseStrategy):
             rule_type: 规则类型（用于日志记录）
         Returns:
             交易信号事件或None
+
+        注意：使用初始化时保存的规则列值，确保展示和交易逻辑一致
         """
         if not rule_expr:
             logger.debug(f"{rule_type}规则为空，跳过")
             return None
 
         try:
-            should_trade = self.parser.parse(rule_expr)
-            logger.debug(f"{rule_type}规则解析结果: {should_trade}, 当前索引: {self.parser.current_index}")
-
-            # 检查规则列中的值（如果有）
             clean_rule = self.parser._clean_rule_name(rule_expr)
+
+            # 使用初始化时保存的规则列值（不重新解析，确保一致性）
             if clean_rule in self.parser.data.columns:
-                column_value = self.parser.data.at[self.parser.current_index, clean_rule]
-                logger.debug(f"{rule_type}规则列[{clean_rule}]值: {column_value} (解析结果: {should_trade})")
+                should_trade = bool(self.parser.data.at[self.parser.current_index, clean_rule])
+                logger.debug(f"{rule_type}使用规则列[{clean_rule}]值: {should_trade}, 当前索引: {self.parser.current_index}")
+
+                # 调试：检查 debug_data 中的值
+                if clean_rule in self.debug_data.columns:
+                    debug_value = self.debug_data.at[self.parser.current_index, clean_rule]
+                    if bool(debug_value) != should_trade:
+                        logger.warning(f"{rule_type}数据不一致！parser.data值: {should_trade}, debug_data值: {debug_value}, 索引: {self.parser.current_index}")
+                        logger.warning(f"  parser.data地址: {id(self.parser.data)}, debug_data地址: {id(self.debug_data)}, 同一对象: {id(self.parser.data) == id(self.debug_data)}")
+                        logger.warning(f"  parser.Data地址: {id(self.Data)}, 与parser.data同一: {id(self.Data) == id(self.parser.data)}")
+                else:
+                    logger.warning(f"{rule_type}debug_data中没有规则列[{clean_rule}]")
+            else:
+                # 规则列不存在的fallback情况（不应该发生）
+                logger.warning(f"{rule_type}规则列[{clean_rule}]不存在，实时解析")
+                should_trade = self.parser.parse(rule_expr)
+                logger.debug(f"{rule_type}规则解析结果: {should_trade}, 当前索引: {self.parser.current_index}")
 
             if should_trade:
                 logger.info(f"{rule_type}规则触发！生成 {signal_type.value} 信号")

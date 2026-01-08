@@ -33,6 +33,10 @@ from src.frontend.data_loader import DataLoader
 from src.frontend.callback_services import CallbackServices
 from src.frontend.event_handlers import EventHandlers
 
+# 导入配置持久化模块
+from src.frontend.backtest_config_persistence import BacktestConfigPersistence
+from src.frontend.backtest_config_persistence_ui import BacktestConfigPersistenceUI
+
 async def show_backtesting_page():
     # 初始化策略ID
     if 'strategy_id' not in st.session_state:
@@ -60,6 +64,10 @@ async def show_backtesting_page():
     callback_services = CallbackServices(st.session_state)
     event_handlers = EventHandlers(st.session_state)
 
+    # 初始化配置持久化管理器和UI
+    persistence_manager = BacktestConfigPersistence()
+    persistence_ui = BacktestConfigPersistenceUI(st.session_state, persistence_manager)
+
     # 初始化配置和规则组
     config_manager.initialize_session_config()
     rule_group_manager.initialize_default_rule_groups()
@@ -67,11 +75,34 @@ async def show_backtesting_page():
 
     st.title("策略回测")
 
+    # 检测并应用待加载的配置（必须在render_date_config_ui之前执行）
+    if st.session_state.get('pending_load_config'):
+        pending_config = st.session_state.pending_load_config
+        st.session_state.backtest_config = pending_config
+
+        # 改变 widget key 后缀，强制创建新实例
+        import time
+        key_suffix = int(time.time() * 1000)
+        st.session_state._date_key_suffix = key_suffix
+
+        # 设置临时标记，用于初始化新值
+        st.session_state._load_start_date = pending_config.start_date
+        st.session_state._load_end_date = pending_config.end_date
+
+        # 清除待加载配置标记并设置成功消息标记
+        st.session_state.pending_load_config = None
+        st.session_state.config_loaded_success = True
+
     # 使用标签页组织配置
     config_tab1, config_tab2, config_tab3 = st.tabs(["📊 回测范围", "⚙️ 策略配置", "📈 仓位配置"])
 
     # 配置标签页1: 回测范围
     with config_tab1:
+        # 显示配置加载成功消息
+        if st.session_state.get('config_loaded_success', False):
+            st.success("✅ 配置已加载，所有参数已更新")
+            st.session_state.config_loaded_success = False
+
         config_ui.render_date_config_ui()
         config_ui.render_frequency_config_ui()
 
@@ -97,7 +128,66 @@ async def show_backtesting_page():
         position_ui.render_position_strategy_ui()
         position_ui.render_basic_config_ui()
         position_ui.render_config_summary()
-    
+
+    # 配置管理区域
+    st.markdown("---")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("💾 保存配置", key="save_config_btn"):
+            st.session_state.show_save_dialog = True
+    with col2:
+        if st.button("📂 加载配置", key="load_config_btn"):
+            st.session_state.show_load_panel = True
+    with col3:
+        if st.button("📋 配置管理", key="config_manage_btn"):
+            st.session_state.show_management_panel = not st.session_state.get('show_management_panel', False)
+
+    # 保存配置对话框
+    if st.session_state.get('show_save_dialog', False):
+        with st.expander("💾 保存当前配置", expanded=True):
+            # 保存前先同步策略配置
+            adaptive_strategy_ui.sync_config_with_backtest_config(st.session_state.backtest_config)
+
+            if persistence_ui.render_save_config_dialog(st.session_state.backtest_config):
+                st.success("配置保存成功！")
+                st.session_state.show_save_dialog = False
+                st.rerun()
+
+            if st.button("关闭", key="close_save_dialog"):
+                st.session_state.show_save_dialog = False
+                st.rerun()
+
+    # 加载配置面板
+    if st.session_state.get('show_load_panel', False):
+        with st.expander("📂 加载已保存配置", expanded=True):
+            loaded_config = persistence_ui.render_load_config_ui()
+            if loaded_config:
+                # 不直接更新配置，而是存入待加载队列
+                # 这样会在下次渲染时（在render_date_config_ui之前）应用
+                st.session_state.pending_load_config = loaded_config
+                st.session_state.show_load_panel = False
+                st.rerun()
+
+            if st.button("关闭", key="close_load_panel"):
+                st.session_state.show_load_panel = False
+                st.rerun()
+
+    # 配置管理面板
+    if st.session_state.get('show_management_panel', False):
+        with st.expander("📋 配置管理", expanded=True):
+            current_user = st.session_state.get('current_user')
+            if current_user:
+                persistence_ui.render_config_management_panel(current_user['username'])
+            else:
+                st.error("请先登录")
+
+            if st.button("关闭管理面板", key="close_management_panel"):
+                st.session_state.show_management_panel = False
+                st.rerun()
+
+    st.markdown("---")
+
     # 初始化按钮状态
     if 'start_backtest_clicked' not in st.session_state:
         st.session_state.start_backtest_clicked = False

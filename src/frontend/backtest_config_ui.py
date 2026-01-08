@@ -13,23 +13,40 @@ class BacktestConfigUI:
         """渲染日期配置UI"""
         st.subheader("📅 回测日期范围")
 
+        # 获取动态 key 后缀（用于在加载配置后强制刷新 widget）
+        key_suffix = self.session_state.get('_date_key_suffix', '')
+
+        # 获取日期值（优先从加载配置的临时标记获取）
+        if '_load_start_date' in self.session_state:
+            start_value = pd.to_datetime(self.session_state._load_start_date)
+            del self.session_state._load_start_date
+        else:
+            start_value = pd.to_datetime(self.session_state.backtest_config.start_date)
+
+        if '_load_end_date' in self.session_state:
+            end_value = pd.to_datetime(self.session_state._load_end_date)
+            del self.session_state._load_end_date
+        else:
+            end_value = pd.to_datetime(self.session_state.backtest_config.end_date)
+
+        # 使用动态 key 和 value 参数
         col1, col2 = st.columns(2)
         with col1:
             start_date = st.date_input(
                 "开始日期",
-                value=pd.to_datetime(self.session_state.backtest_config.start_date),
-                key="backtest_start_date"
+                value=start_value,
+                key=f"backtest_start_date_{key_suffix}"
             )
         with col2:
             end_date = st.date_input(
                 "结束日期",
-                value=pd.to_datetime(self.session_state.backtest_config.end_date),
-                key="backtest_end_date"
+                value=end_value,
+                key=f"backtest_end_date_{key_suffix}"
             )
 
-        # 更新配置
-        self.session_state.backtest_config.start_date = start_date.strftime('%Y-%m-%d')
-        self.session_state.backtest_config.end_date = end_date.strftime('%Y-%m-%d')
+        # 更新配置（使用 %Y%m%d 格式，与 BacktestConfig 内部格式一致）
+        self.session_state.backtest_config.start_date = start_date.strftime('%Y%m%d')
+        self.session_state.backtest_config.end_date = end_date.strftime('%Y%m%d')
 
     def render_frequency_config_ui(self) -> None:
         """渲染频率配置UI"""

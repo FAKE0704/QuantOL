@@ -199,6 +199,9 @@ class SingleAssetConfigUI:
             symbol: 标的代码
             rule_group_manager: 规则组管理器
         """
+        # 获取动态 key 后缀（用于在加载配置后强制刷新 widget）
+        key_suffix = self.session_state.get('_strategy_key_suffix', '')
+
         # 获取可用的规则组
         rule_groups = rule_group_manager.get_rule_options_for_display()
 
@@ -215,7 +218,7 @@ class SingleAssetConfigUI:
                 selected_group = st.selectbox(
                     "选择预定义规则组",
                     options=["请选择规则组"] + clean_rule_groups,
-                    key=f"selected_rule_group_{symbol}",
+                    key=f"selected_rule_group_{symbol}_{key_suffix}",
                     help="选择要加载的预定义规则组"
                 )
 
@@ -225,7 +228,7 @@ class SingleAssetConfigUI:
                 load_button_disabled = selected_group == "请选择规则组"
                 if st.button(
                     f"🔄 加载规则组",
-                    key=f"load_group_{symbol}",
+                    key=f"load_group_{symbol}_{key_suffix}",
                     disabled=load_button_disabled,
                     help="加载选择的规则组到下方编辑器中"
                 ):
@@ -465,17 +468,30 @@ class SingleAssetConfigUI:
         Args:
             backtest_config: 回测配置对象
         """
-        # 获取第一个标的的信息（单标模式）
-        symbols = [k.replace('strategy_type_', '') for k in self.session_state.keys()
-                  if k.startswith('strategy_type_')]
+        from src.support.log.logger import logger
 
-        if not symbols:
+        # 从 backtest_config 获取当前选中的标的（单标模式）
+        # 这样可以避免使用旧标的的策略类型
+        symbol = backtest_config.target_symbol
+
+        if not symbol:
+            logger.warning("[同步配置] backtest_config.target_symbol 为空，无法同步策略类型")
             return
 
-        symbol = symbols[0]
+        key_suffix = self.session_state.get('_strategy_key_suffix', '')
 
-        # 设置策略类型
-        backtest_config.strategy_type = self.session_state.get(f'strategy_type_{symbol}', '月定投')
+        # 优先从实际的widget key读取策略类型
+        widget_key = f"single_strategy_type_{symbol}_{key_suffix}"
+        strategy_type = self.session_state.get(widget_key)
+
+        # 如果widget key没有值，从手动设置的session_state读取
+        if not strategy_type:
+            strategy_type = self.session_state.get(f'strategy_type_{symbol}', '月定投')
+            logger.info(f"[同步配置] widget_key={widget_key} 无值，使用 strategy_type_{symbol}={strategy_type}")
+        else:
+            logger.info(f"[同步配置] 从 widget_key={widget_key} 读取到 strategy_type={strategy_type}")
+
+        backtest_config.strategy_type = strategy_type
 
         # 如果是自定义规则，设置规则配置
         if backtest_config.strategy_type == "自定义规则":

@@ -104,11 +104,16 @@ async def show_backtesting_page():
         key_suffix = int(time.time() * 1000)
         st.session_state._date_key_suffix = key_suffix
         st.session_state._stock_key_suffix = key_suffix  # 股票选择也使用相同后缀
+        st.session_state._frequency_key_suffix = key_suffix  # 频率配置
+        st.session_state._position_key_suffix = key_suffix  # 仓位管理
+        st.session_state._basic_config_key_suffix = key_suffix  # 基础配置
 
         # 设置临时标记，用于初始化新值
         st.session_state._load_start_date = pending_config.start_date
         st.session_state._load_end_date = pending_config.end_date
         st.session_state._load_symbols = pending_config.target_symbols  # 加载股票列表
+        st.session_state._load_frequency = pending_config.frequency  # 加载数据频率
+        st.session_state._load_position_strategy = pending_config.position_strategy_type  # 加载仓位策略类型
 
         # 同步策略类型到 session_state
         for symbol in pending_config.target_symbols:
@@ -294,8 +299,28 @@ async def show_backtesting_page():
 
         if results:
             st.success("回测完成！")
-            
-            # 使用ResultsDisplayUI组件显示结果
-            results_ui.render_results_tabs(results, backtest_config)
+
+            # 保存结果到 session_state，避免 rerun 时丢失
+            st.session_state.backtest_results = results
+            st.session_state.last_backtest_config = backtest_config
+            st.session_state.equity_data = equity_data
+            st.rerun()  # 触发 rerun 以显示结果
         else:
             st.error("回测失败，请检查输入参数")
+
+    # 显示已保存的回测结果（在按钮外，避免 rerun 时丢失）
+    if 'backtest_results' in st.session_state and st.session_state.backtest_results:
+        st.markdown("---")
+        st.info("📋 显示最近一次回测结果")
+
+        results = st.session_state.backtest_results
+        backtest_config = st.session_state.last_backtest_config
+        equity_data = st.session_state.equity_data
+
+        # 准备图表服务
+        execution_service = backtest_execution_service
+        if equity_data is not None and not equity_data.empty:
+            execution_service.prepare_chart_service(None, equity_data)
+
+        # 使用ResultsDisplayUI组件显示结果
+        results_ui.render_results_tabs(results, backtest_config)

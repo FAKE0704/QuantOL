@@ -323,6 +323,18 @@ class BacktestEngine:
                     min_lot_size=getattr(config, 'min_lot_size', 100)
                 )
                 logger.info(f"固定比例仓位管理策略创建成功: percent={self.position_strategy.percent}")
+            elif config.position_strategy_type == "martingale":
+                # 使用马丁格尔仓位管理策略
+                from src.core.strategy.fixed_percent_position_strategy import MartingalePositionStrategy
+
+                position_params = config.position_strategy_params
+                self.position_strategy = MartingalePositionStrategy(
+                    base_percent=position_params.get("base_percent", 5.0) / 100,  # 转换为0-1
+                    multiplier=position_params.get("multiplier", 2.0),
+                    max_doubles=position_params.get("max_doubles", 5),
+                    min_lot_size=getattr(config, 'min_lot_size', 100)
+                )
+                logger.info(f"马丁格尔仓位管理策略创建成功: base_percent={self.position_strategy.base_percent}, multiplier={self.position_strategy.multiplier}, max_doubles={self.position_strategy.max_doubles}")
             else:
                 # 使用旧版本的仓位策略（保持兼容性）
                 self.position_strategy = PositionStrategyFactory.create_strategy(
@@ -460,7 +472,22 @@ class BacktestEngine:
                 price_data = {
                     'close': self.current_price
                 }
-                self.portfolio_manager.record_equity_history(current_time, price_data)
+
+                # 获取当前持仓数据
+                all_positions = self.portfolio_manager.get_all_positions()
+                position_quantity = 0.0
+                position_avg_cost = 0.0
+                if self.config.target_symbol in all_positions:
+                    position = all_positions[self.config.target_symbol]
+                    position_quantity = position.quantity
+                    position_avg_cost = position.avg_cost
+
+                position_data = {
+                    'position': position_quantity,
+                    'position_cost': position_avg_cost
+                }
+
+                self.portfolio_manager.record_equity_history(current_time, price_data, position_data)
 
                 # 添加详细调试日志
                 # logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
@@ -559,7 +586,8 @@ class BacktestEngine:
                 signal_type=event.signal_type,
                 portfolio_data=portfolio_data,
                 current_price=float(event.price),
-                current_position=current_position
+                current_position=current_position,
+                symbol=event.symbol
             )
 
             logger.debug(f"仓位策略计算结果: {quantity}, 信号类型: {event.signal_type}, 当前持仓: {current_position}")
@@ -793,6 +821,13 @@ class BacktestEngine:
                 'commission': commission,
                 'total_cost': total_cost if event.direction == 'BUY' else -total_cost
             }
+
+            # 如果是martingale策略，添加martingale_level字段
+            if hasattr(self.position_strategy, 'get_martingale_level'):
+                # 对于BUY方向，记录当前的martingale层级（加仓前）
+                # 对于SELL方向，记录清仓前的martingale层级
+                trade_record['martingale_level'] = self.position_strategy.get_martingale_level(event.symbol)
+
             self.trades.append(trade_record)
                 
             
@@ -1005,17 +1040,21 @@ class BacktestEngine:
         # 计算持仓价值 - 通过PortfolioManager接口获取持仓信息
         all_positions = self.portfolio_manager.get_all_positions()
         position_quantity = 0.0
+        position_avg_cost = 0.0  # 记录平均成本
         if self.config.target_symbol in all_positions:
-            position_quantity = all_positions[self.config.target_symbol].quantity
-        
+            position = all_positions[self.config.target_symbol]
+            position_quantity = position.quantity
+            position_avg_cost = position.avg_cost
+
         position_value = position_quantity * close_price
         total_value = current_capital + position_value
-        
+
         # 创建净值记录
         record = {
             'timestamp': pd.to_datetime(market_data['datetime']),
             'price': close_price,
             'position': position_quantity,
+            'position_cost': position_avg_cost,  # 添加平均成本
             'cash': current_capital,
             'total_value': total_value
         }

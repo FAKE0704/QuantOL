@@ -74,7 +74,17 @@ class ResultsDisplayUI:
             from src.services.chart_service import DataBundle, ChartService
             data_bundle = DataBundle(raw_data=equity_data)
             chart_service = ChartService.get_chart_service(data_bundle)
+
+            # 显示净值百分比变化与资产配置（现有图表）
+            st.markdown("### 净值百分比变化与资产配置")
             chart_service.draw_equity_and_allocation(equity_data)
+
+            # 分隔线
+            st.divider()
+
+            # 显示绝对净值金额（新增图表）
+            st.markdown("### 绝对净值金额")
+            chart_service.draw_absolute_net_value(equity_data)
         else:
             st.warning("无净值数据可用")
 
@@ -213,28 +223,22 @@ class ResultsDisplayUI:
 
             # 方法1：从debug_data获取规则数据
             if "debug_data" in results and results["debug_data"]:
-                st.write("**调试信息:** 从debug_data中查找规则数据")
                 debug_data = results["debug_data"]
 
                 # 查找第一个策略的debug_data（通常规则策略会存储在这里）
                 for strategy_name, strategy_data in debug_data.items():
                     if strategy_data is not None and hasattr(strategy_data, 'columns'):
-                        st.write(f"**调试信息:** 检查策略 {strategy_name} 的数据")
-                        st.write(f"  数据列: {list(strategy_data.columns)}")
-
                         # 尝试从这个策略数据中找到规则列
                         found_columns = self._find_rule_columns(strategy_data)
                         if found_columns:
                             rule_columns = found_columns
                             rule_data_source = strategy_data
-                            st.write(f"**调试信息:** 从策略 {strategy_name} 找到规则列")
                             break
 
             # 方法2：从price_data获取规则数据（原有逻辑）
             if not rule_columns:
                 price_data = results.get("price_data")
                 if price_data is not None and not price_data.empty:
-                    st.write("**调试信息:** 从price_data中查找规则数据")
                     rule_columns = self._find_rule_columns(price_data)
                     if rule_columns:
                         rule_data_source = price_data
@@ -256,25 +260,18 @@ class ResultsDisplayUI:
         """查找规则结果列并返回映射关系"""
         rule_columns = {}
 
-        # 添加调试信息
-        st.write(f"**调试信息:** 价格数据列名: {list(price_data.columns)}")
-
         # 方法1：从 attrs 中读取规则类型映射（最准确）
         if hasattr(price_data, 'attrs') and 'rule_type_mapping' in price_data.attrs:
             rule_type_mapping = price_data.attrs['rule_type_mapping']
-            st.write(f"**调试信息:** 从 attrs 读取规则类型映射: {rule_type_mapping}")
 
             for col_name, rule_type in rule_type_mapping.items():
                 if col_name in price_data.columns:
                     rule_columns[col_name] = rule_type
-                    st.write(f"✓ 从映射找到 {rule_type} 规则列: {col_name}")
 
             if rule_columns:
-                st.write(f"**调试信息:** 从映射找到的规则列: {rule_columns}")
                 return rule_columns
 
         # 方法2：如果没有映射，使用关键词匹配（降级方案）
-        st.write(f"**调试信息:** attrs 中没有规则类型映射，使用关键词匹配")
         rule_type_mapping = {}
         price_columns = {'open', 'high', 'low', 'close', 'volume', 'time', 'date', 'datetime', 'signal', 'code', 'combined_time'}
 
@@ -292,38 +289,11 @@ class ResultsDisplayUI:
             if self._is_rule_result_column(sample_values):
                 potential_rule_columns.append((col, sample_values))
 
-        st.write(f"**调试信息:** 找到 {len(potential_rule_columns)} 个可能的规则列")
-
-        # 分析每个潜在规则列的特征
-        for col, sample_values in potential_rule_columns:
-            st.write(f"  • 规则列候选: {col}")
-            st.write(f"    样本值: {sample_values.tolist()[:5]}, 数据类型: {sample_values.dtype}")
-
-            # 检查列名是否包含规则关键词
-            col_lower = col.lower()
-            has_open = any(keyword in col_lower for keyword in ['open', '开仓'])
-            has_close = any(keyword in col_lower for keyword in ['close', '清仓'])
-            has_buy = any(keyword in col_lower for keyword in ['buy', '加仓'])
-            has_sell = any(keyword in col_lower for keyword in ['sell', '平仓'])
-
-            st.write(f"    关键词匹配: 开仓={has_open}, 清仓={has_close}, 加仓={has_buy}, 平仓={has_sell}")
-
         # 使用更智能的识别方法：检查dataframe的attrs属性
         # 规则解析器会在attrs中存储表达式信息
         if hasattr(price_data, 'attrs'):
-            st.write(f"**调试信息:** DataFrame包含 {len(price_data.attrs)} 个属性")
-
             # 查找规则表达式相关的属性
             expr_attributes = {k: v for k, v in price_data.attrs.items() if k.endswith('_expr')}
-            st.write(f"**调试信息:** 找到 {len(expr_attributes)} 个表达式属性")
-
-            # 尝试从规则组策略获取规则映射
-            for attr_name, expr_value in expr_attributes.items():
-                col_name = attr_name.replace('_expr', '')
-                if col_name in price_data.columns:
-                    sample_values = price_data[col_name].dropna().head(5)
-                    if self._is_rule_result_column(sample_values):
-                        st.write(f"  • 表达式列: {col_name} = {expr_value}")
 
         # 如果使用策略组合，尝试从策略实例获取规则表达式
         # 这里需要找到与四种规则类型对应的列
@@ -335,27 +305,21 @@ class ResultsDisplayUI:
             if any(keyword in col_lower for keyword in ['open', '开仓']) and '开仓' not in rule_type_mapping.values():
                 rule_columns[col] = '开仓'
                 rule_type_mapping[col] = '开仓'
-                st.write(f"✓ 通过关键词匹配找到开仓规则列: {col}")
 
             elif any(keyword in col_lower for keyword in ['close', '清仓']) and '清仓' not in rule_type_mapping.values():
                 rule_columns[col] = '清仓'
                 rule_type_mapping[col] = '清仓'
-                st.write(f"✓ 通过关键词匹配找到清仓规则列: {col}")
 
             elif any(keyword in col_lower for keyword in ['buy', '加仓']) and '加仓' not in rule_type_mapping.values():
                 rule_columns[col] = '加仓'
                 rule_type_mapping[col] = '加仓'
-                st.write(f"✓ 通过关键词匹配找到加仓规则列: {col}")
 
             elif any(keyword in col_lower for keyword in ['sell', '平仓']) and '平仓' not in rule_type_mapping.values():
                 rule_columns[col] = '平仓'
                 rule_type_mapping[col] = '平仓'
-                st.write(f"✓ 通过关键词匹配找到平仓规则列: {col}")
 
         # 方法2：如果关键词匹配失败，按顺序分配
         if len(rule_columns) < 4 and len(potential_rule_columns) >= 4:
-            st.write(f"⚠️ 关键词匹配只找到 {len(rule_columns)} 个规则，尝试按顺序分配...")
-
             # 获取未分配的规则类型
             missing_rules = []
             if '开仓' not in rule_type_mapping.values():
@@ -374,7 +338,6 @@ class ResultsDisplayUI:
                     rule_type = missing_rules[rule_idx]
                     rule_columns[col] = rule_type
                     rule_type_mapping[col] = rule_type
-                    st.write(f"✓ 按顺序分配 {rule_type} 规则列: {col}")
                     rule_idx += 1
 
                 if len(rule_columns) == 4:
@@ -382,8 +345,6 @@ class ResultsDisplayUI:
 
         # 方法3：如果规则列不足4个，尝试从debug_data中查找
         if len(rule_columns) < 4:
-            st.write(f"⚠️ 仍然只找到 {len(rule_columns)} 个规则列，尝试其他方法...")
-
             # 检查是否有布尔值列被遗漏
             all_bool_cols = []
             for col in price_data.columns:
@@ -394,17 +355,6 @@ class ResultsDisplayUI:
                 if self._is_rule_result_column(sample_values):
                     all_bool_cols.append((col, sample_values))
 
-            st.write(f"  还发现 {len(all_bool_cols)} 个未分配的布尔列")
-
-            # 如果还是没有找到足够的规则列，给出提示
-            if len(rule_columns) == 0:
-                st.warning("⚠️ 未找到任何规则列，可能原因：")
-                st.warning("  1. 使用的是固定策略而非规则策略")
-                st.warning("  2. 规则表达式为空或语法错误")
-                st.warning("  3. 规则解析过程中出现问题")
-                return {}
-
-        st.write(f"**调试信息:** 最终找到的规则列: {rule_columns}")
         return rule_columns
 
     def _is_rule_result_column(self, sample_values: pd.Series) -> bool:
@@ -444,32 +394,20 @@ class ResultsDisplayUI:
     def _merge_rule_results_to_equity(self, equity_df: pd.DataFrame, price_data: pd.DataFrame, rule_columns: dict) -> pd.DataFrame:
         """将规则结果合并到净值记录中"""
         if not rule_columns:
-            st.write("⚠️ 调试信息: 没有找到规则列，无法合并")
             return equity_df
-
-        st.write(f"📊 调试信息: 开始合并规则结果到净值记录（使用行号匹配）")
-        st.write(f"   净值记录行数: {len(equity_df)}, 价格数据行数: {len(price_data)}")
 
         # 直接使用行号匹配，与后端保持一致
         return self._merge_by_row_number(equity_df, price_data, rule_columns)
 
     def _merge_by_row_number(self, equity_df: pd.DataFrame, price_data: pd.DataFrame, rule_columns: dict) -> pd.DataFrame:
         """按行号匹配合并规则结果到净值记录"""
-        st.write(f"🔄 使用行号匹配方式合并数据")
-
         # 检查净值记录和价格数据的行数是否匹配
         min_rows = min(len(equity_df), len(price_data))
-        st.write(f"   将匹配前 {min_rows} 行数据")
 
-        match_count = 0
         # 为每个规则列创建匹配
         for original_col, display_name in rule_columns.items():
             # 创建规则结果列，初始值为空
             equity_df[f'规则_{display_name}'] = None
-
-            # 检查规则列的数据类型和示例值
-            sample_values = price_data[original_col].dropna().head(5)
-            st.write(f"   规则列 '{original_col}' 样本值: {sample_values.tolist()}, 数据类型: {price_data[original_col].dtype}")
 
             # 按行号匹配
             for i in range(min_rows):
@@ -478,41 +416,27 @@ class ResultsDisplayUI:
                 # 检查规则结果是否为布尔值（True/False）或可以解释为布尔值
                 if isinstance(rule_result, (bool, np.bool_)):
                     equity_df.at[i, f'规则_{display_name}'] = '触发' if rule_result else '未触发'
-                    match_count += 1
                 elif isinstance(rule_result, (int, float, str, np.integer, np.floating)):
                     # 尝试将数值或字符串转换为布尔值判断
                     try:
                         if str(rule_result).lower() in ['true', '1', 'yes', 'on']:
                             equity_df.at[i, f'规则_{display_name}'] = '触发'
-                            match_count += 1
                         elif str(rule_result).lower() in ['false', '0', 'no', 'off', '']:
                             equity_df.at[i, f'规则_{display_name}'] = '未触发'
-                            match_count += 1
                         else:
                             # 对于数值，检查是否大于0
                             if float(rule_result) > 0:
                                 equity_df.at[i, f'规则_{display_name}'] = '触发'
-                                match_count += 1
                             elif float(rule_result) == 0:
                                 equity_df.at[i, f'规则_{display_name}'] = '未触发'
-                                match_count += 1
                     except (ValueError, TypeError):
-                        st.write(f"   ⚠️ 无法解释规则结果: {rule_result} (类型: {type(rule_result)})")
+                        pass
 
-        st.write(f"✅ 调试信息: 按行号成功匹配 {match_count} 个规则结果")
         return equity_df
 
     def render_debug_data_tab(self, results: Dict[str, Any]) -> None:
         """渲染调试数据标签页"""
         st.subheader("🐛 规则解析器调试数据")
-
-        # 调试信息显示
-        st.write("**调试信息:**")
-        if "debug_data" in results:
-            st.write(f"• debug_data键存在: 是")
-            st.write(f"• debug_data内容: {list(results['debug_data'].keys()) if results['debug_data'] else '空'}")
-        else:
-            st.write(f"• debug_data键存在: 否")
 
         if "debug_data" not in results or not results["debug_data"]:
             st.info("无调试数据可用（仅在使用自定义规则策略时生成）")
@@ -566,10 +490,31 @@ class ResultsDisplayUI:
                 key=f"columns_{strategy_name}"
             )
 
+            # 合并 equity_records 中的实际持仓数据到 debug_data
+            equity_data = self._get_equity_data(results)
+            merged = False
+            if equity_data is not None and not equity_data.empty:
+                # 将 equity_data 中的 position 和 position_cost 合并到 strategy_data
+                if 'position' in equity_data.columns and 'timestamp' in equity_data.columns:
+                    # 确保 strategy_data 有 datetime 列
+                    if 'datetime' in strategy_data.columns:
+                        # 创建一个映射，从时间戳到 position 和 position_cost
+                        equity_data_copy = equity_data.copy()
+                        equity_data_copy['timestamp'] = pd.to_datetime(equity_data_copy['timestamp'])
+                        strategy_data_copy = strategy_data.copy()
+                        strategy_data_copy['datetime'] = pd.to_datetime(strategy_data_copy['datetime'])
+
+                        # 更新 POSITION 列为实际持仓数据
+                        if len(strategy_data_copy) == len(equity_data_copy):
+                            strategy_data['POSITION'] = equity_data_copy['position'].values
+                            if 'position_cost' in equity_data_copy.columns:
+                                strategy_data['COST'] = equity_data_copy['position_cost'].values
+                            merged = True
+
             if show_columns:
                 # 显示数据预览
-                st.write(f"**数据预览 (最近20行):**")
-                display_data = strategy_data[show_columns].tail(20)
+                st.write(f"**数据预览:**")
+                display_data = strategy_data[show_columns]
                 st.dataframe(display_data, use_container_width=True)
 
                 # 提供数据下载

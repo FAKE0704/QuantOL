@@ -1,7 +1,7 @@
 import aiosqlite
 import pandas as pd
 import chinese_calendar as calendar
-from datetime import datetime, date, time
+import datetime
 from typing import Any, Optional, Dict, List
 import os
 import chinese_calendar as calendar
@@ -364,7 +364,7 @@ class SQLiteAdapter(DatabaseAdapter):
             logger.error(f"保存股票信息失败: {str(e)}")
             raise
 
-    async def check_data_completeness(self, symbol: str, start_date: date, end_date: date, frequency: str) -> list:
+    async def check_data_completeness(self, symbol: str, start_date: datetime.date, end_date: datetime.date, frequency: str) -> list:
         """检查数据完整性"""
         try:
             # 确保日期格式正确
@@ -400,7 +400,7 @@ class SQLiteAdapter(DatabaseAdapter):
                 date.date() for date in all_dates
                 if not calendar.is_holiday(date.date())
             )
-            today = date.today()
+            today = datetime.date.today()
             trading_dates = {d for d in trading_dates if d != today}  # 若今日查询，则排除今日
 
             # 计算缺失日期
@@ -429,7 +429,7 @@ class SQLiteAdapter(DatabaseAdapter):
             logger.error(f"检查数据完整性失败: {str(e)}")
             raise
 
-    async def load_stock_data(self, symbol: str, start_date: date, end_date: date, frequency: str) -> pd.DataFrame:
+    async def load_stock_data(self, symbol: str, start_date: datetime.date, end_date: datetime.date, frequency: str) -> pd.DataFrame:
         """从数据库加载股票数据"""
         try:
             # 确保日期格式正确
@@ -885,13 +885,28 @@ class SQLiteAdapter(DatabaseAdapter):
         conn = None
         data_tmp = data.copy()
         data_tmp['date'] = pd.to_datetime(data_tmp['date'], format="%Y-%m-%d").dt.date
+
+        # 确保 time 列是字符串格式（处理 datetime.time 对象）
+        if 'time' in data_tmp.columns:
+            # 记录转换前的类型，用于调试
+            sample_time = data_tmp['time'].iloc[0] if len(data_tmp) > 0 else None
+            logger.info(f"[save_stock_data] 转换前 time 列样本: {sample_time}, 类型: {type(sample_time)}")
+
+            data_tmp['time'] = data_tmp['time'].apply(
+                lambda x: x.strftime('%H:%M:%S') if isinstance(x, datetime.time) else str(x) if pd.notna(x) else "00:00:00"
+            )
+
+            # 记录转换后的类型
+            sample_time_after = data_tmp['time'].iloc[0] if len(data_tmp) > 0 else None
+            logger.info(f"[save_stock_data] 转换后 time 列样本: {sample_time_after}, 类型: {type(sample_time_after)}")
+
         try:
             conn = await self._get_connection()
             records = data_tmp.to_dict('records')
 
             # 处理不同频率的数据
             if frequency in ["1", "5", "15", "30", "60"]:
-                # 分钟级数据有time字段
+                # 分钟级数据有time字段（已在前面转换为字符串）
                 insert_data = [
                     (
                         symbol,

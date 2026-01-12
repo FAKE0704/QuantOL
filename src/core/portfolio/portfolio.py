@@ -355,25 +355,26 @@ class PortfolioManager(IPortfolio):
         
         return weights
 
-    def record_equity_history(self, timestamp: datetime, price_data: Optional[Dict] = None) -> None:
+    def record_equity_history(self, timestamp: datetime, price_data: Optional[Dict] = None, position_data: Optional[Dict] = None) -> None:
         """记录净值历史
         Args:
             timestamp: 时间戳
             price_data: 价格数据，可选
+            position_data: 持仓数据，可选，包含 position 和 position_cost
         """
         total_value = self.get_portfolio_value()
-        
+
         # 更新峰值价值
         if total_value > self._peak_value:
             self._peak_value = total_value
-        
+
         # 计算当前回撤
         current_drawdown = ((self._peak_value - total_value) / self._peak_value) * 100 if self._peak_value > 0 else 0.0
-        
+
         # 更新最大回撤
         if current_drawdown > self._max_drawdown:
             self._max_drawdown = current_drawdown
-        
+
         # 创建净值记录
         record = {
             'timestamp': timestamp,
@@ -384,11 +385,15 @@ class PortfolioManager(IPortfolio):
             'drawdown_pct': current_drawdown,
             'peak_value': self._peak_value
         }
-        
+
         # 如果有价格数据，添加到记录中
         if price_data:
             record.update(price_data)
-        
+
+        # 如果有持仓数据，添加到记录中
+        if position_data:
+            record.update(position_data)
+
         self.equity_history.append(record)
 
     def get_equity_history(self) -> List[Dict]:

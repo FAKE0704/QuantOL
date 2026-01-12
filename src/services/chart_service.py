@@ -1170,6 +1170,90 @@ class ChartService:
         # 显示图表
         st.plotly_chart(fig, use_container_width=True)
 
+    def draw_absolute_net_value(self, equity_data: Optional[pd.DataFrame] = None) -> None:
+        """绘制绝对净值金额曲线图
+
+        Args:
+            equity_data: 净值数据DataFrame，包含timestamp, total_value, cash列
+        """
+        # 数据准备：使用传入数据或默认数据源
+        data = equity_data if equity_data is not None else self.data_bundle.trade_records
+
+        # 数据验证和预处理
+        if data is None or data.empty:
+            st.warning("无净值数据可用")
+            return
+
+        required_cols = {'timestamp', 'total_value', 'cash'}
+        if not required_cols.issubset(data.columns):
+            st.warning(f"净值数据缺少必要列，需要: {required_cols}")
+            return
+
+        # 计算持仓市值
+        data = data.copy()
+        data['positions_value'] = data['total_value'] - data['cash']
+
+        # 创建图表
+        fig = go.Figure()
+
+        # 添加总资产线
+        fig.add_trace(
+            go.Scatter(
+                x=data['timestamp'],
+                y=data['total_value'],
+                name="总资产",
+                line=dict(color="#1f77b4", width=2.5),
+                hovertemplate="%{x}<br>总资产: %{y:,.2f}<extra></extra>"
+            )
+        )
+
+        # 添加持仓市值线
+        fig.add_trace(
+            go.Scatter(
+                x=data['timestamp'],
+                y=data['positions_value'],
+                name="持仓市值",
+                line=dict(color="#ff7f0e", width=2),
+                hovertemplate="%{x}<br>持仓市值: %{y:,.2f}<extra></extra>"
+            )
+        )
+
+        # 添加现金线
+        fig.add_trace(
+            go.Scatter(
+                x=data['timestamp'],
+                y=data['cash'],
+                name="现金",
+                line=dict(color="#2ca02c", width=1.5, dash='dot'),
+                hovertemplate="%{x}<br>现金: %{y:,.2f}<extra></extra>"
+            )
+        )
+
+        # 配置图表布局
+        fig.update_layout(
+            title="📈 绝对净值变化",
+            xaxis_title="时间",
+            yaxis_title="金额",
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            height=500
+        )
+
+        # 显示图表
+        st.plotly_chart(fig, use_container_width=True)
+
+        # 显示汇总指标
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("初始总资产", f"{data['total_value'].iloc[0]:,.2f}")
+        with col2:
+            st.metric("最终总资产", f"{data['total_value'].iloc[-1]:,.2f}")
+        with col3:
+            profit = data['total_value'].iloc[-1] - data['total_value'].iloc[0]
+            profit_pct = (profit / data['total_value'].iloc[0]) * 100
+            delta_color = "normal" if profit >= 0 else "inverse"
+            st.metric("总收益", f"{profit:,.2f} ({profit_pct:+.2f}%)", delta_color=delta_color)
+
     def drawMA(self, data: Optional[DataFrame], periods: List[int]) -> List[go.Scatter]:
         """绘制均线"""
         traces = []

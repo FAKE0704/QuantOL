@@ -52,12 +52,35 @@ class BacktestConfigUI:
         """渲染频率配置UI"""
         st.subheader("🔄 数据频率")
 
+        # 获取动态 key 后缀（用于在加载配置后强制刷新 widget）
+        key_suffix = self.session_state.get('_frequency_key_suffix', '')
+
+        # 获取频率值（优先从加载配置的临时标记获取）
+        if '_load_frequency' in self.session_state:
+            frequency = self.session_state._load_frequency
+            del self.session_state._load_frequency
+        else:
+            frequency = self.session_state.backtest_config.frequency
+
+        # 映射实际频率值到显示选项
+        frequency_to_display = {
+            "5": "5分钟", "15": "15分钟", "30": "30分钟", "60": "60分钟", "120": "120分钟",
+            "d": "日线", "w": "周线", "m": "月线", "y": "年线"
+        }
+
+        # 计算索引
         frequency_options = ["5分钟", "15分钟", "30分钟", "60分钟", "120分钟", "日线", "周线", "月线", "年线"]
+        try:
+            default_display = frequency_to_display.get(frequency, "日线")
+            index = frequency_options.index(default_display)
+        except ValueError:
+            index = 5  # 默认日线
+
         frequency = st.selectbox(
             "数据频率",
             options=frequency_options,
-            index=5,  # 默认选择日线
-            key="data_frequency"
+            index=index,
+            key=f"data_frequency_{key_suffix}"
         )
 
         # 映射到实际频率值

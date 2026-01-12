@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "name": "测试开仓",
+    "name": "test_martin_5min_v1",
     "description": "",
-    "created_at": "2026-01-08T14:34:10.682843",
-    "updated_at": "2026-01-08T14:34:10.682849",
+    "created_at": "2026-01-10T11:30:50.012787",
+    "updated_at": "2026-01-10T11:30:50.012791",
     "username": "admin@quantol.com",
     "version": "1.0"
   },
@@ -11,13 +11,13 @@
     "initial_capital": 1000000,
     "commission_rate": 0.0005,
     "slippage": 0.0,
-    "start_date": "2025-04-01",
-    "end_date": "2025-04-30",
-    "target_symbol": "sh.600000",
+    "start_date": "20250401",
+    "end_date": "20250801",
+    "target_symbol": "sh.600604",
     "target_symbols": [
       "sh.600604"
     ],
-    "frequency": "d",
+    "frequency": "5",
     "stop_loss": null,
     "take_profit": null,
     "max_holding_days": null,
@@ -43,7 +43,9 @@
         "system_default"
       ],
       "global_default_strategy": "月定投",
-      "custom_symbols": [],
+      "custom_symbols": [
+        "sh.600604"
+      ],
       "inheritance_enabled": true
     }
   }

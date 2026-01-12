@@ -125,11 +125,19 @@ class RuleBasedStrategy(BaseStrategy):
         try:
             clean_rule = self.parser._clean_rule_name(rule_expr)
 
-            # 使用初始化时保存的规则列值（不重新解析，确保一致性）
-            logger.debug(f"{rule_type}原始表达式: '{rule_expr}'")
-            logger.debug(f"{rule_type}清理后列名: '{clean_rule}'")
+            # 检查规则是否包含 COST 或 POSITION 变量
+            # 如果包含，需要实时解析（因为这些变量在回测过程中会变化）
+            has_dynamic_vars = 'COST' in rule_expr or 'POSITION' in rule_expr
 
-            if clean_rule in self.parser.data.columns:
+            if has_dynamic_vars:
+                # 实时解析包含动态变量的规则
+                logger.debug(f"{rule_type}规则包含动态变量，使用实时解析")
+                should_trade = self.parser.parse(rule_expr, mode='rule')
+                logger.debug(f"{rule_type}实时解析结果: {should_trade}, 当前索引: {self.parser.current_index}")
+            elif clean_rule in self.parser.data.columns:
+                # 使用初始化时保存的规则列值（不重新解析，确保一致性）
+                logger.debug(f"{rule_type}原始表达式: '{rule_expr}'")
+                logger.debug(f"{rule_type}清理后列名: '{clean_rule}'")
                 # 检查索引3附近的值
                 if self.parser.current_index >= 2 and self.parser.current_index <= 4:
                     logger.warning(f"{rule_type}当前索引={self.parser.current_index}, 显示周围索引的规则列值:")

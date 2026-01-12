@@ -491,7 +491,7 @@ class RuleParser:
         if pd.isna(value):
             return 0.0  # 空值处理
         return float(value)
-    
+
     def _eval_function_call(self, node):
         """评估指标函数调用"""
         # 检查递归深度

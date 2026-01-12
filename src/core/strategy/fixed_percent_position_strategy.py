@@ -192,3 +192,189 @@ class FixedPercentPositionStrategy:
                 logger.info(f"更新策略参数 {key}: {value}")
             else:
                 logger.warning(f"未知参数: {key}")
+
+
+class MartingalePositionStrategy(FixedPercentPositionStrategy):
+    """
+    马丁格尔仓位管理策略
+
+    核心原则：
+    - 开仓：按基础比例开仓
+    - 加仓：亏损时按倍数递增仓位（multiplier^level）
+    - 清仓：完全清仓所有持仓
+    - 限制：最大加倍次数限制
+    """
+
+    def __init__(self, base_percent: float, multiplier: float = 2.0,
+                 max_doubles: int = 5, min_lot_size: int = 100):
+        """
+        初始化马丁格尔仓位策略
+
+        Args:
+            base_percent: 基础仓位比例（0-1之间）
+            multiplier: 加倍系数（默认2.0）
+            max_doubles: 最大加倍次数（默认5）
+            min_lot_size: 最小交易手数
+        """
+        super().__init__(percent=base_percent, min_lot_size=min_lot_size)
+        self.base_percent = base_percent
+        self.multiplier = multiplier
+        self.max_doubles = max_doubles
+
+        # Martingale状态（按symbol管理）
+        # {symbol: {'level': int, 'entry_price': float}}
+        self._martingale_states: Dict[str, Dict[str, Any]] = {}
+
+    def _get_or_init_martingale_state(self, symbol: str) -> Dict[str, Any]:
+        """获取或初始化symbol的martingale状态"""
+        if symbol not in self._martingale_states:
+            self._martingale_states[symbol] = {
+                'level': 0,
+                'entry_price': None
+            }
+        return self._martingale_states[symbol]
+
+    def _reset_martingale_state(self, symbol: str):
+        """重置symbol的martingale状态"""
+        if symbol in self._martingale_states:
+            self._martingale_states[symbol] = {
+                'level': 0,
+                'entry_price': None
+            }
+            logger.info(f"Martingale状态已重置: {symbol}")
+
+    def calculate_position_size(self, signal_type: SignalType, portfolio_data: Dict[str, float],
+                             current_price: float, current_position: int = 0, symbol: str = None) -> int:
+        """
+        计算目标仓位大小（Martingale版本）
+
+        Args:
+            signal_type: 信号类型（OPEN, ADD, CLOSE, LIQUIDATE, BUY, SELL）
+            portfolio_data: 投资组合数据
+            current_price: 当前价格
+            current_position: 当前持仓数量
+            symbol: 交易标的（必需，用于管理martingale状态）
+
+        Returns:
+            int: 目标交易数量（正数买入，负数卖出，0表示无操作）
+        """
+        if symbol is None:
+            logger.warning("Martingale策略需要symbol参数")
+            return 0
+
+        try:
+            # 获取或初始化martingale状态
+            state = self._get_or_init_martingale_state(symbol)
+
+            # 检查持仓状态，如果清仓则重置martingale状态
+            if current_position == 0 and state['level'] > 0:
+                self._reset_martingale_state(symbol)
+                state = self._get_or_init_martingale_state(symbol)
+
+            # 处理清仓信号
+            if signal_type == SignalType.LIQUIDATE:
+                self._reset_martingale_state(symbol)
+                return self._calculate_liquidate_position_size(current_position)
+
+            if signal_type == SignalType.CLOSE or signal_type == SignalType.SELL:
+                # 完全清仓
+                self._reset_martingale_state(symbol)
+                return -current_position
+
+            # 计算可用资金
+            available_capital = self._get_available_capital(portfolio_data)
+
+            # 开仓或加仓
+            if signal_type in [SignalType.OPEN, SignalType.BUY]:
+                if current_position == 0:
+                    # 开仓 - 使用基础仓位
+                    quantity = self._calculate_open_position_size(
+                        portfolio_data['available_cash'], current_price, current_position
+                    )
+                    if quantity > 0:
+                        # 记录入场价格
+                        state['entry_price'] = current_price
+                        state['level'] = 0
+                        logger.info(f"Martingale开仓: {symbol}, 价格={current_price}, 数量={quantity}, level=0")
+                    return quantity
+                else:
+                    # 加仓 - 使用martingale倍数
+                    return self._calculate_martingale_add_position_size(
+                        symbol, portfolio_data['available_cash'], current_price, state
+                    )
+            elif signal_type == SignalType.ADD:
+                # 加仓 - 使用martingale倍数
+                return self._calculate_martingale_add_position_size(
+                    symbol, portfolio_data['available_cash'], current_price, state
+                )
+
+            return 0
+
+        except Exception as e:
+            logger.error(f"计算Martingale仓位大小失败: {str(e)}")
+            return 0
+
+    def _calculate_martingale_add_position_size(self, symbol: str, available_cash: float,
+                                               current_price: float, state: Dict[str, Any]) -> int:
+        """
+        计算Martingale加仓数量
+
+        Args:
+            symbol: 交易标的
+            available_cash: 可用现金
+            current_price: 当前价格
+            state: martingale状态
+
+        Returns:
+            int: 加仓数量
+        """
+        # 检查是否达到最大加倍次数
+        if state['level'] >= self.max_doubles:
+            logger.warning(f"Martingale已达到最大加倍次数: {symbol}, level={state['level']}")
+            return 0
+
+        # 计算当前层级
+        current_level = state['level']
+
+        # 计算倍数（第1次加仓level=0, 倍数=1；第2次加仓level=1, 倍数=2；以此类推）
+        multiplier = self.multiplier ** current_level
+
+        # 计算基础仓位
+        base_position_value = available_cash * self.base_percent
+        base_quantity = int(base_position_value / current_price / self.min_lot_size) * self.min_lot_size
+
+        # 应用martingale倍数
+        martingale_quantity = int(base_quantity * multiplier / self.min_lot_size) * self.min_lot_size
+
+        # 检查资金是否足够
+        required_cash = martingale_quantity * current_price
+        if required_cash > available_cash:
+            # 资金不足时减少数量
+            martingale_quantity = int(available_cash / current_price / self.min_lot_size) * self.min_lot_size
+
+        # 更新martingale状态
+        state['level'] += 1
+
+        if martingale_quantity > 0:
+            logger.info(
+                f"Martingale加仓: {symbol}, 价格={current_price}, 数量={martingale_quantity}, "
+                f"level={current_level}->{state['level']}, 倍数={multiplier:.2f}"
+            )
+
+        return martingale_quantity
+
+    def get_strategy_info(self) -> Dict[str, Any]:
+        """获取策略信息"""
+        return {
+            "strategy_type": "martingale",
+            "base_percent": self.base_percent,
+            "multiplier": self.multiplier,
+            "max_doubles": self.max_doubles,
+            "min_lot_size": self.min_lot_size,
+            "martingale_states": self._martingale_states.copy()
+        }
+
+    def get_martingale_level(self, symbol: str) -> int:
+        """获取指定symbol的当前martingale层级"""
+        state = self._get_or_init_martingale_state(symbol)
+        return state['level']

@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "name": "测试开仓_v2",
+    "name": "test_martingale_30min",
     "description": "",
-    "created_at": "2026-01-09T00:28:58.850286",
-    "updated_at": "2026-01-09T00:28:58.850291",
+    "created_at": "2026-01-09T00:59:15.709970",
+    "updated_at": "2026-01-09T00:59:15.709975",
     "username": "admin@quantol.com",
     "version": "1.0"
   },

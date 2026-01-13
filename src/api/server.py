@@ -29,6 +29,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     # Startup
     print("FastAPI server starting up...")
+    # Initialize database tables
+    from src.database import get_db_adapter
+    db = get_db_adapter()
+    await db.initialize()
+    print("Database initialized")
     yield
     # Shutdown
     print("FastAPI server shutting down...")

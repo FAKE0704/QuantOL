@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from "react";
 import { useRequireAuth } from "@/lib/store";
-import { useApi } from "@/lib/api";
+import { useApi, BacktestConfig as ApiBacktestConfig } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
@@ -32,6 +32,13 @@ interface BacktestConfig {
   // Position strategy
   positionStrategy: "fixed_percent" | "kelly" | "martingale";
   positionParams: Record<string, number>;
+
+  // Trading strategy
+  tradingStrategy: string;
+  openRule: string;
+  closeRule: string;
+  buyRule: string;
+  sellRule: string;
 }
 
 interface Stock {
@@ -52,6 +59,11 @@ const defaultConfig: BacktestConfig = {
   minLotSize: 100,
   positionStrategy: "fixed_percent",
   positionParams: { percent: 0.1 },
+  tradingStrategy: "monthly_investment",
+  openRule: "",
+  closeRule: "",
+  buyRule: "",
+  sellRule: "",
 };
 
 // Frequency options
@@ -73,6 +85,59 @@ const positionStrategyOptions = [
   { value: "martingale", label: "马丁格尔" },
 ];
 
+// Trading strategy options
+const tradingStrategyOptions = [
+  { value: "monthly_investment", label: "月定投" },
+  { value: "ma_crossover", label: "移动平均线交叉" },
+  { value: "macd_crossover", label: "MACD交叉" },
+  { value: "rsi", label: "RSI超买超卖" },
+  { value: "martingale", label: "Martingale" },
+  { value: "custom_strategy", label: "自定义策略" },
+];
+
+// Default strategy rules
+const defaultStrategyRules: Record<string, { open_rule: string; close_rule: string; buy_rule: string; sell_rule: string }> = {
+  monthly_investment: {
+    open_rule: "",
+    close_rule: "",
+    buy_rule: "",
+    sell_rule: "",
+  },
+  ma_crossover: {
+    open_rule: "(REF(SMA(close,5), 1) < REF(SMA(close,7), 1)) & (SMA(close,5) > SMA(close,7))",
+    close_rule: "(REF(SMA(close,5), 1) > REF(SMA(close,7), 1)) & (SMA(close,5) < SMA(close,7))",
+    buy_rule: "",
+    sell_rule: "",
+  },
+  macd_crossover: {
+    open_rule: "MACD(close, 12, 26, 9) > MACD_SIGNAL(close, 12, 26, 9)",
+    close_rule: "MACD(close, 12, 26, 9) < MACD_SIGNAL(close, 12, 26, 9)",
+    buy_rule: "",
+    sell_rule: "",
+  },
+  rsi: {
+    open_rule: "(REF(RSI(close,5), 1) < 30) & (RSI(close,5) >= 30)",
+    close_rule: "(REF(RSI(close,5), 1) >= 60) & (RSI(close,5) < 60)",
+    buy_rule: "",
+    sell_rule: "",
+  },
+  martingale: {
+    open_rule: "(close < REF(SMA(close,5), 1)) & (close > SMA(close,5))",
+    close_rule: "(close - (COST/POSITION))/(COST/POSITION) * 100 >= 5",
+    buy_rule: "(close - (COST/POSITION))/(COST/POSITION) * 100 <= -5",
+    sell_rule: "",
+  },
+  custom_strategy: {
+    open_rule: "",
+    close_rule: "",
+    buy_rule: "",
+    sell_rule: "",
+  },
+};
+
+// Local storage keys
+const STRATEGY_RULES_KEY = "quantol_strategy_rules";
+
 // Debounce hook for search input
 function useDebounce(value: string, delay: number): string {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -90,9 +155,49 @@ function useDebounce(value: string, delay: number): string {
   return debouncedValue;
 }
 
+// Collapsible Card Component
+interface CollapsibleCardProps {
+  id: string;
+  title: string;
+  activeCard: string | null;
+  onCardClick: (id: string) => void;
+  children: React.ReactNode;
+}
+
+function CollapsibleCard({ id, title, activeCard, onCardClick, children }: CollapsibleCardProps) {
+  const isCollapsed = activeCard !== null && activeCard !== id;
+  const isActive = activeCard === id;
+
+  return (
+    <Card
+      className={`bg-slate-900/50 border-slate-800 transition-all duration-300 ${
+        isActive ? "ring-2 ring-sky-500/50" : ""
+      } ${isCollapsed ? "cursor-pointer" : ""}`}
+      onClick={() => isCollapsed && onCardClick(id)}
+    >
+      <div className="p-4">
+        <div
+          className={`flex items-center justify-between ${isCollapsed ? "cursor-pointer" : ""}`}
+          onClick={() => !isCollapsed && onCardClick(id)}
+        >
+          <h3 className="text-lg font-semibold">{title}</h3>
+          <span className={`text-slate-400 transition-transform duration-300 ${isActive ? "rotate-180" : ""}`}>
+            {isCollapsed ? "▶" : "▼"}
+          </span>
+        </div>
+        {!isCollapsed && (
+          <div className="mt-4">
+            {children}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 export default function BacktestPage() {
   const { user, isLoading, token } = useRequireAuth();
-  const { getStocks, runBacktest } = useApi();
+  const { getStocks, runBacktest, listBacktestConfigs, createBacktestConfig, updateBacktestConfig, deleteBacktestConfig } = useApi();
 
   const [config, setConfig] = useState<BacktestConfig>(defaultConfig);
   const [isRunning, setIsRunning] = useState(false);
@@ -104,6 +209,16 @@ export default function BacktestPage() {
   const [stockSearch, setStockSearch] = useState("");
   const [isLoadingStocks, setIsLoadingStocks] = useState(false);
   const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set());
+
+  // Card collapse state - track which card is currently active
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+
+  // Backtest config management state
+  const [savedConfigs, setSavedConfigs] = useState<ApiBacktestConfig[]>([]);
+  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
+  const [isLoadingConfigs, setIsLoadingConfigs] = useState(false);
+  const [configNameInput, setConfigNameInput] = useState("");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   // Debounce search input
   const debouncedSearch = useDebounce(stockSearch, 500);
@@ -128,6 +243,341 @@ export default function BacktestPage() {
       console.error("Failed to search stocks:", error);
     } finally {
       setIsLoadingStocks(false);
+    }
+  };
+
+  // Strategy rules management
+  const [customStrategies, setCustomStrategies] = useState<Record<string, { label: string; rules: { open_rule: string; close_rule: string; buy_rule: string; sell_rule: string } }>>({});
+
+  // Load custom strategies from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(STRATEGY_RULES_KEY);
+      if (saved) {
+        try {
+          setCustomStrategies(JSON.parse(saved));
+        } catch (e) {
+          console.error("Failed to parse saved strategies:", e);
+        }
+      }
+    }
+  }, []);
+
+  // Save custom strategies to localStorage
+  const saveCustomStrategies = (strategies: typeof customStrategies) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STRATEGY_RULES_KEY, JSON.stringify(strategies));
+      setCustomStrategies(strategies);
+    }
+  };
+
+  // Get rules for a strategy (from custom strategies or defaults)
+  const getStrategyRules = (strategyValue: string) => {
+    // Check custom strategies first
+    const customStrategy = Object.values(customStrategies).find(s => s.label === strategyValue);
+    if (customStrategy) {
+      return customStrategy.rules;
+    }
+    // Check default strategies
+    const defaultOption = tradingStrategyOptions.find(o => o.label === strategyValue || o.value === strategyValue);
+    if (defaultOption) {
+      return defaultStrategyRules[defaultOption.value] || defaultStrategyRules.custom_strategy;
+    }
+    return defaultStrategyRules.custom_strategy;
+  };
+
+  // Auto-fill rules when strategy type changes
+  useEffect(() => {
+    const currentOption = tradingStrategyOptions.find(o => o.value === config.tradingStrategy);
+    if (currentOption) {
+      const rules = getStrategyRules(currentOption.label);
+      // Only auto-fill if current rules are empty
+      if (!config.openRule && !config.closeRule && !config.buyRule && !config.sellRule) {
+        setConfig({
+          ...config,
+          openRule: rules.open_rule,
+          closeRule: rules.close_rule,
+          buyRule: rules.buy_rule,
+          sellRule: rules.sell_rule,
+        });
+      }
+    }
+  }, [config.tradingStrategy]);
+
+  // Handle saving current rules to the selected strategy
+  const handleSaveToStrategy = () => {
+    const currentOption = tradingStrategyOptions.find(o => o.value === config.tradingStrategy);
+    if (!currentOption) return;
+
+    const rules = {
+      open_rule: config.openRule,
+      close_rule: config.closeRule,
+      buy_rule: config.buyRule,
+      sell_rule: config.sellRule,
+    };
+
+    // Check if this is a custom strategy (not in default options)
+    const isCustomStrategy = config.tradingStrategy.startsWith("custom_");
+
+    if (isCustomStrategy) {
+      // Update existing custom strategy
+      const newStrategies = { ...customStrategies };
+      newStrategies[config.tradingStrategy] = {
+        label: newStrategies[config.tradingStrategy].label,
+        rules,
+      };
+      saveCustomStrategies(newStrategies);
+      alert("自定义策略已更新");
+    } else {
+      // For default strategies, we also save them to custom strategies
+      // so users can modify the defaults
+      const strategyKey = `custom_${config.tradingStrategy}`;
+      const newStrategies = { ...customStrategies };
+      newStrategies[strategyKey] = {
+        label: currentOption.label,
+        rules,
+      };
+      saveCustomStrategies(newStrategies);
+      alert(`已保存规则到 "${currentOption.label}"`);
+    }
+  };
+
+  // Handle saving current rules as a new strategy
+  const handleSaveAsNewStrategy = () => {
+    const newStrategyName = prompt("请输入新策略类型的名称:");
+    if (!newStrategyName || !newStrategyName.trim()) {
+      return;
+    }
+
+    const strategyKey = `custom_${Date.now()}`;
+    const rules = {
+      open_rule: config.openRule,
+      close_rule: config.closeRule,
+      buy_rule: config.buyRule,
+      sell_rule: config.sellRule,
+    };
+
+    const newStrategies = {
+      ...customStrategies,
+      [strategyKey]: {
+        label: newStrategyName.trim(),
+        rules,
+      },
+    };
+    saveCustomStrategies(newStrategies);
+
+    // Switch to the new strategy
+    setConfig({
+      ...config,
+      tradingStrategy: strategyKey,
+    });
+
+    alert(`新策略类型 "${newStrategyName.trim()}" 已创建`);
+  };
+
+  // Get all strategy options (default + custom)
+  const getAllStrategyOptions = () => {
+    const customOptions = Object.entries(customStrategies).map(([key, value]) => ({
+      value: key,
+      label: value.label,
+    }));
+    return [...tradingStrategyOptions, ...customOptions];
+  };
+
+  // Card order for collapse logic
+  const cardOrder = ["stocks", "date-frequency", "basic-config", "position-strategy", "trading-strategy"];
+
+  // Check if a card should be collapsed
+  const shouldCollapseCard = (cardId: string) => {
+    if (!activeCard) return false;
+    const activeIndex = cardOrder.indexOf(activeCard);
+    const currentIndex = cardOrder.indexOf(cardId);
+    return currentIndex < activeIndex;
+  };
+
+  // Handle card activation
+  const handleCardClick = (cardId: string) => {
+    // Toggle: if clicking the already active card, collapse it
+    if (activeCard === cardId) {
+      setActiveCard(null);
+    } else {
+      setActiveCard(cardId);
+    }
+  };
+
+  // Load saved configs on mount
+  useEffect(() => {
+    loadSavedConfigs();
+  }, []);
+
+  // Load saved configs from API
+  const loadSavedConfigs = async () => {
+    setIsLoadingConfigs(true);
+    try {
+      const response = await listBacktestConfigs();
+      console.log("listBacktestConfigs response:", response);
+      if (response.success && response.data) {
+        console.log("Setting saved configs:", response.data);
+        setSavedConfigs(response.data);
+      } else {
+        console.log("Response not successful or no data:", response);
+      }
+    } catch (error) {
+      console.error("Failed to load configs:", error);
+    } finally {
+      setIsLoadingConfigs(false);
+    }
+  };
+
+  // Load a config and populate the form
+  const handleLoadConfig = async (configId: number) => {
+    const configToLoad = savedConfigs.find(c => c.id === configId);
+    if (!configToLoad) return;
+
+    // Convert backend format to frontend format
+    const formatDate = (dateStr: string) => {
+      // YYYYMMDD -> YYYY-MM-DD
+      if (dateStr.length === 8) {
+        return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`;
+      }
+      return dateStr;
+    };
+
+    // Update the form state
+    setConfig({
+      startDate: formatDate(configToLoad.start_date),
+      endDate: formatDate(configToLoad.end_date),
+      frequency: configToLoad.frequency,
+      symbols: configToLoad.symbols,
+      initialCapital: configToLoad.initial_capital,
+      commissionRate: configToLoad.commission_rate,
+      slippage: configToLoad.slippage,
+      minLotSize: configToLoad.min_lot_size,
+      positionStrategy: configToLoad.position_strategy as "fixed_percent" | "kelly" | "martingale",
+      positionParams: configToLoad.position_params as Record<string, number>,
+      tradingStrategy: configToLoad.trading_strategy || "monthly_investment",
+      openRule: configToLoad.open_rule || "",
+      closeRule: configToLoad.close_rule || "",
+      buyRule: configToLoad.buy_rule || "",
+      sellRule: configToLoad.sell_rule || "",
+    });
+
+    // Update selected stocks
+    setSelectedStocks(new Set(configToLoad.symbols));
+    setSelectedConfigId(configId);
+  };
+
+  // Save current config as new
+  const handleSaveAsNewConfig = async () => {
+    const name = configNameInput.trim();
+    if (!name) {
+      alert("请输入配置名称");
+      return;
+    }
+
+    try {
+      const formatDate = (dateStr: string) => {
+        const [year, month, day] = dateStr.split("-");
+        return `${year}${month}${day}`;
+      };
+
+      const response = await createBacktestConfig({
+        name,
+        description: `回测配置 - ${new Date().toLocaleDateString()}`,
+        start_date: formatDate(config.startDate),
+        end_date: formatDate(config.endDate),
+        frequency: config.frequency,
+        symbols: config.symbols,
+        initial_capital: config.initialCapital,
+        commission_rate: config.commissionRate,
+        slippage: config.slippage,
+        min_lot_size: config.minLotSize,
+        position_strategy: config.positionStrategy,
+        position_params: config.positionParams,
+        trading_strategy: config.tradingStrategy,
+        open_rule: config.openRule || undefined,
+        close_rule: config.closeRule || undefined,
+        buy_rule: config.buyRule || undefined,
+        sell_rule: config.sellRule || undefined,
+      });
+
+      if (response.success) {
+        alert("配置已保存");
+        setShowSaveDialog(false);
+        setConfigNameInput("");
+        await loadSavedConfigs();
+      } else {
+        alert("保存失败: " + response.message);
+      }
+    } catch (error) {
+      console.error("Failed to save config:", error);
+      alert("保存失败: " + (error instanceof Error ? error.message : "未知错误"));
+    }
+  };
+
+  // Update existing config with current form values
+  const handleUpdateConfig = async () => {
+    if (!selectedConfigId) {
+      alert("请先选择一个配置");
+      return;
+    }
+
+    try {
+      const formatDate = (dateStr: string) => {
+        const [year, month, day] = dateStr.split("-");
+        return `${year}${month}${day}`;
+      };
+
+      const response = await updateBacktestConfig(selectedConfigId, {
+        start_date: formatDate(config.startDate),
+        end_date: formatDate(config.endDate),
+        frequency: config.frequency,
+        symbols: config.symbols,
+        initial_capital: config.initialCapital,
+        commission_rate: config.commissionRate,
+        slippage: config.slippage,
+        min_lot_size: config.minLotSize,
+        position_strategy: config.positionStrategy,
+        position_params: config.positionParams,
+        trading_strategy: config.tradingStrategy,
+        open_rule: config.openRule || undefined,
+        close_rule: config.closeRule || undefined,
+        buy_rule: config.buyRule || undefined,
+        sell_rule: config.sellRule || undefined,
+      });
+
+      if (response.success) {
+        alert("配置已更新");
+        await loadSavedConfigs();
+      } else {
+        alert("更新失败: " + response.message);
+      }
+    } catch (error) {
+      console.error("Failed to update config:", error);
+      alert("更新失败: " + (error instanceof Error ? error.message : "未知错误"));
+    }
+  };
+
+  // Delete config
+  const handleDeleteConfig = async (configId: number) => {
+    if (!confirm("确定要删除此配置吗？")) {
+      return;
+    }
+
+    try {
+      const response = await deleteBacktestConfig(configId);
+      if (response.success) {
+        if (selectedConfigId === configId) {
+          setSelectedConfigId(null);
+        }
+        alert("配置已删除");
+        await loadSavedConfigs();
+      } else {
+        alert("删除失败: " + response.message);
+      }
+    } catch (error) {
+      console.error("Failed to delete config:", error);
+      alert("删除失败: " + (error instanceof Error ? error.message : "未知错误"));
     }
   };
 
@@ -157,6 +607,11 @@ export default function BacktestPage() {
         return `${year}${month}${day}`;
       };
 
+      // Get strategy type label
+      const strategyTypeLabel = tradingStrategyOptions.find(
+        (opt) => opt.value === config.tradingStrategy
+      )?.label || config.tradingStrategy;
+
       const response = await runBacktest({
         start_date: formatDate(config.startDate),
         end_date: formatDate(config.endDate),
@@ -168,6 +623,13 @@ export default function BacktestPage() {
         min_lot_size: config.minLotSize,
         position_strategy: config.positionStrategy,
         position_params: config.positionParams,
+        strategy_config: {
+          type: strategyTypeLabel,
+          open_rule: config.openRule,
+          close_rule: config.closeRule,
+          buy_rule: config.buyRule,
+          sell_rule: config.sellRule,
+        },
       });
 
       if (response.success && response.data?.backtest_id) {
@@ -249,10 +711,67 @@ export default function BacktestPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Configuration Panel */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Stock Selection */}
-            <Card className="p-6 bg-slate-900/50 border-slate-800">
-              <h3 className="text-lg font-semibold mb-4">选择交易标的</h3>
+            {/* Config Selector */}
+            <Card className="p-4 bg-slate-900/50 border-slate-800">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-300">回测配置</h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowSaveDialog(true)}
+                    className="h-7 px-2 text-xs border-sky-600 text-sky-400 hover:bg-sky-600/10"
+                  >
+                    保存为新配置
+                  </Button>
+                </div>
 
+                <select
+                  value={selectedConfigId || "custom"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "custom") {
+                      setSelectedConfigId(null);
+                    } else {
+                      handleLoadConfig(Number(val));
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white text-sm"
+                >
+                  <option value="custom">自定义配置</option>
+                  {savedConfigs.map((cfg) => (
+                    <option key={cfg.id} value={cfg.id}>
+                      {cfg.name} {cfg.is_default ? "(默认)" : ""}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Action buttons for selected config */}
+                {selectedConfigId && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleUpdateConfig}
+                      className="flex-1 h-8 text-xs border-emerald-600 text-emerald-400 hover:bg-emerald-600/10"
+                    >
+                      更新配置
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeleteConfig(selectedConfigId)}
+                      className="flex-1 h-8 text-xs border-red-600 text-red-400 hover:bg-red-600/10"
+                    >
+                      删除配置
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Stock Selection */}
+            <CollapsibleCard id="stocks" title="选择交易标的" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
                 <input
                   type="text"
@@ -296,12 +815,10 @@ export default function BacktestPage() {
                   已选择 {selectedStocks.size} 只股票
                 </p>
               </div>
-            </Card>
+            </CollapsibleCard>
 
             {/* Date & Frequency */}
-            <Card className="p-6 bg-slate-900/50 border-slate-800">
-              <h3 className="text-lg font-semibold mb-4">日期与频率</h3>
-
+            <CollapsibleCard id="date-frequency" title="日期与频率" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="start-date" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
@@ -355,12 +872,10 @@ export default function BacktestPage() {
                   </select>
                 </div>
               </div>
-            </Card>
+            </CollapsibleCard>
 
             {/* Basic Configuration */}
-            <Card className="p-6 bg-slate-900/50 border-slate-800">
-              <h3 className="text-lg font-semibold mb-4">基础配置</h3>
-
+            <CollapsibleCard id="basic-config" title="基础配置" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="initial-capital" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
@@ -426,12 +941,10 @@ export default function BacktestPage() {
                   </div>
                 </div>
               </div>
-            </Card>
+            </CollapsibleCard>
 
             {/* Position Strategy */}
-            <Card className="p-6 bg-slate-900/50 border-slate-800">
-              <h3 className="text-lg font-semibold mb-4">仓位策略</h3>
-
+            <CollapsibleCard id="position-strategy" title="仓位策略" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="position-strategy" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
@@ -600,7 +1113,116 @@ export default function BacktestPage() {
                   </div>
                 )}
               </div>
-            </Card>
+            </CollapsibleCard>
+
+            {/* Trading Strategy */}
+            <CollapsibleCard id="trading-strategy" title="交易策略配置" activeCard={activeCard} onCardClick={handleCardClick}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="trading-strategy" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                    策略类型
+                  </label>
+                  <select
+                    id="trading-strategy"
+                    value={config.tradingStrategy}
+                    onChange={(e) =>
+                      setConfig({ ...config, tradingStrategy: e.target.value, openRule: "", closeRule: "", buyRule: "", sellRule: "" })
+                    }
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                  >
+                    {getAllStrategyOptions().map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="open-rule" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                      开仓条件
+                    </label>
+                    <textarea
+                      id="open-rule"
+                      value={config.openRule}
+                      onChange={(e) =>
+                        setConfig({ ...config, openRule: e.target.value })
+                      }
+                      placeholder="如: close > ma20"
+                      rows={3}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 text-sm resize-y"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="close-rule" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                      清仓条件
+                    </label>
+                    <textarea
+                      id="close-rule"
+                      value={config.closeRule}
+                      onChange={(e) =>
+                        setConfig({ ...config, closeRule: e.target.value })
+                      }
+                      placeholder="如: close < ma20"
+                      rows={3}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 text-sm resize-y"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="buy-rule" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                      加仓条件
+                    </label>
+                    <textarea
+                      id="buy-rule"
+                      value={config.buyRule}
+                      onChange={(e) =>
+                        setConfig({ ...config, buyRule: e.target.value })
+                      }
+                      placeholder="如: rsi < 30"
+                      rows={3}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 text-sm resize-y"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="sell-rule" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                      平仓条件
+                    </label>
+                    <textarea
+                      id="sell-rule"
+                      value={config.sellRule}
+                      onChange={(e) =>
+                        setConfig({ ...config, sellRule: e.target.value })
+                      }
+                      placeholder="如: rsi > 70"
+                      rows={3}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 text-sm resize-y"
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={handleSaveToStrategy}
+                    variant="outline"
+                    className="flex-1 border-sky-600 text-sky-400 hover:bg-sky-600/10"
+                  >
+                    保存到当前策略
+                  </Button>
+                  <Button
+                    onClick={handleSaveAsNewStrategy}
+                    variant="outline"
+                    className="flex-1 border-emerald-600 text-emerald-400 hover:bg-emerald-600/10"
+                  >
+                    保存为新策略
+                  </Button>
+                </div>
+              </div>
+            </CollapsibleCard>
 
             {/* Action Buttons */}
             <div className="flex gap-4">
@@ -635,7 +1257,7 @@ export default function BacktestPage() {
                 {/* Embed Streamlit chart with backtest results */}
                 <div className="bg-slate-800 rounded-lg overflow-hidden" style={{ height: "600px" }}>
                   <iframe
-                    src={`${typeof window !== "undefined" ? window.location.origin : ""}?headless=true&chart=backtest&backtest=${backtestId}&token=${token}`}
+                    src={`${process.env.NEXT_PUBLIC_STREAMLIT_URL || "http://localhost:8087"}?headless=true&chart=backtest&backtest=${backtestId}&token=${token}`}
                     className="w-full h-full border-0"
                     title="Backtest Results"
                     sandbox="allow-scripts allow-same-origin"
@@ -659,6 +1281,54 @@ export default function BacktestPage() {
           </div>
         </div>
       </main>
+
+      {/* Save Config Dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="p-6 bg-slate-900 border-slate-800 w-96">
+            <h3 className="text-lg font-semibold mb-4">保存为新配置</h3>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="config-name" className="block text-sm text-slate-400 mb-2">
+                  配置名称
+                </label>
+                <input
+                  id="config-name"
+                  type="text"
+                  value={configNameInput}
+                  onChange={(e) => setConfigNameInput(e.target.value)}
+                  placeholder="输入配置名称"
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSaveAsNewConfig();
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowSaveDialog(false);
+                    setConfigNameInput("");
+                  }}
+                  className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800"
+                >
+                  取消
+                </Button>
+                <Button
+                  onClick={handleSaveAsNewConfig}
+                  className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                >
+                  保存
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

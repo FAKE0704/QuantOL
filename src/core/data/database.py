@@ -188,6 +188,35 @@ class DatabaseManager(DatabaseAdapter):
                     UNIQUE (stat_month)
                 );
             """)
+
+            # 建表BacktestConfigs
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS BacktestConfigs (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    name VARCHAR(100) NOT NULL,
+                    description TEXT,
+                    start_date VARCHAR(20) NOT NULL,
+                    end_date VARCHAR(20) NOT NULL,
+                    frequency VARCHAR(20) NOT NULL,
+                    symbols TEXT NOT NULL,
+                    initial_capital NUMERIC NOT NULL,
+                    commission_rate NUMERIC NOT NULL,
+                    slippage NUMERIC NOT NULL,
+                    min_lot_size INTEGER NOT NULL,
+                    position_strategy VARCHAR(50) NOT NULL,
+                    position_params JSONB,
+                    trading_strategy VARCHAR(50),
+                    open_rule TEXT,
+                    close_rule TEXT,
+                    buy_rule TEXT,
+                    sell_rule TEXT,
+                    is_default BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    UNIQUE (user_id, name)
+                );
+            """)
             
         logger.debug("数据库表结构初始化完成",
                 extra={'connection_id': id(conn)}

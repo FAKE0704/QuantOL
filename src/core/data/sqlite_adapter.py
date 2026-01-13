@@ -12,6 +12,85 @@ from src.support.log.logger import logger
 from .database_adapter import DatabaseAdapter
 
 
+class SQLiteConnectionWrapper:
+    """Wrapper for SQLite connection to provide asyncpg-compatible interface.
+
+    This allows the BacktestConfigService to work with both SQLite and PostgreSQL
+    using the same code path.
+    """
+
+    def __init__(self, conn: aiosqlite.Connection):
+        self._conn = conn
+        self._transaction = None
+
+    async def fetchval(self, query: str, *args):
+        """Execute query and return first value of first row."""
+        cursor = await self._conn.execute(query, args)
+        row = await cursor.fetchone()
+        return row[0] if row else None
+
+    async def fetchrow(self, query: str, *args):
+        """Execute query and return first row as dict."""
+        cursor = await self._conn.execute(query, args)
+        row = await cursor.fetchone()
+        if row:
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, row))
+        return None
+
+    async def fetch(self, query: str, *args):
+        """Execute query and return all rows as list of dicts."""
+        cursor = await self._conn.execute(query, args)
+        rows = await cursor.fetchall()
+        if rows and cursor.description:
+            columns = [desc[0] for desc in cursor.description]
+            return [dict(zip(columns, row)) for row in rows]
+        return rows or []
+
+    async def execute(self, query: str, *args):
+        """Execute query and return cursor."""
+        return await self._conn.execute(query, args)
+
+    async def __aenter__(self):
+        # Start a transaction
+        self._transaction = self._conn
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        # Commit the transaction when exiting the context
+        if exc_type is None:
+            await self._conn.commit()
+        else:
+            await self._conn.rollback()
+
+
+class SQLitePoolWrapper:
+    """Wrapper for SQLite connection pool to provide asyncpg pool interface.
+
+    This allows using 'async with pool as conn:' syntax directly.
+    """
+
+    def __init__(self, adapter: 'SQLiteAdapter'):
+        self._adapter = adapter
+        self._conn = None
+
+    async def __aenter__(self):
+        """Acquire a connection when entering the context."""
+        conn = await self._adapter._get_connection()
+        # Ensure WAL mode is enabled for this connection
+        await conn.execute("PRAGMA journal_mode = WAL")
+        await conn.execute("PRAGMA synchronous = NORMAL")
+        self._conn = SQLiteConnectionWrapper(conn)
+        return self._conn
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Release the connection when exiting the context."""
+        # Commit any pending transaction
+        if exc_type is None and self._conn:
+            await self._conn._conn.commit()
+        self._conn = None
+
+
 class SQLiteAdapter(DatabaseAdapter):
     """SQLite数据库适配器"""
 
@@ -21,6 +100,9 @@ class SQLiteAdapter(DatabaseAdapter):
         self._initialized = False
         self._pool_lock = asyncio.Lock()
         self._pool_index = 0
+
+        # Create the pool wrapper for asyncpg-compatible interface
+        self._pool_wrapper = None
 
         # 从环境变量读取配置，提供默认值
         import os
@@ -36,6 +118,13 @@ class SQLiteAdapter(DatabaseAdapter):
         self._instance_id = id(self)
         self._data_source_manager = None
         logger.info(f"创建SQLiteAdapter实例 #{self._instance_id} - 连接池:{self._max_connections}, 超时:{self._busy_timeout}ms, 批量大小:{self._batch_size}")
+
+    @property
+    def pool(self):
+        """Return the pool wrapper for asyncpg-compatible interface."""
+        if self._pool_wrapper is None:
+            self._pool_wrapper = SQLitePoolWrapper(self)
+        return self._pool_wrapper
 
     def set_data_source_manager(self, data_source_manager):
         """设置数据源管理器引用"""
@@ -339,6 +428,39 @@ class SQLiteAdapter(DatabaseAdapter):
 
             await conn.execute(sql2)
             logger.info("✅ StockData表创建成功")
+
+            # 创建 BacktestConfigs 表
+            logger.info("🔨 开始创建BacktestConfigs表...")
+            sql3 = """
+                CREATE TABLE IF NOT EXISTS BacktestConfigs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    start_date TEXT NOT NULL,
+                    end_date TEXT NOT NULL,
+                    frequency TEXT NOT NULL,
+                    symbols TEXT NOT NULL,
+                    initial_capital REAL NOT NULL,
+                    commission_rate REAL NOT NULL,
+                    slippage REAL NOT NULL,
+                    min_lot_size INTEGER NOT NULL,
+                    position_strategy TEXT NOT NULL,
+                    position_params TEXT,
+                    trading_strategy TEXT,
+                    open_rule TEXT,
+                    close_rule TEXT,
+                    buy_rule TEXT,
+                    sell_rule TEXT,
+                    is_default INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (user_id, name)
+                )
+            """
+
+            await conn.execute(sql3)
+            logger.info("✅ BacktestConfigs表创建成功")
 
             logger.info("🎉 SQLite表结构初始化完成")
 

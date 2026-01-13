@@ -73,6 +73,23 @@ const positionStrategyOptions = [
   { value: "martingale", label: "马丁格尔" },
 ];
 
+// Debounce hook for search input
+function useDebounce(value: string, delay: number): string {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function BacktestPage() {
   const { user, isLoading, token } = useRequireAuth();
   const { getStocks, runBacktest } = useApi();
@@ -88,20 +105,27 @@ export default function BacktestPage() {
   const [isLoadingStocks, setIsLoadingStocks] = useState(false);
   const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set());
 
-  // Load stocks on mount
-  useEffect(() => {
-    loadStocks();
-  }, []);
+  // Debounce search input
+  const debouncedSearch = useDebounce(stockSearch, 500);
 
-  const loadStocks = async () => {
+  // Search stocks when debounced input changes
+  useEffect(() => {
+    if (debouncedSearch.length >= 1) {
+      searchStocks(debouncedSearch);
+    } else {
+      setStocks([]);
+    }
+  }, [debouncedSearch]);
+
+  const searchStocks = async (search: string) => {
     setIsLoadingStocks(true);
     try {
-      const response = await getStocks();
+      const response = await getStocks(search, 100);
       if (response.success && response.data) {
         setStocks(response.data);
       }
     } catch (error) {
-      console.error("Failed to load stocks:", error);
+      console.error("Failed to search stocks:", error);
     } finally {
       setIsLoadingStocks(false);
     }
@@ -167,13 +191,6 @@ export default function BacktestPage() {
   }
 
   if (!user) return null;
-
-  // Filter stocks based on search
-  const filteredStocks = stocks.filter(
-    (stock) =>
-      stock.code.toLowerCase().includes(stockSearch.toLowerCase()) ||
-      stock.name.toLowerCase().includes(stockSearch.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -250,8 +267,14 @@ export default function BacktestPage() {
                     <div className="text-center py-4">
                       <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-sky-500" />
                     </div>
+                  ) : stocks.length === 0 ? (
+                    <div className="text-center py-4 text-slate-500 text-sm">
+                      {stockSearch.length === 0
+                        ? "请输入股票代码或名称进行搜索"
+                        : "未找到匹配的股票"}
+                    </div>
                   ) : (
-                    filteredStocks.slice(0, 50).map((stock) => (
+                    stocks.slice(0, 50).map((stock) => (
                       <label
                         key={stock.code}
                         className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded cursor-pointer"
@@ -281,38 +304,43 @@ export default function BacktestPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">
+                  <label htmlFor="start-date" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
                     开始日期
                   </label>
                   <input
+                    id="start-date"
                     type="date"
                     value={config.startDate}
                     onChange={(e) =>
                       setConfig({ ...config, startDate: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                    onFocus={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white select-none cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">
+                  <label htmlFor="end-date" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
                     结束日期
                   </label>
                   <input
+                    id="end-date"
                     type="date"
                     value={config.endDate}
                     onChange={(e) =>
                       setConfig({ ...config, endDate: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                    onFocus={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white select-none cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">
+                  <label htmlFor="frequency" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
                     数据频率
                   </label>
                   <select
+                    id="frequency"
                     value={config.frequency}
                     onChange={(e) =>
                       setConfig({ ...config, frequency: e.target.value })
@@ -335,10 +363,11 @@ export default function BacktestPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">
+                  <label htmlFor="initial-capital" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
                     初始资金
                   </label>
                   <input
+                    id="initial-capital"
                     type="number"
                     value={config.initialCapital}
                     onChange={(e) =>
@@ -355,10 +384,11 @@ export default function BacktestPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2">
+                    <label htmlFor="commission-rate" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
                       手续费率
                     </label>
                     <input
+                      id="commission-rate"
                       type="number"
                       value={config.commissionRate}
                       onChange={(e) =>
@@ -375,10 +405,11 @@ export default function BacktestPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2">
+                    <label htmlFor="slippage" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
                       滑点率
                     </label>
                     <input
+                      id="slippage"
                       type="number"
                       value={config.slippage}
                       onChange={(e) =>
@@ -403,10 +434,11 @@ export default function BacktestPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">
+                  <label htmlFor="position-strategy" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
                     策略类型
                   </label>
                   <select
+                    id="position-strategy"
                     value={config.positionStrategy}
                     onChange={(e) =>
                       setConfig({
@@ -440,10 +472,11 @@ export default function BacktestPage() {
 
                 {config.positionStrategy === "fixed_percent" && (
                   <div>
-                    <label className="block text-sm text-slate-400 mb-2">
+                    <label htmlFor="position-percent" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
                       仓位比例
                     </label>
                     <input
+                      id="position-percent"
                       type="number"
                       value={(config.positionParams.percent || 0.1) * 100}
                       onChange={(e) =>
@@ -468,10 +501,11 @@ export default function BacktestPage() {
                 {config.positionStrategy === "kelly" && (
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">
+                      <label htmlFor="kelly-win-rate" className="block text-sm text-slate-400 mb-1 cursor-pointer hover:text-slate-300">
                         预估胜率
                       </label>
                       <input
+                        id="kelly-win-rate"
                         type="number"
                         value={(config.positionParams.win_rate || 0.6) * 100}
                         onChange={(e) =>
@@ -490,10 +524,11 @@ export default function BacktestPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">
+                      <label htmlFor="kelly-win-loss-ratio" className="block text-sm text-slate-400 mb-1 cursor-pointer hover:text-slate-300">
                         预估盈亏比
                       </label>
                       <input
+                        id="kelly-win-loss-ratio"
                         type="number"
                         value={config.positionParams.win_loss_ratio || 1.5}
                         onChange={(e) =>
@@ -517,10 +552,11 @@ export default function BacktestPage() {
                 {config.positionStrategy === "martingale" && (
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">
+                      <label htmlFor="martingale-base-percent" className="block text-sm text-slate-400 mb-1 cursor-pointer hover:text-slate-300">
                         基础仓位比例
                       </label>
                       <input
+                        id="martingale-base-percent"
                         type="number"
                         value={(config.positionParams.base_percent || 0.05) * 100}
                         onChange={(e) =>
@@ -539,10 +575,11 @@ export default function BacktestPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">
+                      <label htmlFor="martingale-multiplier" className="block text-sm text-slate-400 mb-1 cursor-pointer hover:text-slate-300">
                         加倍系数
                       </label>
                       <input
+                        id="martingale-multiplier"
                         type="number"
                         value={config.positionParams.multiplier || 2.0}
                         onChange={(e) =>

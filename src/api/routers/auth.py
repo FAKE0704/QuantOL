@@ -226,7 +226,7 @@ async def refresh_token(
     )
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me")
 async def get_current_user_info(
     current_user: dict = Depends(get_current_user),
 ):
@@ -236,14 +236,18 @@ async def get_current_user_info(
         current_user: Current authenticated user
 
     Returns:
-        User info response
+        User info response in consistent API format
     """
-    return UserResponse(
-        user_id=current_user["user_id"],
-        username=current_user["username"],
-        email=current_user.get("email", ""),
-        role=current_user.get("role", "user"),
-    )
+    return {
+        "success": True,
+        "message": "User retrieved successfully",
+        "data": {
+            "user_id": current_user["user_id"],
+            "username": current_user["username"],
+            "email": current_user.get("email", ""),
+            "role": current_user.get("role", "user"),
+        }
+    }
 
 
 @router.get("/registration-status", response_model=RegistrationStatusResponse)

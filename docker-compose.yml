@@ -51,6 +51,32 @@ services:
       - quant_network
     restart: unless-stopped
 
+  landing-page:
+    build:
+      context: ./landing-page
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - quant_network
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - landing-page
+      - quant-web
+    networks:
+      - quant_network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   streamlit_cache:

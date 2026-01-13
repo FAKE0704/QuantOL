@@ -11,6 +11,14 @@ NC='\033[0m' # No Color
 echo -e "${YELLOW}正在停止 QuantOL 服务...${NC}"
 
 # 从 PID 文件读取并停止进程
+if [ -f logs/fastapi.pid ]; then
+    PID=$(cat logs/fastapi.pid)
+    if ps -p $PID > /dev/null 2>&1; then
+        kill $PID
+        echo -e "${GREEN}✓ API 服务已停止 (PID: $PID)${NC}"
+    fi
+    rm logs/fastapi.pid
+fi
 if [ -f logs/landing-page.pid ]; then
     PID=$(cat logs/landing-page.pid)
     if ps -p $PID > /dev/null 2>&1; then
@@ -40,5 +48,11 @@ fi
 
 # 强制停止 nginx（可能有多个进程）
 pkill -f "nginx.*nginx.conf" 2>/dev/null && echo -e "${GREEN}✓ Nginx 进程已清理${NC}"
+
+# 强制停止 FastAPI（可能有残留进程）
+pkill -f "uvicorn.*8000" 2>/dev/null && echo -e "${GREEN}✓ FastAPI 进程已清理${NC}"
+
+# 强制停止 Next.js（可能有残留进程）
+pkill -f "next dev" 2>/dev/null && echo -e "${GREEN}✓ Next.js 进程已清理${NC}"
 
 echo -e "${GREEN}所有服务已停止！${NC}"

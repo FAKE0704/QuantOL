@@ -28,6 +28,11 @@ check_port() {
 }
 
 # 检查必要的端口
+if ! check_port 8000; then
+    echo -e "${RED}错误: 端口 8000 已被占用，请先关闭占用该端口的进程${NC}"
+    exit 1
+fi
+
 if ! check_port 3000; then
     echo -e "${RED}错误: 端口 3000 已被占用，请先关闭占用该端口的进程${NC}"
     exit 1
@@ -46,7 +51,15 @@ fi
 # 创建日志目录
 mkdir -p logs
 
-echo -e "${GREEN}[1/4] 启动落地页 (Next.js)...${NC}"
+echo -e "${GREEN}[1/5] 启动 API 服务 (FastAPI)...${NC}"
+uv run uvicorn src.api.server:app --host 0.0.0.0 --port 8000 > logs/fastapi.log 2>&1 &
+FASTAPI_PID=$!
+echo -e "${GREEN}✓ API 服务已启动 (PID: $FASTAPI_PID, 端口: 8000)${NC}"
+
+# 等待 FastAPI 启动
+sleep 2
+
+echo -e "${GREEN}[2/5] 启动落地页 (Next.js)...${NC}"
 cd landing-page
 npm run dev > ../logs/landing-page.log 2>&1 &
 LANDING_PID=$!
@@ -56,7 +69,7 @@ cd ..
 # 等待落地页启动
 sleep 3
 
-echo -e "${GREEN}[2/4] 启动 Streamlit 应用...${NC}"
+echo -e "${GREEN}[3/5] 启动 Streamlit 应用...${NC}"
 uv run streamlit run main.py --server.port 8501 > logs/streamlit.log 2>&1 &
 STREAMLIT_PID=$!
 echo -e "${GREEN}✓ Streamlit 应用已启动 (PID: $STREAMLIT_PID, 端口: 8501)${NC}"
@@ -64,12 +77,13 @@ echo -e "${GREEN}✓ Streamlit 应用已启动 (PID: $STREAMLIT_PID, 端口: 850
 # 等待 Streamlit 启动
 sleep 3
 
-echo -e "${GREEN}[3/4] 启动 Nginx 反向代理...${NC}"
+echo -e "${GREEN}[4/5] 启动 Nginx 反向代理...${NC}"
 nginx -c $(pwd)/nginx.conf -p $(pwd) > logs/nginx.log 2>&1 &
 NGINX_PID=$!
 echo -e "${GREEN}✓ Nginx 已启动 (PID: $NGINX_PID, 端口: 8087)${NC}"
 
 # 保存 PID 到文件
+echo "$FASTAPI_PID" > logs/fastapi.pid
 echo "$LANDING_PID" > logs/landing-page.pid
 echo "$STREAMLIT_PID" > logs/streamlit.pid
 echo "$NGINX_PID" > logs/nginx.pid
@@ -79,13 +93,16 @@ echo -e "${GREEN}======================================${NC}"
 echo -e "${GREEN}✓ 所有服务已成功启动！${NC}"
 echo -e "${GREEN}======================================${NC}"
 echo -e "${YELLOW}📱 访问地址: http://localhost:8087${NC}"
-echo -e "${YELLOW}   - 落地页: http://localhost:8087/${NC}"
-echo -e "${YELLOW}   - 应用:   http://localhost:8087/app${NC}"
+echo -e "${YELLOW}   - 登录:   http://localhost:8087/login${NC}"
+echo -e "${YELLOW}   - 控制台: http://localhost:8087/dashboard${NC}"
+echo -e "${YELLOW}   - 回测:   http://localhost:8087/backtest${NC}"
+echo -e "${YELLOW}   - API 文档: http://localhost:8087/api/docs${NC}"
 echo ""
 echo -e "${YELLOW}📝 日志文件:${NC}"
-echo -e "   - 落地页: logs/landing-page.log"
+echo -e "   - API 服务: logs/fastapi.log"
+echo -e "   - 落地页:   logs/landing-page.log"
 echo -e "   - Streamlit: logs/streamlit.log"
-echo -e "   - Nginx: logs/nginx.log"
+echo -e "   - Nginx:    logs/nginx.log"
 echo ""
 echo -e "${YELLOW}🛑 停止服务: ./stop.sh${NC}"
 echo -e "${GREEN}======================================${NC}"

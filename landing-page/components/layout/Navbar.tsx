@@ -45,7 +45,7 @@ export function Navbar() {
                 <a
                   key={link.name}
                   href={link.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-slate-400 hover:text-sky-400 transition-colors"
                 >
                   {link.name}
                 </a>
@@ -53,7 +53,7 @@ export function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-slate-400 hover:text-sky-400 transition-colors"
                 >
                   {link.name}
                 </Link>
@@ -63,7 +63,7 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2"
+            className="md:hidden p-2 text-slate-400 hover:text-white transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -83,7 +83,7 @@ export function Navbar() {
                 <a
                   key={link.name}
                   href={link.href}
-                  className="block text-muted-foreground hover:text-foreground transition-colors"
+                  className="block text-slate-400 hover:text-sky-400 transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.name}
@@ -92,7 +92,7 @@ export function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className="block text-muted-foreground hover:text-foreground transition-colors"
+                  className="block text-slate-400 hover:text-sky-400 transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {link.name}

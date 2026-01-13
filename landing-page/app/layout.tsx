@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ConditionalNavbar } from "@/components/layout/ConditionalNavbar";
+import { ClientProvider } from "@/components/providers/ClientProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -35,9 +37,11 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <Navbar />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
+        <ClientProvider>
+          <ConditionalNavbar />
+          <main className="min-h-screen">{children}</main>
+          <Footer />
+        </ClientProvider>
       </body>
     </html>
   );

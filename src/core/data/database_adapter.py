@@ -79,3 +79,79 @@ class DatabaseAdapter(ABC):
     def get_pool_status(self) -> dict:
         """获取连接池状态"""
         pass
+
+    # Backtest config CRUD operations
+    @abstractmethod
+    async def create_backtest_config(
+        self,
+        user_id: int,
+        name: str,
+        description: Optional[str],
+        start_date: str,
+        end_date: str,
+        frequency: str,
+        symbols: List[str],
+        initial_capital: float,
+        commission_rate: float,
+        slippage: float,
+        min_lot_size: int,
+        position_strategy: str,
+        position_params: dict,
+        trading_strategy: Optional[str] = None,
+        open_rule: Optional[str] = None,
+        close_rule: Optional[str] = None,
+        buy_rule: Optional[str] = None,
+        sell_rule: Optional[str] = None,
+        is_default: bool = False,
+    ) -> Optional[dict]:
+        """创建回测配置"""
+        pass
+
+    @abstractmethod
+    async def get_backtest_config_by_id(self, config_id: int, user_id: int) -> Optional[dict]:
+        """根据ID获取回测配置"""
+        pass
+
+    @abstractmethod
+    async def list_backtest_configs(
+        self, user_id: int, limit: int = 50, offset: int = 0
+    ) -> List[dict]:
+        """列出回测配置"""
+        pass
+
+    @abstractmethod
+    async def update_backtest_config(
+        self,
+        config_id: int,
+        user_id: int,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        frequency: Optional[str] = None,
+        symbols: Optional[List[str]] = None,
+        initial_capital: Optional[float] = None,
+        commission_rate: Optional[float] = None,
+        slippage: Optional[float] = None,
+        min_lot_size: Optional[int] = None,
+        position_strategy: Optional[str] = None,
+        position_params: Optional[dict] = None,
+        trading_strategy: Optional[str] = None,
+        open_rule: Optional[str] = None,
+        close_rule: Optional[str] = None,
+        buy_rule: Optional[str] = None,
+        sell_rule: Optional[str] = None,
+        is_default: Optional[bool] = None,
+    ) -> Optional[dict]:
+        """更新回测配置"""
+        pass
+
+    @abstractmethod
+    async def delete_backtest_config(self, config_id: int, user_id: int) -> bool:
+        """删除回测配置"""
+        pass
+
+    @abstractmethod
+    async def set_default_backtest_config(self, config_id: int, user_id: int) -> bool:
+        """设置默认回测配置"""
+        pass

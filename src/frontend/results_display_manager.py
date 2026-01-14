@@ -113,6 +113,9 @@ class ResultsDisplayManager:
         with col3:
             # 计算年化收益率（简化计算）
             equity_data = pd.DataFrame(results["equity_records"])
+            # 转换 timestamp 为 datetime 类型
+            if 'timestamp' in equity_data.columns:
+                equity_data['timestamp'] = pd.to_datetime(equity_data['timestamp'])
             if len(equity_data) > 1:
                 days = (equity_data['timestamp'].iloc[-1] - equity_data['timestamp'].iloc[0]).days
                 if days > 0:

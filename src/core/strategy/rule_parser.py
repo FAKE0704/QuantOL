@@ -747,26 +747,31 @@ class RuleParser:
         self.value_cache[cache_key] = result_float
         # 存储指标计算结果到engine.data
         col_name = f"{func_name}({args_str})"
-        
+
         # 严格检查列是否存在（包括属性和注释）
         col_exists = (
-            col_name in self.data.columns and 
+            col_name in self.data.columns and
             f"{col_name}_expr" in self.data.attrs
         )
-        
+
         if not col_exists:
             # 初始化列并填充NaN
             self.data[col_name] = [float('nan')] * len(self.data)
             # 添加表达式注释
             self.data.attrs[f"{col_name}_expr"] = f"{func_name}({args_str})"
-        
+
         # 确保当前索引有效
         if 0 <= self.current_index < len(self.data):
             self.data.at[self.current_index, col_name] = result_float
-            
+            # 调试：记录SMA指标的存储（只记录前10次和之后每100次）
+            if func_name.upper() == 'SMA' and self.current_index < 10:
+                logger.info(f"[DEBUG] 存储 SMA({args_str}) 在索引 {self.current_index}, 值={result_float}, data索引类型={type(self.data.index)}, 数据长度={len(self.data)}")
+            elif func_name.upper() == 'SMA' and self.current_index % 100 == 0:
+                logger.info(f"[DEBUG] 存储 SMA({args_str}) 在索引 {self.current_index}, 值={result_float}")
+
         else:
             logger.error(f"无效索引 {self.current_index} 无法存储指标 {col_name}")
-        
+
         return result_float
     
         

@@ -4,8 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from src.core.strategy.backtesting import BacktestConfig
-from src.core.strategy.strategy import FixedInvestmentStrategy
-from src.core.data.database import DatabaseManager
 from src.services.progress_service import progress_service
 from typing import cast
 import time
@@ -324,3 +322,186 @@ async def show_backtesting_page():
 
         # 使用ResultsDisplayUI组件显示结果
         results_ui.render_results_tabs(results, backtest_config)
+
+
+async def show_backtest_result_chart(backtest_id: str):
+    """显示指定回测ID的结果（用于 iframe 嵌入模式）"""
+    try:
+        import httpx
+
+        # 获取 FastAPI 后端地址
+        api_base = st.session_state.get('api_base', 'http://localhost:8000')
+
+        # 获取 token
+        token = st.session_state.get('auth_token', '')
+
+        async with httpx.AsyncClient() as client:
+            # 获取回测结果
+            response = await client.get(
+                f"{api_base}/api/backtest/results/{backtest_id}",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=30.0
+            )
+
+            if response.status_code != 200:
+                st.error(f"无法获取回测结果: HTTP {response.status_code}")
+                return
+
+            data = response.json()
+            if not data.get("success"):
+                st.error(f"获取回测结果失败: {data.get('message', '未知错误')}")
+                return
+
+            backtest_data = data.get("data", {})
+            if not backtest_data:
+                st.warning("回测结果为空，可能回测仍在进行中")
+                return
+
+            # 从回测结果中获取配置信息
+            config_data = backtest_data.get("config")
+            if not config_data:
+                st.error("回测结果中缺少配置信息，无法显示")
+                return
+
+            # 创建 BacktestConfig 对象
+            backtest_config = _create_config_from_api_data(config_data)
+            if backtest_config is None:
+                return
+
+            # 获取实际的回测结果（在 result 字段中）
+            results = backtest_data.get("result")
+            if not results:
+                # 如果没有 result 字段，说明回测可能还在进行中或失败了
+                status = backtest_data.get("status", "unknown")
+                st.warning(f"回测状态: {status}，暂无结果数据")
+                return
+
+            # 修复结果数据类型（从Redis反序列化后数字变成字符串）
+            try:
+                results = _fix_result_types(results)
+                logger.info(f"Results type fixed, keys: {list(results.keys()) if isinstance(results, dict) else type(results)}")
+            except Exception as e:
+                logger.error(f"Error fixing result types: {e}")
+                # 如果修复失败，继续使用原始结果
+                import traceback
+                traceback.print_exc()
+
+            # 显示回测结果
+            results_ui = ResultsDisplayUI(st.session_state)
+            results_ui.render_results_tabs(results, backtest_config)
+
+    except Exception as e:
+        import traceback
+        st.error(f"显示回测结果时出错: {str(e)}")
+        logger.error(f"show_backtest_result_chart error: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+
+
+def _fix_result_types(obj, max_depth=50):
+    """修复从Redis反序列化后的数据类型（将数字字符串转换为数字类型，恢复DataFrame对象）"""
+    from src.support.log.logger import logger
+
+    if max_depth <= 0:
+        return obj
+
+    if isinstance(obj, dict):
+        # 检查是否是DataFrame序列化后的格式
+        if obj.get("__type__") == "DataFrame":
+            import pandas as pd
+            import numpy as np
+            # 从序列化数据恢复DataFrame
+            df = pd.DataFrame(obj.get("__data__", []))
+            # 恢复attrs属性
+            attrs = obj.get("__attrs__", {})
+            if attrs:
+                df.attrs = attrs
+
+            # 关键修复：将数值列转换为正确的类型
+            # 识别数值列名
+            numeric_columns = ['open', 'close', 'high', 'low', 'volume', 'amount',
+                            'prev_close', 'change', 'pct_change', 'position', 'cash',
+                            'total_value', 'cost', 'profit', 'profit_pct']
+            for col in df.columns:
+                if col in numeric_columns or col.startswith('SMA') or col.startswith('RSI') or col.startswith('MACD'):
+                    # 尝试将列转换为数值类型
+                    try:
+                        before_type = df[col].dtype
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                        after_type = df[col].dtype
+                        # 记录SMA列的转换情况
+                        if col.startswith('SMA'):
+                            non_null_count = df[col].notna().sum()
+                            logger.info(f"[DEBUG] SMA列 {col}: 转换前类型={before_type}, 转换后类型={after_type}, 非空值数={non_null_count}/{len(df)}")
+                            if non_null_count > 0:
+                                sample_values = df[col].dropna().head().tolist()
+                                logger.info(f"  前5个非空值: {sample_values}")
+                    except Exception as e:
+                        pass  # 保持原样
+
+            return df
+        # 递归处理字典的值
+        return {k: _fix_result_types(v, max_depth - 1) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_fix_result_types(item, max_depth - 1) for item in obj]
+    elif isinstance(obj, str):
+        # 跳过日期字符串（包含连字符或可能是日期格式）
+        if '-' in obj and len(obj) > 4:  # 可能是日期
+            return obj
+        # 尝试将字符串转换为数字
+        try:
+            # 只转换纯数字字符串（整数或小数）
+            if obj.replace('.', '', 1).replace('-', '', 1).isdigit():
+                if '.' in obj:
+                    return float(obj)
+                else:
+                    return int(obj)
+        except (ValueError, TypeError, AttributeError):
+            pass
+        # 如果不能转换，保持原样
+        return obj
+    else:
+        return obj
+
+
+def _create_config_from_api_data(config_data: dict) -> BacktestConfig:
+    """从 API 返回的配置数据创建 BacktestConfig 对象"""
+    try:
+        # 从 API 数据中提取字段，确保类型正确
+        start_date = str(config_data.get("start_date", "20200101"))
+        end_date = str(config_data.get("end_date", "20241231"))
+        symbols = config_data.get("symbols", [])
+        frequency = str(config_data.get("frequency", "d"))
+
+        # 确保数字类型正确转换
+        initial_capital = float(config_data.get("initial_capital", 100000))
+        commission_rate = float(config_data.get("commission_rate", 0.0003))
+        slippage = float(config_data.get("slippage", 0.0))
+        position_strategy = str(config_data.get("position_strategy", "fixed_percent"))
+
+        # 确保 position_params 中的值也是正确的类型
+        position_params = config_data.get("position_params", {})
+        if position_params:
+            position_params = {k: float(v) if isinstance(v, (int, float, str)) else v
+                             for k, v in position_params.items()}
+
+        # 确保有至少一个标的
+        if not symbols:
+            st.error("配置中缺少股票代码")
+            return None
+
+        return BacktestConfig(
+            start_date=start_date,
+            end_date=end_date,
+            target_symbol=symbols[0],
+            target_symbols=symbols,
+            frequency=frequency,
+            initial_capital=initial_capital,
+            commission_rate=commission_rate,
+            slippage=slippage,
+            position_strategy_type=position_strategy,
+            position_strategy_params=position_params
+        )
+    except Exception as e:
+        st.error(f"解析配置数据失败: {str(e)}")
+        logger.error(f"_create_config_from_api_data error: {str(e)}")
+        return None

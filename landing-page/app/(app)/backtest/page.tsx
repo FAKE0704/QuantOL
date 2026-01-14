@@ -6,12 +6,14 @@
  * Configure and run backtests with the QuantOL platform.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRequireAuth } from "@/lib/store";
 import { useApi, BacktestConfig as ApiBacktestConfig } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
+import { BacktestProgressBar } from "@/components/backtest/BacktestProgressBar";
+import { useBacktestWebSocket } from "@/lib/hooks/useBacktestWebSocket";
 
 // Types
 interface BacktestConfig {
@@ -204,6 +206,10 @@ export default function BacktestPage() {
   const [showResults, setShowResults] = useState(false);
   const [backtestId, setBacktestId] = useState<string | null>(null);
 
+  // WebSocket进度追踪状态
+  const [backtestProgress, setBacktestProgress] = useState<any>(null);
+  const [showProgress, setShowProgress] = useState(false);
+
   // Stock selection state
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [stockSearch, setStockSearch] = useState("");
@@ -219,6 +225,7 @@ export default function BacktestPage() {
   const [isLoadingConfigs, setIsLoadingConfigs] = useState(false);
   const [configNameInput, setConfigNameInput] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Debounce search input
   const debouncedSearch = useDebounce(stockSearch, 500);
@@ -410,6 +417,39 @@ export default function BacktestPage() {
     loadSavedConfigs();
   }, []);
 
+  // WebSocket回调函数（使用useCallback避免重复创建导致重连）
+  const handleBacktestProgress = useCallback((progress: BacktestProgress) => {
+    setBacktestProgress(progress);
+    setShowProgress(true);
+    // 当回测开始运行时，确保按钮状态正确
+    if (progress.status === 'running') {
+      setIsRunning(true);
+    }
+  }, []);
+
+  const handleBacktestComplete = useCallback(() => {
+    // 延迟显示结果，让用户看到进度条达到 100%
+    setTimeout(() => {
+      setShowResults(true);
+      setShowProgress(false);
+      setIsRunning(false);  // 确保按钮状态恢复
+    }, 1000);
+  }, []);
+
+  const handleBacktestError = useCallback((error: string) => {
+    console.error("回测失败:", error);
+    setShowProgress(false);
+    setIsRunning(false);  // 确保按钮状态恢复
+  }, []);
+
+  // WebSocket连接回测进度
+  useBacktestWebSocket({
+    backtestId: backtestId,
+    onProgress: handleBacktestProgress,
+    onComplete: handleBacktestComplete,
+    onError: handleBacktestError,
+  });
+
   // Load saved configs from API
   const loadSavedConfigs = async () => {
     setIsLoadingConfigs(true);
@@ -431,8 +471,16 @@ export default function BacktestPage() {
 
   // Load a config and populate the form
   const handleLoadConfig = async (configId: number) => {
+    console.log("handleLoadConfig called with configId:", configId);
+    console.log("Current savedConfigs:", savedConfigs);
     const configToLoad = savedConfigs.find(c => c.id === configId);
-    if (!configToLoad) return;
+    console.log("Found configToLoad:", configToLoad);
+    if (!configToLoad) {
+      console.error("Config not found in savedConfigs");
+      return;
+    }
+
+    console.log("configToLoad.symbols:", configToLoad.symbols);
 
     // Convert backend format to frontend format
     const formatDate = (dateStr: string) => {
@@ -463,8 +511,25 @@ export default function BacktestPage() {
     });
 
     // Update selected stocks
-    setSelectedStocks(new Set(configToLoad.symbols));
+    const newSelectedStocks = new Set(configToLoad.symbols);
+    console.log("Setting selectedStocks to:", newSelectedStocks);
+    setSelectedStocks(newSelectedStocks);
     setSelectedConfigId(configId);
+
+    // Trigger stock searches for all symbols in the config
+    // This will populate the stocks array so they can be displayed
+    const symbols = configToLoad.symbols;
+    if (symbols && symbols.length > 0) {
+      console.log("Searching for stocks:", symbols);
+      // Search for each symbol to populate the stocks list
+      for (const symbol of symbols) {
+        await searchStocks(symbol, 100);
+      }
+      // Clear the search input after loading
+      setStockSearch("");
+    }
+
+    console.log("Config loaded successfully");
   };
 
   // Save current config as new
@@ -522,6 +587,13 @@ export default function BacktestPage() {
       return;
     }
 
+    // Prevent multiple simultaneous updates
+    if (isUpdating) {
+      return;
+    }
+
+    setIsUpdating(true);
+
     try {
       const formatDate = (dateStr: string) => {
         const [year, month, day] = dateStr.split("-");
@@ -555,6 +627,8 @@ export default function BacktestPage() {
     } catch (error) {
       console.error("Failed to update config:", error);
       alert("更新失败: " + (error instanceof Error ? error.message : "未知错误"));
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -599,6 +673,9 @@ export default function BacktestPage() {
     }
 
     setIsRunning(true);
+    setShowResults(false);  // 隐藏之前的结果
+    setBacktestProgress(null);  // 重置进度
+    setShowProgress(true);  // 显示进度区域
 
     try {
       // Format dates for backend (YYYYMMDD)
@@ -634,14 +711,21 @@ export default function BacktestPage() {
 
       if (response.success && response.data?.backtest_id) {
         setBacktestId(response.data.backtest_id);
-        setShowResults(true);
+        // WebSocket会自动连接并开始接收进度更新，完成后自动显示结果
+        // 注意：不在这里设置 setIsRunning(false)，而是等待WebSocket回调
+      } else {
+        // 如果启动失败，恢复按钮状态
+        setIsRunning(false);
+        setShowProgress(false);
+        alert("回测启动失败: " + (response.message || "未知错误"));
       }
     } catch (error) {
       console.error("Backtest failed:", error);
       alert("回测启动失败: " + (error instanceof Error ? error.message : "未知错误"));
-    } finally {
-      setIsRunning(false);
+      setShowProgress(false);
+      setIsRunning(false);  // 只有在错误时才恢复按钮状态
     }
+    // 移除 finally 块，避免立即恢复按钮状态
   };
 
   if (isLoading) {
@@ -753,9 +837,10 @@ export default function BacktestPage() {
                       size="sm"
                       variant="outline"
                       onClick={handleUpdateConfig}
-                      className="flex-1 h-8 text-xs border-emerald-600 text-emerald-400 hover:bg-emerald-600/10"
+                      disabled={isUpdating}
+                      className="flex-1 h-8 text-xs border-emerald-600 text-emerald-400 hover:bg-emerald-600/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      更新配置
+                      {isUpdating ? "更新中..." : "更新配置"}
                     </Button>
                     <Button
                       size="sm"
@@ -1248,6 +1333,16 @@ export default function BacktestPage() {
 
           {/* Results / Chart Area */}
           <div className="lg:col-span-2">
+            {/* 进度条 - 使用WebSocket实时更新 */}
+            {showProgress && backtestProgress && (
+              <BacktestProgressBar
+                progress={backtestProgress.progress * 100}
+                currentTime={backtestProgress.current_time}
+                status={backtestProgress.status}
+                error={backtestProgress.error}
+              />
+            )}
+
             {showResults && backtestId ? (
               <Card className="p-6 bg-slate-900/50 border-slate-800">
                 <div className="flex items-center justify-between mb-4">
@@ -1257,7 +1352,7 @@ export default function BacktestPage() {
                 {/* Embed Streamlit chart with backtest results */}
                 <div className="bg-slate-800 rounded-lg overflow-hidden" style={{ height: "600px" }}>
                   <iframe
-                    src={`${process.env.NEXT_PUBLIC_STREAMLIT_URL || "http://localhost:8087"}?headless=true&chart=backtest&backtest=${backtestId}&token=${token}`}
+                    src={`/app?headless=true&chart=backtest&backtest=${backtestId}&token=${token}`}
                     className="w-full h-full border-0"
                     title="Backtest Results"
                     sandbox="allow-scripts allow-same-origin"

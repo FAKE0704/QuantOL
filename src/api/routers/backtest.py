@@ -21,6 +21,9 @@ from pydantic import BaseModel
 from src.database import get_db_adapter
 from src.services.backtest_config_service import BacktestConfigService
 from src.core.auth.jwt_service import JWTService
+from src.services.backtest_task_manager import backtest_task_manager
+from src.services.backtest_state_service import backtest_state_service
+from fastapi import BackgroundTasks
 
 # Router
 router = APIRouter()
@@ -158,11 +161,12 @@ _backtests: dict[str, dict] = {}
 
 
 @router.post("/run", response_model=BacktestResponse, status_code=status.HTTP_202_ACCEPTED)
-async def run_backtest(request: BacktestRequest):
-    """Run a backtest with the given configuration.
+async def run_backtest(request: BacktestRequest, background_tasks: BackgroundTasks):
+    """Run a backtest with the given configuration (async execution with WebSocket progress).
 
     Args:
         request: Backtest configuration
+        background_tasks: FastAPI background tasks
 
     Returns:
         Backtest response with backtest_id
@@ -171,39 +175,25 @@ async def run_backtest(request: BacktestRequest):
         # Generate unique backtest ID
         backtest_id = f"bt_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
-        # Store backtest request
-        _backtests[backtest_id] = {
-            "id": backtest_id,
-            "status": "pending",
-            "config": request.model_dump(),
-            "created_at": datetime.utcnow().isoformat(),
-            "result": None,
-        }
-
-        # TODO: Execute backtest asynchronously
-        # For now, just return the backtest_id
-        # In production, this should:
-        # 1. Create a BacktestConfig from the request
-        # 2. Initialize a BacktestEngine with the config
-        # 3. Run the backtest
-        # 4. Store results in database
+        # Submit to background task manager (creates Redis record and starts async execution)
+        backtest_task_manager.submit_backtest(backtest_id, request, background_tasks)
 
         return BacktestResponse(
             success=True,
-            message=f"Backtest {backtest_id} queued for execution",
+            message=f"Backtest {backtest_id} started. Connect via WebSocket for progress updates.",
             data={"backtest_id": backtest_id},
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to queue backtest: {str(e)}",
+            detail=f"Failed to start backtest: {str(e)}",
         )
 
 
 @router.get("/results/{backtest_id}", response_model=BacktestResponse)
 async def get_backtest_results(backtest_id: str):
-    """Get results for a specific backtest.
+    """Get results and progress for a specific backtest from Redis.
 
     Args:
         backtest_id: Backtest ID
@@ -212,17 +202,17 @@ async def get_backtest_results(backtest_id: str):
         Backtest results response
     """
     try:
-        if backtest_id not in _backtests:
+        backtest = backtest_state_service.get_backtest(backtest_id)
+
+        if not backtest:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Backtest {backtest_id} not found",
             )
 
-        backtest = _backtests[backtest_id]
-
         return BacktestResponse(
             success=True,
-            message="Backtest found",
+            message="Backtest status retrieved",
             data=backtest,
         )
 
@@ -231,7 +221,7 @@ async def get_backtest_results(backtest_id: str):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch backtest results: {str(e)}",
+            detail=f"Failed to fetch backtest status: {str(e)}",
         )
 
 
@@ -240,7 +230,7 @@ async def list_backtests(
     limit: int = 50,
     offset: int = 0,
 ):
-    """List all backtests.
+    """List all backtests from Redis.
 
     Args:
         limit: Maximum number of results
@@ -250,30 +240,28 @@ async def list_backtests(
         Backtest list response
     """
     try:
-        # Get backtests sorted by creation date
-        backtest_list = sorted(
-            _backtests.values(),
-            key=lambda x: x["created_at"],
-            reverse=True,
-        )
+        # Get backtests from Redis
+        backtest_list = backtest_state_service.list_backtests(limit)
 
         # Apply pagination
         paginated_list = backtest_list[offset : offset + limit]
 
         # Convert to response format
-        results = [
-            BacktestResult(
-                backtest_id=bt["id"],
-                status=bt["status"],
-                created_at=bt["created_at"],
-                completed_at=bt.get("completed_at"),
-                total_return=bt.get("result", {}).get("total_return"),
-                sharpe_ratio=bt.get("result", {}).get("sharpe_ratio"),
-                max_drawdown=bt.get("result", {}).get("max_drawdown"),
-                win_rate=bt.get("result", {}).get("win_rate"),
+        results = []
+        for bt in paginated_list:
+            full_data = backtest_state_service.get_backtest(bt["id"], {})
+            results.append(
+                BacktestResult(
+                    backtest_id=bt["id"],
+                    status=bt["status"],
+                    created_at=bt["created_at"],
+                    completed_at=full_data.get("completed_at"),
+                    total_return=full_data.get("result", {}).get("summary", {}).get("total_return"),
+                    sharpe_ratio=full_data.get("result", {}).get("performance_metrics", {}).get("sharpe_ratio"),
+                    max_drawdown=full_data.get("result", {}).get("performance_metrics", {}).get("max_drawdown_pct"),
+                    win_rate=full_data.get("result", {}).get("summary", {}).get("win_rate"),
+                )
             )
-            for bt in paginated_list
-        ]
 
         return BacktestListResponse(
             success=True,

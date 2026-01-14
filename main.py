@@ -232,6 +232,48 @@ async def main():
     # 初始化全局服务
     await init_global_services()
 
+    # 检查是否为 headless 模式（通过 iframe 嵌入访问）
+    # 这种情况下，使用 URL 参数中的 token 进行认证
+    query_params = st.query_params
+    is_headless = query_params.get("headless") == "true"
+    chart_type = query_params.get("chart")
+    token_param = query_params.get("token")
+
+    # Headless 模式：使用 token 参数直接认证并显示图表
+    if is_headless and token_param and chart_type:
+        # 验证 token 并设置 session_state
+        from src.frontend.auth.auth_utils import verify_token_with_api
+        user_info = await verify_token_with_api(token_param)
+
+        if user_info:
+            # 设置 session_state 以通过认证检查
+            st.session_state.auth_token = token_param
+            st.session_state.current_user = user_info
+
+            # 隐藏 Streamlit 的默认元素
+            st.markdown("""
+            <style>
+                .stApp { margin: 0; padding: 0; }
+                .stDeployButton { display: none; }
+                #MainMenu { visibility: hidden; }
+                footer { visibility: hidden; }
+                header { visibility: hidden; }
+                [data-testid="stSidebarNav"] { display: none; }
+            </style>
+            """, unsafe_allow_html=True)
+
+            # 根据图表类型显示相应内容
+            if chart_type == "backtest":
+                backtest_id = query_params.get("backtest")
+                if backtest_id:
+                    # 直接显示回测结果
+                    from src.frontend.backtesting import show_backtest_result_chart
+                    await show_backtest_result_chart(backtest_id)
+            return
+        else:
+            st.error("认证失败，请重新登录")
+            return
+
     # 检查是否需要显示登录/注册页面
     # 如果用户未登录，只显示登录页面，不显示任何其他功能
     if not check_authentication():

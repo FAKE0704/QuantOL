@@ -238,6 +238,9 @@ class ResultsDisplayUI:
             # 方法2：从price_data获取规则数据（原有逻辑）
             if not rule_columns:
                 price_data = results.get("price_data")
+                # 如果 price_data 是列表（从JSON反序列化后），转换为DataFrame
+                if isinstance(price_data, list):
+                    price_data = pd.DataFrame(price_data)
                 if price_data is not None and not price_data.empty:
                     rule_columns = self._find_rule_columns(price_data)
                     if rule_columns:
@@ -535,14 +538,27 @@ class ResultsDisplayUI:
         if "combined_equity" in results:
             return results["combined_equity"]
         elif "equity_records" in results:
-            return pd.DataFrame(results["equity_records"])
+            equity_data = pd.DataFrame(results["equity_records"])
+            # 转换 timestamp 为 datetime 类型（从Redis反序列化后是字符串）
+            if 'timestamp' in equity_data.columns:
+                equity_data['timestamp'] = pd.to_datetime(equity_data['timestamp'])
+            return equity_data
         return None
 
     def _get_price_data(self, results: Dict[str, Any]) -> pd.DataFrame:
         """获取价格数据"""
-        # 这里需要根据实际数据结构调整
         if "price_data" in results:
-            return results["price_data"]
+            price_data = results["price_data"]
+            # 如果 price_data 是列表（从JSON反序列化后），转换为DataFrame
+            if isinstance(price_data, list):
+                price_data = pd.DataFrame(price_data)
+            # 转换时间相关列为datetime类型
+            if price_data is not None and not price_data.empty:
+                if 'combined_time' in price_data.columns:
+                    price_data['combined_time'] = pd.to_datetime(price_data['combined_time'])
+                elif 'date' in price_data.columns:
+                    price_data['date'] = pd.to_datetime(price_data['date'])
+            return price_data
         return None
 
     def _get_trades_data(self, results: Dict[str, Any]) -> pd.DataFrame:

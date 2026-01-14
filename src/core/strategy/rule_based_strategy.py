@@ -60,6 +60,9 @@ class RuleBasedStrategy(BaseStrategy):
                         for i in range(len(self.Data)):
                             self.parser.current_index = i
                             should_trade = self.parser.parse(rule_expr, mode='rule')
+                            # 每1000行记录一次进度
+                            if i % 1000 == 0:
+                                logger.info(f"{rule_type}规则评估进度: {i}/{len(self.Data)}")
                             if i < 5:  # 只记录前5个索引的结果
                                 logger.debug(f"{rule_type}规则[{i}]: {should_trade}")
 
@@ -68,7 +71,12 @@ class RuleBasedStrategy(BaseStrategy):
                             true_count = self.parser.data[clean_rule].sum()
                             logger.info(f"{rule_type}规则初始化完成，{clean_rule}列中有 {true_count} 个True值")
 
-                        # logger.info(f"{rule_type}规则完整评估完成，生成了 {len(self.Data)} 个数据点的结果")  # 注释掉以减少日志噪音
+                        # 检查SMA列是否存在
+                        sma_col = f"SMA(close,5)"
+                        if sma_col in self.parser.data.columns:
+                            non_null = self.parser.data[sma_col].notna().sum()
+                            logger.info(f"SMA列统计: 总行数={len(self.parser.data)}, 非空值={non_null}, 前5个值={self.parser.data[sma_col].head().tolist()}")
+
                     except Exception as e:
                         logger.error(f"{rule_type}规则完整评估失败: {str(e)}")
 

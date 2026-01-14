@@ -4,6 +4,7 @@ import chinese_calendar as calendar
 import datetime
 from typing import Any, Optional, Dict, List
 import os
+import json
 import chinese_calendar as calendar
 import asyncio
 import random
@@ -21,7 +22,6 @@ class SQLiteConnectionWrapper:
 
     def __init__(self, conn: aiosqlite.Connection):
         self._conn = conn
-        self._transaction = None
 
     async def fetchval(self, query: str, *args):
         """Execute query and return first value of first row."""
@@ -49,19 +49,16 @@ class SQLiteConnectionWrapper:
 
     async def execute(self, query: str, *args):
         """Execute query and return cursor."""
-        return await self._conn.execute(query, args)
-
-    async def __aenter__(self):
-        # Start a transaction
-        self._transaction = self._conn
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        # Commit the transaction when exiting the context
-        if exc_type is None:
-            await self._conn.commit()
-        else:
-            await self._conn.rollback()
+        # aiosqlite expects parameters as a list
+        # Convert tuple to list to avoid any confusion
+        params = list(args) if args else []
+        # Debug log for INSERT statements
+        if 'INSERT' in query.upper():
+            placeholders = query.count('?')
+            logger.info(f"[DEBUG] execute: {placeholders} placeholders, {len(params)} params")
+            if len(params) != placeholders:
+                logger.error(f"[ERROR] Parameter count mismatch! Expected {placeholders}, got {len(params)}")
+        return await self._conn.execute(query, params)
 
 
 class SQLitePoolWrapper:
@@ -77,17 +74,18 @@ class SQLitePoolWrapper:
     async def __aenter__(self):
         """Acquire a connection when entering the context."""
         conn = await self._adapter._get_connection()
-        # Ensure WAL mode is enabled for this connection
-        await conn.execute("PRAGMA journal_mode = WAL")
-        await conn.execute("PRAGMA synchronous = NORMAL")
+        # PRAGMA settings are already applied in _configure_connection
         self._conn = SQLiteConnectionWrapper(conn)
         return self._conn
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Release the connection when exiting the context."""
-        # Commit any pending transaction
-        if exc_type is None and self._conn:
+        if self._conn and exc_type is None:
+            # Commit the transaction
             await self._conn._conn.commit()
+        elif self._conn:
+            # Rollback on error
+            await self._conn._conn.rollback()
         self._conn = None
 
 
@@ -1199,4 +1197,335 @@ class SQLiteAdapter(DatabaseAdapter):
             "current_connection_index": self._pool_index,
             "busy_timeout": self._busy_timeout,
             "connected": len(self.pools) > 0
+        }
+
+    # Backtest config CRUD operations
+    async def create_backtest_config(
+        self,
+        user_id: int,
+        name: str,
+        description: Optional[str],
+        start_date: str,
+        end_date: str,
+        frequency: str,
+        symbols: List[str],
+        initial_capital: float,
+        commission_rate: float,
+        slippage: float,
+        min_lot_size: int,
+        position_strategy: str,
+        position_params: dict,
+        trading_strategy: Optional[str] = None,
+        open_rule: Optional[str] = None,
+        close_rule: Optional[str] = None,
+        buy_rule: Optional[str] = None,
+        sell_rule: Optional[str] = None,
+        is_default: bool = False,
+    ) -> Optional[dict]:
+        """创建回测配置"""
+        try:
+            async with self.pool as conn:
+                # If this is default, unset other defaults for this user
+                if is_default:
+                    await conn.execute(
+                        "UPDATE BacktestConfigs SET is_default = 0 WHERE user_id = ?",
+                        user_id
+                    )
+
+                # Convert symbols list to JSON string
+                symbols_json = json.dumps(symbols)
+
+                # Check if config already exists
+                existing = await conn.fetchval(
+                    "SELECT id FROM BacktestConfigs WHERE user_id = ? AND name = ?",
+                    user_id, name
+                )
+
+                if existing:
+                    # Update existing config
+                    await conn.execute(
+                        """UPDATE BacktestConfigs
+                           SET description = ?, start_date = ?, end_date = ?,
+                               frequency = ?, symbols = ?, initial_capital = ?,
+                               commission_rate = ?, slippage = ?, min_lot_size = ?,
+                               position_strategy = ?, position_params = ?,
+                               trading_strategy = ?, open_rule = ?, close_rule = ?,
+                               buy_rule = ?, sell_rule = ?, is_default = ?,
+                               updated_at = datetime('now')
+                           WHERE user_id = ? AND name = ?""",
+                        description, start_date, end_date, frequency, symbols_json,
+                        initial_capital, commission_rate, slippage, min_lot_size,
+                        position_strategy, json.dumps(position_params), trading_strategy,
+                        open_rule, close_rule, buy_rule, sell_rule, 1 if is_default else 0,
+                        user_id, name
+                    )
+                    config_id = existing
+                else:
+                    # Insert new config
+                    values = (
+                        user_id, name, description, start_date, end_date, frequency,
+                        symbols_json, initial_capital, commission_rate, slippage, min_lot_size,
+                        position_strategy, json.dumps(position_params), trading_strategy,
+                        open_rule, close_rule, buy_rule, sell_rule, 1 if is_default else 0
+                    )
+                    logger.info(f"[DEBUG] Inserting {len(values)} values: {[type(v).__name__ for v in values]}")
+
+                    cursor = await conn.execute(
+                        """INSERT INTO BacktestConfigs
+                           (user_id, name, description, start_date, end_date, frequency,
+                            symbols, initial_capital, commission_rate, slippage, min_lot_size,
+                            position_strategy, position_params, trading_strategy,
+                            open_rule, close_rule, buy_rule, sell_rule, is_default)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        *values
+                    )
+                    # Get the inserted ID using lastrowid
+                    config_id = cursor.lastrowid
+
+                logger.info(f"Created backtest config '{name}' for user {user_id}, config_id={config_id}")
+
+                # Query the config in the same connection (transaction)
+                row = await conn.fetchrow(
+                    """SELECT id, user_id, name, description, start_date, end_date, frequency,
+                              symbols, initial_capital, commission_rate, slippage, min_lot_size,
+                              position_strategy, position_params, trading_strategy,
+                              open_rule, close_rule, buy_rule, sell_rule,
+                              is_default, created_at, updated_at
+                       FROM BacktestConfigs
+                       WHERE id = ? AND user_id = ?""",
+                    config_id, user_id
+                )
+
+                if row:
+                    return self._backtest_config_row_to_dict(row)
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to create backtest config: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def get_backtest_config_by_id(self, config_id: int, user_id: int) -> Optional[dict]:
+        """根据ID获取回测配置"""
+        try:
+            async with self.pool as conn:
+                row = await conn.fetchrow(
+                    """SELECT id, user_id, name, description, start_date, end_date, frequency,
+                              symbols, initial_capital, commission_rate, slippage, min_lot_size,
+                              position_strategy, position_params, trading_strategy,
+                              open_rule, close_rule, buy_rule, sell_rule,
+                              is_default, created_at, updated_at
+                       FROM BacktestConfigs
+                       WHERE id = ? AND user_id = ?""",
+                    config_id, user_id
+                )
+
+                if not row:
+                    return None
+
+                return self._backtest_config_row_to_dict(row)
+
+        except Exception as e:
+            logger.error(f"Failed to get config {config_id}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def list_backtest_configs(
+        self, user_id: int, limit: int = 50, offset: int = 0
+    ) -> List[dict]:
+        """列出回测配置"""
+        try:
+            async with self.pool as conn:
+                rows = await conn.fetch(
+                    """SELECT id, user_id, name, description, start_date, end_date, frequency,
+                              symbols, initial_capital, commission_rate, slippage, min_lot_size,
+                              position_strategy, position_params, trading_strategy,
+                              open_rule, close_rule, buy_rule, sell_rule,
+                              is_default, created_at, updated_at
+                       FROM BacktestConfigs
+                       WHERE user_id = ?
+                       ORDER BY is_default DESC, updated_at DESC
+                       LIMIT ? OFFSET ?""",
+                    user_id, limit, offset
+                )
+
+                return [self._backtest_config_row_to_dict(row) for row in rows]
+
+        except Exception as e:
+            logger.error(f"Failed to list configs for user {user_id}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return []
+
+    async def update_backtest_config(
+        self,
+        config_id: int,
+        user_id: int,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        frequency: Optional[str] = None,
+        symbols: Optional[List[str]] = None,
+        initial_capital: Optional[float] = None,
+        commission_rate: Optional[float] = None,
+        slippage: Optional[float] = None,
+        min_lot_size: Optional[int] = None,
+        position_strategy: Optional[str] = None,
+        position_params: Optional[dict] = None,
+        trading_strategy: Optional[str] = None,
+        open_rule: Optional[str] = None,
+        close_rule: Optional[str] = None,
+        buy_rule: Optional[str] = None,
+        sell_rule: Optional[str] = None,
+        is_default: Optional[bool] = None,
+    ) -> Optional[dict]:
+        """更新回测配置"""
+        try:
+            # Build update query dynamically
+            updates = []
+            params = []
+
+            fields = {
+                "name": name,
+                "description": description,
+                "start_date": start_date,
+                "end_date": end_date,
+                "frequency": frequency,
+                "initial_capital": initial_capital,
+                "commission_rate": commission_rate,
+                "slippage": slippage,
+                "min_lot_size": min_lot_size,
+                "position_strategy": position_strategy,
+                "trading_strategy": trading_strategy,
+                "open_rule": open_rule,
+                "close_rule": close_rule,
+                "buy_rule": buy_rule,
+                "sell_rule": sell_rule,
+                "is_default": 1 if is_default else 0 if is_default is not None else None,
+            }
+
+            for field, value in fields.items():
+                if value is not None:
+                    updates.append(f"{field} = ?")
+                    params.append(value)
+
+            if symbols is not None:
+                updates.append("symbols = ?")
+                params.append(json.dumps(symbols))
+
+            if position_params is not None:
+                updates.append("position_params = ?")
+                params.append(json.dumps(position_params))
+
+            if not updates:
+                return await self.get_backtest_config_by_id(config_id, user_id)
+
+            # Add updated_at
+            updates.append("updated_at = datetime('now')")
+
+            # Add WHERE params
+            params.extend([config_id, user_id])
+
+            query = f"""UPDATE BacktestConfigs
+                       SET {', '.join(updates)}
+                       WHERE id = ? AND user_id = ?"""
+
+            async with self.pool as conn:
+                await conn.execute(query, *params)
+                logger.info(f"Updated backtest config {config_id} for user {user_id}")
+
+            # Get the updated config in a separate transaction to avoid nested transactions
+            return await self.get_backtest_config_by_id(config_id, user_id)
+
+        except Exception as e:
+            logger.error(f"Failed to update config {config_id}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def delete_backtest_config(self, config_id: int, user_id: int) -> bool:
+        """删除回测配置"""
+        try:
+            async with self.pool as conn:
+                await conn.execute(
+                    "DELETE FROM BacktestConfigs WHERE id = ? AND user_id = ?",
+                    config_id, user_id
+                )
+
+                # Check if config still exists
+                check = await conn.fetchval(
+                    "SELECT id FROM BacktestConfigs WHERE id = ?", config_id
+                )
+                deleted = check is None
+
+                if deleted:
+                    logger.info(f"Deleted backtest config {config_id} for user {user_id}")
+                return deleted
+
+        except Exception as e:
+            logger.error(f"Failed to delete config {config_id}: {str(e)}")
+            return False
+
+    async def set_default_backtest_config(self, config_id: int, user_id: int) -> bool:
+        """设置默认回测配置"""
+        try:
+            async with self.pool as conn:
+                # Unset other defaults for this user
+                await conn.execute(
+                    "UPDATE BacktestConfigs SET is_default = 0 WHERE user_id = ?",
+                    user_id
+                )
+
+                # Set new default
+                await conn.execute(
+                    """UPDATE BacktestConfigs
+                       SET is_default = 1, updated_at = datetime('now')
+                       WHERE id = ? AND user_id = ?""",
+                    config_id, user_id
+                )
+
+                logger.info(f"Set config {config_id} as default for user {user_id}")
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to set default config {config_id}: {str(e)}")
+            return False
+
+    def _backtest_config_row_to_dict(self, row) -> dict:
+        """Convert database row to dict."""
+        # Helper to safely parse JSON
+        def safe_json_loads(val):
+            if not val or val == "":
+                return {}
+            try:
+                return json.loads(val)
+            except:
+                return {}
+
+        return {
+            "id": row["id"],
+            "user_id": row["user_id"],
+            "name": row["name"],
+            "description": row["description"],
+            "start_date": row["start_date"],
+            "end_date": row["end_date"],
+            "frequency": row["frequency"],
+            "symbols": safe_json_loads(row["symbols"]),
+            "initial_capital": float(row["initial_capital"]),
+            "commission_rate": float(row["commission_rate"]),
+            "slippage": float(row["slippage"]),
+            "min_lot_size": row["min_lot_size"],
+            "position_strategy": row["position_strategy"],
+            "position_params": safe_json_loads(row["position_params"]),
+            "trading_strategy": row["trading_strategy"],
+            "open_rule": row["open_rule"],
+            "close_rule": row["close_rule"],
+            "buy_rule": row["buy_rule"],
+            "sell_rule": row["sell_rule"],
+            "is_default": bool(row["is_default"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
         }

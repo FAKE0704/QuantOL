@@ -271,8 +271,8 @@ class BacktestConfig:
 class BacktestEngine:
     """回测引擎，负责执行回测流程"""
     
-    def __init__(self, config: BacktestConfig, data):
-        
+    def __init__(self, config: BacktestConfig, data, progress_callback=None, db_adapter=None):
+
         self.config = config
         self.event_queue = []
         self.current_price = None  # 回测过程的当前价格
@@ -281,7 +281,14 @@ class BacktestEngine:
         self.current_index = None
         self.handlers = {}  # 事件处理器字典 {event_type: handler}
         self.strategies = []  # 支持多个策略
-        
+
+        # 进度回调函数
+        self.progress_callback = progress_callback
+        self._last_progress_update = 0  # 用于节流
+
+        # 数据库适配器（用于TradeOrderManager）
+        self.db_adapter = db_adapter
+
         # 支持单符号和多符号数据
         if isinstance(data, dict):
             # 多符号模式：data是字典 {symbol: dataframe}
@@ -295,7 +302,7 @@ class BacktestEngine:
             self.multi_symbol_mode = False
             self.data_dict = {config.target_symbol: data}
             self.data = data
-        
+
         # 初始化指标服务和规则解析器
         self.indicator_service = IndicatorService()
         self.rule_parser = RuleParser(self.data, self.indicator_service)
@@ -363,7 +370,7 @@ class BacktestEngine:
         # 初始化交易执行组件
         self.backtest_trader = BacktestTrader(commission_rate=config.commission_rate)
         # TradeOrderManager需要DatabaseManager和Trader
-        self.trade_order_manager = TradeOrderManager(st.session_state.db, self.backtest_trader)
+        self.trade_order_manager = TradeOrderManager(self.db, self.backtest_trader)
         
         # 初始化Portfolio接口和RiskManager
         self.portfolio = self.portfolio_manager  # PortfolioManager 实现了 IPortfolio 接口
@@ -380,7 +387,15 @@ class BacktestEngine:
         
         # 注册FillEvent处理器
         self.register_handler(FillEvent, self._handle_fill_event)
-        
+
+    @property
+    def db(self):
+        """获取数据库适配器（支持两种模式）"""
+        if self.db_adapter is not None:
+            return self.db_adapter
+        # 回退到Streamlit模式
+        return st.session_state.db
+
     def update_rule_parser_data(self):
         """更新RuleParser的数据引用"""
         logger.debug(f"update_rule_parser_data: self.data地址={id(self.data)}, 当前rule_parser.data地址={id(self.rule_parser.data)}")
@@ -432,8 +447,11 @@ class BacktestEngine:
         logger.debug(f"数据预览: {self.data.head(1).to_dict()}")
 
         for idx in range(len(self.data)):
-            if idx % 1 == 0:  # 每次记录进度（临时调试用）
-                logger.info(f"回测进度: {idx}/{len(self.data)}")
+            # 进度更新（每10步或最后一步更新一次，避免过于频繁）
+            if idx % 10 == 0 or idx == len(self.data) - 1:
+                logger.debug(f"回测进度: {idx}/{len(self.data)}")
+                if self.progress_callback:
+                    self.progress_callback(idx, self.current_time, len(self.data))
 
             try:
                 current_time = self.data.iloc[idx]['combined_time']
@@ -586,8 +604,7 @@ class BacktestEngine:
                 signal_type=event.signal_type,
                 portfolio_data=portfolio_data,
                 current_price=float(event.price),
-                current_position=current_position,
-                symbol=event.symbol
+                current_position=current_position
             )
 
             logger.debug(f"仓位策略计算结果: {quantity}, 信号类型: {event.signal_type}, 当前持仓: {current_position}")
@@ -977,7 +994,6 @@ class BacktestEngine:
             "debug_data": debug_data,  # 添加调试数据
             "price_data": price_data,  # 添加价格数据
             "signals": signals_data,   # 添加信号数据
-            "portfolio_manager": self.portfolio_manager  # 添加组合管理器以获取持仓信息
         }
 
     def _calculate_win_rate(self) -> float:

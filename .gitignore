@@ -209,10 +209,19 @@ $RECYCLE.BIN/
 
 # 项目特定忽略文件
 # 临时文件
-*.tmp*
+*.tmp
+*.tmp.*
 *.temp
 .DS_Store
 .spec-workflow/
+*.swp
+*.swo
+*~
+
+# 日志文件（已在 Django 部分定义 *.log，这里补充目录）
+src/support/database.log
+src/support/logs/*.log
+logs/*.log
 
 
 # 日志文件
@@ -234,9 +243,30 @@ data/tushare/
 
 # Streamlit 配置
 .streamlit/
+# 单独确保 secrets.toml 不被追踪（即使 .streamlit/ 目录被追踪）
+**/secrets.toml
+*.secrets.toml
 
 # 配置文件中的敏感信息
 src/support/config/user_settings.json
+
+# Node.js / Next.js (landing-page)
+landing-page/.env.local
+landing-page/.env.*.local
+landing-page/.next/
+landing-page/node_modules/
+landing-page/out/
+landing-page/build/
+
+# 其他敏感文件
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
+**/id_rsa
+**/id_ed25519
+**/credentials.json
+**/service-account.json
 
 # 备份文件
 *.bak

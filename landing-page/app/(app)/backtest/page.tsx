@@ -80,25 +80,8 @@ const frequencyOptions = [
   { value: "m", label: "月线" },
 ];
 
-// Position strategy options
-const positionStrategyOptions = [
-  { value: "fixed_percent", label: "固定比例" },
-  { value: "kelly", label: "凯利公式" },
-  { value: "martingale", label: "马丁格尔" },
-];
-
-// Trading strategy options
-const tradingStrategyOptions = [
-  { value: "monthly_investment", label: "月定投" },
-  { value: "ma_crossover", label: "移动平均线交叉" },
-  { value: "macd_crossover", label: "MACD交叉" },
-  { value: "rsi", label: "RSI超买超卖" },
-  { value: "martingale", label: "Martingale" },
-  { value: "custom_strategy", label: "自定义策略" },
-];
-
-// Default strategy rules
-const defaultStrategyRules: Record<string, { open_rule: string; close_rule: string; buy_rule: string; sell_rule: string }> = {
+// Default strategy rules (fallback if API fails)
+const fallbackDefaultStrategyRules: Record<string, { open_rule: string; close_rule: string; buy_rule: string; sell_rule: string }> = {
   monthly_investment: {
     open_rule: "",
     close_rule: "",
@@ -199,12 +182,34 @@ function CollapsibleCard({ id, title, activeCard, onCardClick, children }: Colla
 
 export default function BacktestPage() {
   const { user, isLoading, token } = useRequireAuth();
-  const { getStocks, runBacktest, listBacktestConfigs, createBacktestConfig, updateBacktestConfig, deleteBacktestConfig } = useApi();
+  const {
+    getStocks,
+    runBacktest,
+    listBacktestConfigs,
+    createBacktestConfig,
+    updateBacktestConfig,
+    deleteBacktestConfig,
+    getTradingStrategies,
+    getPositionStrategies,
+    logout,
+  } = useApi();
 
   const [config, setConfig] = useState<BacktestConfig>(defaultConfig);
   const [isRunning, setIsRunning] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [backtestId, setBacktestId] = useState<string | null>(null);
+
+  // Strategy types state
+  const [tradingStrategyOptions, setTradingStrategyOptions] = useState<
+    Array<{ value: string; label: string; default_params?: any }>
+  >([]);
+  const [positionStrategyOptions, setPositionStrategyOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [defaultStrategyRules, setDefaultStrategyRules] = useState<
+    Record<string, { open_rule: string; close_rule: string; buy_rule: string; sell_rule: string }>
+  >({});
+  const [isLoadingStrategies, setIsLoadingStrategies] = useState(true);
 
   // WebSocket进度追踪状态
   const [backtestProgress, setBacktestProgress] = useState<any>(null);
@@ -230,6 +235,65 @@ export default function BacktestPage() {
   // Debounce search input
   const debouncedSearch = useDebounce(stockSearch, 500);
 
+  // Load strategy types on mount
+  useEffect(() => {
+    const loadStrategies = async () => {
+      try {
+        const [tradingRes, positionRes] = await Promise.all([
+          getTradingStrategies(),
+          getPositionStrategies(),
+        ]);
+
+        if (tradingRes.success && tradingRes.data) {
+          setTradingStrategyOptions(tradingRes.data);
+
+          const rules: Record<string, any> = {};
+          tradingRes.data.forEach((strategy) => {
+            if (strategy.default_params) {
+              rules[strategy.value] = {
+                open_rule: strategy.default_params.open_rule || '',
+                close_rule: strategy.default_params.close_rule || '',
+                buy_rule: strategy.default_params.buy_rule || '',
+                sell_rule: strategy.default_params.sell_rule || '',
+              };
+            }
+          });
+          // If no default_params from API, use fallback
+          if (Object.keys(rules).length === 0) {
+            setDefaultStrategyRules(fallbackDefaultStrategyRules);
+          } else {
+            setDefaultStrategyRules(rules);
+          }
+        }
+
+        if (positionRes.success && positionRes.data) {
+          setPositionStrategyOptions(positionRes.data);
+        }
+      } catch (error) {
+        console.error('Failed to load strategies:', error);
+        // Fallback to hardcoded options
+        setTradingStrategyOptions([
+          { value: 'monthly_investment', label: '月定投' },
+          { value: 'ma_crossover', label: '移动平均线交叉' },
+          { value: 'macd_crossover', label: 'MACD交叉' },
+          { value: 'rsi', label: 'RSI超买超卖' },
+          { value: 'martingale', label: 'Martingale' },
+          { value: 'custom_strategy', label: '自定义策略' },
+        ]);
+        setPositionStrategyOptions([
+          { value: 'fixed_percent', label: '固定比例' },
+          { value: 'kelly', label: '凯利公式' },
+          { value: 'martingale', label: '马丁格尔' },
+        ]);
+        setDefaultStrategyRules(fallbackDefaultStrategyRules);
+      } finally {
+        setIsLoadingStrategies(false);
+      }
+    };
+
+    loadStrategies();
+  }, []);
+
   // Search stocks when debounced input changes
   useEffect(() => {
     if (debouncedSearch.length >= 1) {
@@ -242,10 +306,25 @@ export default function BacktestPage() {
   const searchStocks = async (search: string) => {
     setIsLoadingStocks(true);
     try {
-      const response = await getStocks(search, 100);
-      if (response.success && response.data) {
-        setStocks(response.data);
-      }
+      // 限制只能选择"市北高新"和"平安银行"（临时限制，以后需要恢复原逻辑）
+      const allowedStocks = [
+        { code: "600604", name: "市北高新" },
+        { code: "000001", name: "平安银行" },
+      ];
+      // 根据搜索关键词过滤
+      const filtered = allowedStocks.filter(
+        s =>
+          !search ||
+          s.code.includes(search) ||
+          s.name.includes(search)
+      );
+      setStocks(filtered);
+
+      // 原逻辑（以后恢复时使用）：
+      // const response = await getStocks(search, 100);
+      // if (response.success && response.data) {
+      //   setStocks(response.data);
+      // }
     } catch (error) {
       console.error("Failed to search stocks:", error);
     } finally {
@@ -774,7 +853,10 @@ export default function BacktestPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => (window.location.href = "/login")}
+              onClick={async () => {
+                await logout();
+                window.location.href = "/login";
+              }}
               className="border-slate-700 text-slate-300 hover:bg-slate-800"
             >
               Logout

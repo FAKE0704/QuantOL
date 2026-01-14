@@ -226,6 +226,35 @@ class PostgreSQLAdapter(DatabaseAdapter):
                 );
             """)
 
+            # 建表StrategyTypes
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS StrategyTypes (
+                    id SERIAL PRIMARY KEY,
+                    category VARCHAR(50) NOT NULL,
+                    code VARCHAR(50) NOT NULL,
+                    name VARCHAR(100) NOT NULL,
+                    description TEXT,
+                    default_params JSONB,
+                    is_system BOOLEAN DEFAULT TRUE,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    UNIQUE(category, code)
+                );
+            """)
+
+            # 创建StrategyTypes索引
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_strategy_types_category
+                ON StrategyTypes(category);
+            """)
+
+            # 初始化默认策略类型（如果表为空）
+            row_count = await conn.fetchval("SELECT COUNT(*) FROM StrategyTypes")
+            if row_count == 0:
+                await self._init_default_strategies(conn)
+
         logger.debug("数据库表结构初始化完成")
 
     async def save_stock_info(self, code: str, code_name: str, ipo_date: str,
@@ -796,6 +825,77 @@ class PostgreSQLAdapter(DatabaseAdapter):
             "initialized": self._initialized,
             "connected": self.pool is not None
         }
+
+    # StrategyTypes CRUD operations
+    async def _init_default_strategies(self, conn):
+        """初始化默认策略类型数据"""
+        # 交易策略
+        trading_strategies = [
+            ('monthly_investment', '月定投', '定期定额投资策略', 1),
+            ('ma_crossover', '移动平均线交叉', '基于移动平均线的趋势跟踪策略', 2),
+            ('macd_crossover', 'MACD交叉', '基于MACD指标的趋势策略', 3),
+            ('rsi', 'RSI超买超卖', '基于RSI指标的均值回归策略', 4),
+            ('martingale', 'Martingale', '马丁格尔仓位管理策略', 5),
+            ('custom_strategy', '自定义策略', '用户自定义交易策略', 6),
+        ]
+
+        for code, name, desc, order in trading_strategies:
+            await conn.execute("""
+                INSERT INTO StrategyTypes (category, code, name, description, sort_order)
+                VALUES ('trading', $1, $2, $3, $4)
+                ON CONFLICT (category, code) DO NOTHING
+            """, code, name, desc, order)
+
+        # 仓位策略
+        position_strategies = [
+            ('fixed_percent', '固定比例', '每次交易使用固定仓位比例', 1),
+            ('kelly', '凯利公式', '基于凯利公式的最优仓位计算', 2),
+            ('martingale', '马丁格尔', '马丁格尔仓位加倍策略', 3),
+        ]
+
+        for code, name, desc, order in position_strategies:
+            await conn.execute("""
+                INSERT INTO StrategyTypes (category, code, name, description, sort_order)
+                VALUES ('position', $1, $2, $3, $4)
+                ON CONFLICT (category, code) DO NOTHING
+            """, code, name, desc, order)
+
+        logger.info("默认策略类型初始化完成")
+
+    async def get_strategies(self, category: str = None, active_only: bool = True) -> List[dict]:
+        """获取策略类型列表"""
+        if not self.pool:
+            await self._create_pool()
+
+        query = "SELECT * FROM StrategyTypes WHERE 1=1"
+        params = []
+
+        if category:
+            query += " AND category = $1"
+            params.append(category)
+
+        if active_only:
+            param_num = len(params) + 1
+            query += f" AND is_active = TRUE ${param_num}"
+            params.append(True)
+
+        query += " ORDER BY sort_order"
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query, *params)
+            return [dict(row) for row in rows]
+
+    async def get_strategy_by_code(self, category: str, code: str) -> Optional[dict]:
+        """根据 code 获取策略"""
+        if not self.pool:
+            await self._create_pool()
+
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT * FROM StrategyTypes WHERE category = $1 AND code = $2",
+                category, code
+            )
+            return dict(row) if row else None
 
     # Backtest config CRUD operations
     async def create_backtest_config(

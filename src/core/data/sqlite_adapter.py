@@ -460,6 +460,34 @@ class SQLiteAdapter(DatabaseAdapter):
             await conn.execute(sql3)
             logger.info("✅ BacktestConfigs表创建成功")
 
+            # 创建 StrategyTypes 表
+            logger.info("🔨 开始创建StrategyTypes表...")
+            sql4 = """
+                CREATE TABLE IF NOT EXISTS StrategyTypes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    category TEXT NOT NULL,
+                    code TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    default_params TEXT,
+                    is_system INTEGER DEFAULT 1,
+                    is_active INTEGER DEFAULT 1,
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (category, code)
+                )
+            """
+            await conn.execute(sql4)
+            logger.info("✅ StrategyTypes表创建成功")
+
+            # 初始化默认策略类型（如果表为空）
+            cursor = await conn.execute("SELECT COUNT(*) FROM StrategyTypes")
+            row = await cursor.fetchone()
+            if row and row[0] == 0:
+                logger.info("🔨 初始化默认策略类型数据...")
+                await self._init_default_strategies(conn)
+
             logger.info("🎉 SQLite表结构初始化完成")
 
         except Exception as e:
@@ -1529,3 +1557,64 @@ class SQLiteAdapter(DatabaseAdapter):
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }
+
+    # StrategyTypes CRUD operations
+    async def _init_default_strategies(self, conn):
+        """初始化默认策略类型数据"""
+        # 交易策略
+        trading_strategies = [
+            ('monthly_investment', '月定投', '定期定额投资策略', 1),
+            ('ma_crossover', '移动平均线交叉', '基于移动平均线的趋势跟踪策略', 2),
+            ('macd_crossover', 'MACD交叉', '基于MACD指标的趋势策略', 3),
+            ('rsi', 'RSI超买超卖', '基于RSI指标的均值回归策略', 4),
+            ('martingale', 'Martingale', '马丁格尔仓位管理策略', 5),
+            ('custom_strategy', '自定义策略', '用户自定义交易策略', 6),
+        ]
+
+        for code, name, desc, order in trading_strategies:
+            await conn.execute("""
+                INSERT OR IGNORE INTO StrategyTypes (category, code, name, description, sort_order)
+                VALUES (?, ?, ?, ?, ?)
+            """, ['trading', code, name, desc, order])
+
+        # 仓位策略
+        position_strategies = [
+            ('fixed_percent', '固定比例', '每次交易使用固定仓位比例', 1),
+            ('kelly', '凯利公式', '基于凯利公式的最优仓位计算', 2),
+            ('martingale', '马丁格尔', '马丁格尔仓位加倍策略', 3),
+        ]
+
+        for code, name, desc, order in position_strategies:
+            await conn.execute("""
+                INSERT OR IGNORE INTO StrategyTypes (category, code, name, description, sort_order)
+                VALUES (?, ?, ?, ?, ?)
+            """, ['position', code, name, desc, order])
+
+        logger.info("默认策略类型初始化完成")
+
+    async def get_strategies(self, category: str = None, active_only: bool = True) -> List[dict]:
+        """获取策略类型列表"""
+        query = "SELECT * FROM StrategyTypes WHERE 1=1"
+        params = []
+
+        if category:
+            query += " AND category = ?"
+            params.append(category)
+
+        if active_only:
+            query += " AND is_active = 1"
+
+        query += " ORDER BY sort_order"
+
+        async with self.pool as conn:
+            rows = await conn.fetch(query, *params)
+            return [dict(row) for row in rows]
+
+    async def get_strategy_by_code(self, category: str, code: str) -> Optional[dict]:
+        """根据 code 获取策略"""
+        async with self.pool as conn:
+            row = await conn.fetchrow(
+                "SELECT * FROM StrategyTypes WHERE category = ? AND code = ?",
+                category, code
+            )
+            return dict(row) if row else None

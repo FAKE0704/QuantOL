@@ -119,6 +119,8 @@ class UserManager:
         current_count = result[0]['count'] if result else 0
 
         return {
+            'allow_registration': current_count < self.MAX_USERS,
+            'user_count': current_count,
             'max_users': self.MAX_USERS,
             'registered': current_count,
             'remaining': max(0, self.MAX_USERS - current_count),

@@ -6,13 +6,39 @@
  * Main dashboard page showing embedded Streamlit charts.
  */
 
+import { useEffect, useState } from "react";
 import { useRequireAuth } from "@/lib/store";
+import { useApi } from "@/lib/api";
 import { StreamlitChart } from "@/components/charts/StreamlitChart";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const { user, isLoading, token } = useRequireAuth();
+  const { getDashboardStats, logout } = useApi();
+
+  const [stats, setStats] = useState({
+    total_strategies: 0,
+    active_backtests: 0,
+  });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const response = await getDashboardStats();
+        if (response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    loadStats();
+  }, []);
 
   if (isLoading) {
     return (
@@ -62,7 +88,10 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.location.href = "/login"}
+              onClick={async () => {
+                await logout();
+                window.location.href = "/login";
+              }}
               className="border-slate-700 text-slate-300 hover:bg-slate-800"
             >
               Logout
@@ -83,10 +112,32 @@ export default function DashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <StatCard title="Total Strategies" value="12" change="+2 this month" />
-          <StatCard title="Active Backtests" value="3" change="Running" />
-          <StatCard title="Total Return" value="+24.5%" change="+5.2% this month" />
-          <StatCard title="Win Rate" value="68%" change="+3% this month" />
+          <StatCard
+            title="Total Strategies"
+            value={stats.total_strategies}
+            change="Available strategies"
+            isLoading={isLoadingStats}
+          />
+          <StatCard
+            title="Active Backtests"
+            value={stats.active_backtests}
+            change="Running now"
+            isLoading={isLoadingStats}
+          />
+          <StatCard
+            title="Total Return"
+            value="N/A"
+            change="Coming soon"
+            isLoading={isLoadingStats}
+            tooltip="实时交易模块开发中"
+          />
+          <StatCard
+            title="Win Rate"
+            value="N/A"
+            change="Coming soon"
+            isLoading={isLoadingStats}
+            tooltip="实时交易模块开发中"
+          />
         </div>
 
         {/* Charts Section */}
@@ -96,12 +147,9 @@ export default function DashboardPage() {
             title="Portfolio Performance"
             description="Historical performance of your portfolio"
           >
-            <StreamlitChart
-              chartType="performance"
-              token={token || undefined}
-              height="400px"
-              className="bg-slate-900/50 rounded-lg"
-            />
+            <div className="h-[400px] flex items-center justify-center text-slate-500">
+              Coming soon
+            </div>
           </ChartCard>
 
           {/* Returns Distribution */}
@@ -109,12 +157,9 @@ export default function DashboardPage() {
             title="Returns Distribution"
             description="Monthly returns breakdown"
           >
-            <StreamlitChart
-              chartType="returns"
-              token={token || undefined}
-              height="400px"
-              className="bg-slate-900/50 rounded-lg"
-            />
+            <div className="h-[400px] flex items-center justify-center text-slate-500">
+              Coming soon
+            </div>
           </ChartCard>
 
           {/* Drawdown Chart */}
@@ -122,12 +167,9 @@ export default function DashboardPage() {
             title="Drawdown Analysis"
             description="Portfolio drawdown over time"
           >
-            <StreamlitChart
-              chartType="drawdown"
-              token={token || undefined}
-              height="400px"
-              className="bg-slate-900/50 rounded-lg"
-            />
+            <div className="h-[400px] flex items-center justify-center text-slate-500">
+              Coming soon
+            </div>
           </ChartCard>
 
           {/* Trade History */}
@@ -135,12 +177,9 @@ export default function DashboardPage() {
             title="Recent Trades"
             description="Your latest trading activity"
           >
-            <StreamlitChart
-              chartType="trades"
-              token={token || undefined}
-              height="400px"
-              className="bg-slate-900/50 rounded-lg"
-            />
+            <div className="h-[400px] flex items-center justify-center text-slate-500">
+              Coming soon
+            </div>
           </ChartCard>
         </div>
       </main>
@@ -154,16 +193,34 @@ function StatCard({
   title,
   value,
   change,
+  isLoading = false,
+  tooltip,
 }: {
   title: string;
   value: string | number;
   change: string;
+  isLoading?: boolean;
+  tooltip?: string;
 }) {
   return (
     <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6">
       <p className="text-sm text-slate-400 mb-1">{title}</p>
-      <p className="text-2xl font-bold text-white mb-1">{value}</p>
-      <p className="text-xs text-sky-500">{change}</p>
+      {isLoading ? (
+        <div className="animate-pulse">
+          <div className="h-8 bg-slate-700 rounded w-16 mb-2"></div>
+          <div className="h-4 bg-slate-700 rounded w-24"></div>
+        </div>
+      ) : (
+        <>
+          <p
+            className="text-2xl font-bold text-white mb-1"
+            title={tooltip}
+          >
+            {value}
+          </p>
+          <p className="text-xs text-sky-500">{change}</p>
+        </>
+      )}
     </div>
   );
 }

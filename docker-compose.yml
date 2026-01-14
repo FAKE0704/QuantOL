@@ -5,7 +5,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: quant
-      POSTGRES_PASSWORD: quant123
+      POSTGRES_PASSWORD: a8f7c3e2d9b4  # 修改为强密码
       POSTGRES_DB: quantdb
     ports:
       - "0.0.0.0:8080:5432"
@@ -20,12 +20,13 @@ services:
     container_name: pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@quant.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_PASSWORD: 5b8f3a2c1e9d4a7f  # 修改为强密码
       SERVER_MODE: "True"
       PGADMIN_LISTEN_ADDRESS: "0.0.0.0"
       GUNICORN_CMD_ARGS: "--bind 0.0.0.0:80 --workers=1 --threads=25"
-    ports:
-      - "8081:80"
+    # 移除端口映射，仅通过SSH隧道访问
+    # ports:
+    #   - "8081:80"
     networks:
       - quant_network
     restart: unless-stopped

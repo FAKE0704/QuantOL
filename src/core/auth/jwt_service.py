@@ -13,9 +13,15 @@ class JWTService:
 
     def __init__(self):
         """初始化JWT服务"""
-        self.secret_key = os.getenv("JWT_SECRET_KEY", "quantol-default-secret-key-change-in-production")
+        secret_key = os.getenv("JWT_SECRET_KEY")
+        if not secret_key or secret_key.startswith("CHANGE_THIS"):
+            raise ValueError(
+                "JWT_SECRET_KEY environment variable must be set with a strong key. "
+                "Generate one using: openssl rand -base64 32"
+            )
+        self.secret_key = secret_key
         self.algorithm = "HS256"
-        self.token_expiry = int(os.getenv("TOKEN_EXPIRY_HOURS", "24"))  # 默认24小时
+        self.token_expiry = int(os.getenv("TOKEN_EXPIRY_HOURS", "8"))  # 默认8小时
 
     def generate_token(self, user_id: int, username: str, role: str = "user") -> str:
         """

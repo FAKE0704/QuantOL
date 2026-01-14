@@ -2,7 +2,7 @@
 
 # QuantOL 启动脚本 - 统一入口
 # 本地访问: http://localhost:8087
-# 外网访问: 通过 frps 转发
+# 外网访问: http://quantol.auto-world-lab.cn (通过frp转发)
 
 set -e
 
@@ -124,10 +124,11 @@ echo -e "${GREEN}======================================${NC}"
 echo -e "${GREEN}✓ 所有服务已成功启动！${NC}"
 echo -e "${GREEN}======================================${NC}"
 echo -e "${YELLOW}📱 访问地址: http://localhost:8087${NC}"
-echo -e "${YELLOW}   - 登录:   http://localhost:8087/login${NC}"
-echo -e "${YELLOW}   - 控制台: http://localhost:8087/dashboard${NC}"
-echo -e "${YELLOW}   - 回测:   http://localhost:8087/backtest${NC}"
-echo -e "${YELLOW}   - API 文档: http://localhost:8087/api/docs${NC}"
+echo -e "${YELLOW}   - 外网:   http://quantol.auto-world-lab.cn${NC}"
+echo -e "${YELLOW}   - 登录:   http://quantol.auto-world-lab.cn/login${NC}"
+echo -e "${YELLOW}   - 控制台: http://quantol.auto-world-lab.cn/dashboard${NC}"
+echo -e "${YELLOW}   - 回测:   http://quantol.auto-world-lab.cn/backtest${NC}"
+echo -e "${YELLOW}   - API 文档: http://quantol.auto-world-lab.cn/api/docs${NC}"
 echo ""
 echo -e "${YELLOW}📝 日志文件:${NC}"
 echo -e "   - Redis:    logs/redis.log"

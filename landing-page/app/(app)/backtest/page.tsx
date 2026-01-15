@@ -308,9 +308,10 @@ export default function BacktestPage() {
     setIsLoadingStocks(true);
     try {
       // 限制只能选择"市北高新"和"平安银行"（临时限制，以后需要恢复原逻辑）
+      // 注意：baostock API需要带交易所前缀的格式（如sh.600604, sz.000001）
       const allowedStocks = [
-        { code: "600604", name: "市北高新" },
-        { code: "000001", name: "平安银行" },
+        { code: "sh.600604", name: "市北高新" },
+        { code: "sz.000001", name: "平安银行" },
       ];
       // 根据搜索关键词过滤
       const filtered = allowedStocks.filter(

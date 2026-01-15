@@ -17,6 +17,7 @@ from pathlib import Path
 from src.support.log.logger import logger
 import os
 import pandas as pd
+import numpy as np
 
 import logging
 logger.setLevel(logging.DEBUG)  
@@ -931,6 +932,9 @@ class BacktestEngine:
         # 使用PortfolioManager的性能指标
         performance_metrics = self.portfolio_manager.get_performance_metrics()
 
+        # 添加高级指标（从equity_records和trades计算）
+        performance_metrics.update(self._calculate_advanced_metrics())
+
         # 收集调试数据（如果有基于规则的策略）
         debug_data = {}
         print(f"[DEBUG] 收集调试数据 - 总策略数: {len(self.strategies)}")
@@ -1002,6 +1006,110 @@ class BacktestEngine:
             return 0.0
         winning_trades = len([t for t in self.trades if t.get('profit', 0) > 0])
         return winning_trades / len(self.trades) if self.trades else 0.0
+
+    def _calculate_advanced_metrics(self) -> Dict[str, Any]:
+        """计算高级性能指标
+        Returns:
+            包含高级指标的字典
+        """
+        metrics = {}
+
+        # 获取净值记录
+        equity_records = self.portfolio_manager.get_equity_history()
+        if not equity_records:
+            return metrics
+
+        # 计算每日收益率
+        returns = []
+        for i in range(1, len(equity_records)):
+            prev_value = equity_records[i - 1]['total_value']
+            curr_value = equity_records[i]['total_value']
+            if prev_value > 0:
+                daily_return = (curr_value - prev_value) / prev_value
+                returns.append(daily_return)
+
+        if not returns:
+            return metrics
+
+        returns_array = np.array(returns)
+
+        # 计算年化收益率
+        initial_value = equity_records[0]['total_value']
+        final_value = equity_records[-1]['total_value']
+        total_return = (final_value - initial_value) / initial_value if initial_value > 0 else 0
+
+        if len(equity_records) > 1 and equity_records[0].get('timestamp') and equity_records[-1].get('timestamp'):
+            start_time = pd.to_datetime(equity_records[0]['timestamp'])
+            end_time = pd.to_datetime(equity_records[-1]['timestamp'])
+            days = (end_time - start_time).days
+            if days > 0:
+                annual_return = (1 + total_return) ** (365 / days) - 1
+                metrics['annual_return'] = annual_return * 100  # 百分比
+
+        # 计算波动率
+        metrics['volatility'] = float(returns_array.std()) * np.sqrt(252) * 100  # 年化波动率百分比
+
+        # 计算夏普比率（假设无风险利率为3%）
+        risk_free_rate = 0.03
+        excess_returns = returns_array - risk_free_rate / 252
+        if returns_array.std() > 0:
+            sharpe_ratio = (excess_returns.mean() / returns_array.std()) * np.sqrt(252)
+            metrics['sharpe_ratio'] = float(sharpe_ratio)
+        else:
+            metrics['sharpe_ratio'] = 0.0
+
+        # 计算索提诺比率
+        downside_returns = returns_array[returns_array < 0]
+        if len(downside_returns) > 0 and downside_returns.std() > 0:
+            sortino_ratio = (returns_array.mean() / downside_returns.std()) * np.sqrt(252)
+            metrics['sortino_ratio'] = float(sortino_ratio)
+        else:
+            metrics['sortino_ratio'] = float('inf')
+
+        # 计算卡玛比率
+        max_drawdown_pct = self.portfolio_manager.get_max_drawdown()
+        if max_drawdown_pct > 0:
+            calmar_ratio = (total_return * 100) / max_drawdown_pct
+            metrics['calmar_ratio'] = float(calmar_ratio)
+        else:
+            metrics['calmar_ratio'] = float('inf')
+
+        # 计算总盈亏金额
+        metrics['total_profit_amount'] = float(final_value - initial_value)
+
+        # 计算盈亏比
+        profits = [t.get('profit', 0) for t in self.trades if t.get('profit', 0) > 0]
+        losses = [abs(t.get('profit', 0)) for t in self.trades if t.get('profit', 0) < 0]
+
+        if profits and losses:
+            avg_profit = sum(profits) / len(profits)
+            avg_loss = sum(losses) / len(losses)
+            if avg_loss > 0:
+                metrics['profit_loss_ratio'] = float(avg_profit / avg_loss)
+            else:
+                metrics['profit_loss_ratio'] = float('inf')
+        else:
+            metrics['profit_loss_ratio'] = 0.0
+
+        # 计算平均持仓天数
+        buy_trades = [t for t in self.trades if t.get('direction') == 'BUY']
+        if len(buy_trades) > 1:
+            from datetime import datetime
+            hold_times = []
+            for i in range(len(buy_trades) - 1):
+                curr_time = pd.to_datetime(buy_trades[i]['timestamp'])
+                next_time = pd.to_datetime(buy_trades[i + 1]['timestamp'])
+                hold_days = (next_time - curr_time).total_seconds() / 86400
+                if 0 < hold_days < 365:  # 过滤异常值
+                    hold_times.append(hold_days)
+            if hold_times:
+                metrics['avg_holding_days'] = float(sum(hold_times) / len(hold_times))
+            else:
+                metrics['avg_holding_days'] = 0.0
+        else:
+            metrics['avg_holding_days'] = 0.0
+
+        return metrics
 
     def _calculate_max_drawdown(self) -> float:
         """计算最大回撤"""

@@ -31,6 +31,12 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
+  ScatterChart,
+  Scatter,
+  ZAxis,
 } from "recharts";
 
 interface BacktestResultsViewProps {
@@ -170,7 +176,7 @@ export function BacktestResultsView({ backtestId }: BacktestResultsViewProps) {
               📈 技术指标
             </TabsTrigger>
             <TabsTrigger value="performance" className="data-[state=active]:bg-sky-600/20 data-[state=active]:text-sky-400">
-              📊 性能分析
+              📊 风险收益指标
             </TabsTrigger>
             <TabsTrigger value="drawdown" className="data-[state=active]:bg-sky-600/20 data-[state=active]:text-sky-400">
               📉 回撤分析
@@ -194,7 +200,7 @@ export function BacktestResultsView({ backtestId }: BacktestResultsViewProps) {
         <div className="p-4">
           {/* 1. 回测摘要 */}
           <TabsContent value="summary" className="mt-0">
-            <SummaryTab results={results} />
+            <SummaryTab results={results} trades={trades} equityRecords={equityRecords} />
           </TabsContent>
 
           {/* 2. 交易记录 */}
@@ -256,7 +262,7 @@ export function BacktestResultsView({ backtestId }: BacktestResultsViewProps) {
 // Tab Components (Placeholder implementations)
 // ============================================================================
 
-function SummaryTab({ results }: { results: BacktestResults }) {
+function SummaryTab({ results, trades, equityRecords }: { results: BacktestResults; trades: Trade[]; equityRecords: EquityRecord[] }) {
   // Check if required data exists - only check summary since performance_metrics may not be returned by backend
   if (!results.summary) {
     return (
@@ -267,17 +273,66 @@ function SummaryTab({ results }: { results: BacktestResults }) {
     );
   }
 
+  // 计算盈亏交易笔数比
+  const winCount = trades.filter(t => (t.profit ?? 0) > 0).length;
+  const lossCount = trades.filter(t => (t.profit ?? 0) < 0).length;
+  const winLossCountRatio = lossCount > 0 ? (winCount / lossCount).toFixed(2) : '∞';
+
+  // 计算最大连续盈利/亏损天数
+  let maxConsecutiveWinDays = 0;
+  let maxConsecutiveLossDays = 0;
+  let currentWinStreak = 0;
+  let currentLossStreak = 0;
+
+  for (let i = 1; i < equityRecords.length; i++) {
+    const prevValue = equityRecords[i - 1].total_value;
+    const currValue = equityRecords[i].total_value;
+    const dailyReturn = currValue - prevValue;
+
+    if (dailyReturn > 0) {
+      currentWinStreak++;
+      currentLossStreak = 0;
+      maxConsecutiveWinDays = Math.max(maxConsecutiveWinDays, currentWinStreak);
+    } else if (dailyReturn < 0) {
+      currentLossStreak++;
+      currentWinStreak = 0;
+      maxConsecutiveLossDays = Math.max(maxConsecutiveLossDays, currentLossStreak);
+    }
+  }
+
+  // 获取盈亏比（后端已计算）
+  const profitLossRatio = results.performance_metrics?.profit_loss_ratio;
+  const profitLossRatioDisplay = profitLossRatio !== undefined
+    ? (profitLossRatio === Infinity ? '∞' : profitLossRatio.toFixed(2))
+    : 'N/A';
+
+  // 获取年化收益率（后端已计算）
+  const annualReturn = results.performance_metrics?.annual_return;
+  const annualReturnDisplay = annualReturn !== undefined ? `${annualReturn.toFixed(2)}%` : 'N/A';
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">回测摘要</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {/* 基础指标 */}
         <MetricCard label="初始资金" value={`¥${(results.summary.initial_capital || 0).toLocaleString()}`} />
         <MetricCard label="最终资金" value={`¥${(results.summary.final_capital || 0).toLocaleString()}`} />
         <MetricCard label="总收益率" value={`${(results.summary.total_return || 0).toFixed(2)}%`} />
         <MetricCard label="最大回撤" value={`${(results.summary.max_drawdown || 0).toFixed(2)}%`} />
+
+        {/* 交易统计 */}
         <MetricCard label="交易次数" value={(results.summary.total_trades || 0).toString()} />
         <MetricCard label="胜率" value={`${((results.summary.win_rate || 0) * 100).toFixed(2)}%`} />
+        <MetricCard label="盈亏比" value={profitLossRatioDisplay} />
+        <MetricCard label="盈亏笔数比" value={winLossCountRatio} />
+
+        {/* 收益指标 */}
         <MetricCard label="夏普比率" value={results.performance_metrics?.sharpe_ratio?.toFixed(2) || 'N/A'} />
+        <MetricCard label="年化收益率" value={annualReturnDisplay} />
+        <MetricCard label="最大连盈天数" value={maxConsecutiveWinDays > 0 ? `${maxConsecutiveWinDays}天` : '0天'} />
+        <MetricCard label="最大连亏天数" value={maxConsecutiveLossDays > 0 ? `${maxConsecutiveLossDays}天` : '0天'} />
+
+        {/* 策略信息 */}
         <MetricCard label="仓位策略" value={results.summary.position_strategy_type || 'N/A'} />
       </div>
     </div>
@@ -288,17 +343,171 @@ function TradesTab({ trades }: { trades: Trade[] }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">交易记录</h3>
-      <div className="text-slate-400">交易记录图表 - 待实现</div>
-      <div className="text-xs text-slate-500">Total trades: {trades.length}</div>
+      {trades.length === 0 ? (
+        <div className="text-slate-400 text-sm">无交易记录</div>
+      ) : (
+        <>
+          <div className="text-xs text-slate-500 mb-2">共 {trades.length} 笔交易</div>
+          <div className="overflow-x-auto rounded-lg border border-slate-700">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-800">
+                <tr>
+                  <th className="px-4 py-2 text-left text-slate-300">时间</th>
+                  <th className="px-4 py-2 text-left text-slate-300">股票</th>
+                  <th className="px-4 py-2 text-left text-slate-300">类型</th>
+                  <th className="px-4 py-2 text-right text-slate-300">价格</th>
+                  <th className="px-4 py-2 text-right text-slate-300">数量</th>
+                  <th className="px-4 py-2 text-right text-slate-300">金额</th>
+                  <th className="px-4 py-2 text-right text-slate-300">收益</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700">
+                {trades.map((trade, idx) => (
+                  <tr key={idx} className="hover:bg-slate-800/50">
+                    <td className="px-4 py-2 text-slate-300">
+                      {trade.timestamp ? new Date(trade.timestamp).toLocaleString() : '-'}
+                    </td>
+                    <td className="px-4 py-2 text-slate-300">{trade.symbol || '-'}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        trade.direction === 'BUY' || trade.direction === 'OPEN'
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {trade.direction || 'UNKNOWN'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right text-slate-300">
+                      {trade.price !== undefined ? `¥${trade.price.toFixed(2)}` : '-'}
+                    </td>
+                    <td className="px-4 py-2 text-right text-slate-300">
+                      {trade.quantity ?? '-'}
+                    </td>
+                    <td className="px-4 py-2 text-right text-slate-300">
+                      {trade.amount !== undefined ? `¥${trade.amount.toLocaleString()}` : '-'}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {trade.profit !== undefined ? (
+                        <span className={trade.profit >= 0 ? 'text-green-400' : 'text-red-400'}>
+                          {trade.profit >= 0 ? '+' : ''}¥{trade.profit.toFixed(2)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 function PositionsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
+  // Calculate average position allocation from equity records
+  const avgAllocation = equityRecords.length > 0
+    ? equityRecords.reduce((sum, record) => sum + ((record.positions_value || 0) / record.total_value), 0) / equityRecords.length
+    : 0;
+
+  const avgCash = 1 - avgAllocation;
+
+  const pieData = [
+    { name: '平均持仓占比', value: avgAllocation * 100 },
+    { name: '平均现金占比', value: avgCash * 100 },
+  ];
+
+  const COLORS = ['#1f77b4', '#2ca02c'];
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">仓位明细</h3>
-      <div className="text-slate-400">仓位饼图 - 待实现</div>
+      {equityRecords.length === 0 ? (
+        <div className="text-slate-400 text-sm">无仓位数据</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Pie Chart */}
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <h4 className="text-sm font-medium text-slate-400 mb-3">平均资产配置占比</h4>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
+                    formatter={(value: number) => [`${value.toFixed(2)}%`, '']}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-slate-400">配置统计</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <MetricCard
+                  label="平均持仓占比"
+                  value={`${(avgAllocation * 100).toFixed(2)}%`}
+                />
+                <MetricCard
+                  label="平均现金占比"
+                  value={`${(avgCash * 100).toFixed(2)}%`}
+                />
+                <MetricCard
+                  label="最高持仓占比"
+                  value={`${Math.max(...equityRecords.map(r => ((r.positions_value || 0) / r.total_value) * 100)).toFixed(2)}%`}
+                />
+                <MetricCard
+                  label="最低持仓占比"
+                  value={`${Math.min(...equityRecords.map(r => ((r.positions_value || 0) / r.total_value) * 100)).toFixed(2)}%`}
+                />
+              </div>
+
+              {/* Current Position */}
+              {equityRecords.length > 0 && (
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                  <h5 className="text-xs text-slate-400 mb-2">最新持仓</h5>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-slate-300">持仓市值</span>
+                      <span className="text-sm font-semibold text-sky-400">
+                        ¥{equityRecords[equityRecords.length - 1].positions_value?.toLocaleString() || '0'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-slate-300">现金</span>
+                      <span className="text-sm font-semibold text-green-400">
+                        ¥{equityRecords[equityRecords.length - 1].cash.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-slate-300">总资产</span>
+                      <span className="text-sm font-semibold text-white">
+                        ¥{equityRecords[equityRecords.length - 1].total_value.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -400,8 +609,7 @@ function EquityTab({
               <Tooltip
                 contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
                 labelStyle={{ color: "#94a3b8" }}
-                // @ts-expect-error - Recharts formatter type is overly strict
-                formatter={(value: number) => [`¥${value.toLocaleString()}`, ""]}
+                formatter={(value: number) => `¥${value.toLocaleString()}`}
                 labelFormatter={(value: any) => new Date(value).toLocaleString()}
               />
               <Legend wrapperStyle={{ color: "#94a3b8" }} />
@@ -460,43 +668,325 @@ function IndicatorsTab({ priceData }: { priceData?: unknown }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">技术指标分析</h3>
-      <div className="text-slate-400">技术指标图表 - 待实现</div>
+      <div className="text-slate-400 text-sm">
+        技术指标图表需要从价格数据中计算生成
+      </div>
+      <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+        <div className="text-xs text-slate-500 mb-2">支持的指标：</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-slate-400">
+          <div className="bg-slate-700/50 rounded px-2 py-1">SMA</div>
+          <div className="bg-slate-700/50 rounded px-2 py-1">EMA</div>
+          <div className="bg-slate-700/50 rounded px-2 py-1">MACD</div>
+          <div className="bg-slate-700/50 rounded px-2 py-1">RSI</div>
+          <div className="bg-slate-700/50 rounded px-2 py-1">布林带</div>
+          <div className="bg-slate-700/50 rounded px-2 py-1">KDJ</div>
+          <div className="bg-slate-700/50 rounded px-2 py-1">成交量</div>
+          <div className="bg-slate-700/50 rounded px-2 py-1">ATR</div>
+        </div>
+      </div>
     </div>
   );
 }
 
 function PerformanceTab({ results }: { results: BacktestResults }) {
+  const metrics = results.performance_metrics || {};
+
+  // 辅助函数：格式化数字，处理 NaN 和 Infinity
+  const formatNumber = (value: number | undefined, decimals: number = 3): string | undefined => {
+    if (value === undefined || isNaN(value) || !isFinite(value)) {
+      return undefined;
+    }
+    return value.toFixed(decimals);
+  };
+
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">性能分析</h3>
-      <div className="text-slate-400">性能指标详情 - 待实现</div>
+      <h3 className="text-lg font-semibold">风险收益指标</h3>
+      {Object.keys(metrics).length === 0 ? (
+        <div className="text-slate-400 text-sm">无性能指标数据</div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <MetricCard
+            label="夏普比率"
+            value={formatNumber(metrics.sharpe_ratio) || 'N/A'}
+          />
+          <MetricCard
+            label="索提诺比率"
+            value={formatNumber(metrics.sortino_ratio) || 'N/A'}
+          />
+          <MetricCard
+            label="卡玛比率"
+            value={formatNumber(metrics.calmar_ratio) || 'N/A'}
+          />
+          <MetricCard
+            label="最大回撤"
+            value={`${(metrics.max_drawdown_pct || 0).toFixed(2)}%`}
+          />
+          <MetricCard
+            label="年化收益"
+            value={`${(metrics.annual_return || 0).toFixed(2)}%`}
+          />
+          <MetricCard
+            label="波动率"
+            value={formatNumber(metrics.volatility) || 'N/A'}
+          />
+          <MetricCard
+            label="总收益"
+            value={`${(metrics.total_return_pct || 0).toFixed(2)}%`}
+          />
+          <MetricCard
+            label="总盈亏金额"
+            value={`¥${(metrics.total_profit_amount || 0).toLocaleString()}`}
+          />
+          <MetricCard
+            label="盈亏比"
+            value={
+              metrics.profit_loss_ratio === undefined || isNaN(metrics.profit_loss_ratio)
+                ? 'N/A'
+                : !isFinite(metrics.profit_loss_ratio)
+                ? '∞'
+                : metrics.profit_loss_ratio.toFixed(2)
+            }
+          />
+          <MetricCard
+            label="平均持仓天数"
+            value={
+              metrics.avg_holding_days !== undefined && !isNaN(metrics.avg_holding_days)
+                ? `${metrics.avg_holding_days.toFixed(1)}天`
+                : 'N/A'
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 function DrawdownTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
+  // Calculate drawdown for each point
+  const drawdownData = equityRecords.map((record, idx) => {
+    const peakSoFar = Math.max(...equityRecords.slice(0, idx + 1).map(r => r.total_value));
+    const drawdown = ((peakSoFar - record.total_value) / peakSoFar) * 100;
+    return {
+      timestamp: record.timestamp,
+      drawdown: Math.max(0, drawdown),
+      peak: peakSoFar,
+      value: record.total_value,
+    };
+  });
+
+  const maxDrawdown = Math.max(...drawdownData.map(d => d.drawdown));
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">回撤分析</h3>
-      <div className="text-slate-400">回撤曲线图 - 待实现</div>
+      {equityRecords.length === 0 ? (
+        <div className="text-slate-400 text-sm">无净值数据</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <MetricCard label="最大回撤" value={`${maxDrawdown.toFixed(2)}%`} />
+            <MetricCard
+              label="回撤次数"
+              value={drawdownData.filter(d => d.drawdown > 0).length.toString()}
+            />
+            <MetricCard
+              label="平均回撤"
+              value={`${(drawdownData.reduce((sum, d) => sum + d.drawdown, 0) / drawdownData.filter(d => d.drawdown > 0).length || 0).toFixed(2)}%`}
+            />
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+            <ResponsiveContainer width="100%" height={350}>
+              <AreaChart data={drawdownData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis
+                  dataKey="timestamp"
+                  tick={{ fill: "#94a3b8", fontSize: 12 }}
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                  }}
+                />
+                <YAxis
+                  tick={{ fill: "#94a3b8", fontSize: 12 }}
+                  label={{ value: "回撤 (%)", angle: -90, position: "insideLeft", fill: "#94a3b8" }}
+                  domain={[0, 'dataMax']}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
+                  labelStyle={{ color: "#94a3b8" }}
+                  formatter={(value: number) => [`${value.toFixed(2)}%`, '回撤']}
+                  labelFormatter={(value: any) => new Date(value).toLocaleString()}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="drawdown"
+                  stroke="#ef4444"
+                  fill="#ef4444"
+                  fillOpacity={0.3}
+                  name="回撤 (%)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 function ReturnsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
+  // Calculate daily returns
+  const returns = equityRecords.slice(1).map((record, idx) => {
+    const prevValue = equityRecords[idx].total_value;
+    const dailyReturn = ((record.total_value - prevValue) / prevValue) * 100;
+    return {
+      timestamp: record.timestamp,
+      return: dailyReturn,
+    };
+  });
+
+  // Create histogram data
+  const bins = 20;
+  const minReturn = Math.min(...returns.map(r => r.return));
+  const maxReturn = Math.max(...returns.map(r => r.return));
+  const binSize = (maxReturn - minReturn) / bins;
+
+  const histogram = Array.from({ length: bins }, (_, i) => {
+    const binStart = minReturn + i * binSize;
+    const binEnd = binStart + binSize;
+    const count = returns.filter(r => r.return >= binStart && r.return < binEnd).length;
+    return {
+      range: `${binStart.toFixed(2)}% - ${binEnd.toFixed(2)}%`,
+      count,
+      fill: count > 0 ? (binStart >= 0 ? '#22c55e' : '#ef4444') : '#334155',
+    };
+  });
+
+  const avgReturn = returns.reduce((sum, r) => sum + r.return, 0) / returns.length;
+  const positiveReturns = returns.filter(r => r.return > 0).length;
+  const negativeReturns = returns.filter(r => r.return < 0).length;
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">收益分布</h3>
-      <div className="text-slate-400">收益分布直方图 - 待实现</div>
+      {equityRecords.length < 2 ? (
+        <div className="text-slate-400 text-sm">数据不足，无法计算收益分布</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <MetricCard
+              label="平均日收益"
+              value={`${avgReturn.toFixed(3)}%`}
+            />
+            <MetricCard
+              label="盈利天数"
+              value={`${positiveReturns}天`}
+            />
+            <MetricCard
+              label="亏损天数"
+              value={`${negativeReturns}天`}
+            />
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={histogram}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis
+                  dataKey="range"
+                  tick={{ fill: "#94a3b8", fontSize: 10 }}
+                  interval={0}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis
+                  tick={{ fill: "#94a3b8", fontSize: 12 }}
+                  label={{ value: "天数", angle: -90, position: "insideLeft", fill: "#94a3b8" }}
+                />
+                <Tooltip
+                  contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
+                  labelStyle={{ color: "#94a3b8" }}
+                />
+                <Bar dataKey="count" name="天数" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 function SignalsTab({ signals }: { signals?: unknown }) {
+  // Parse signals data
+  const signalsData = signals && isSerializedDataFrame(signals)
+    ? (signals.__data__ as unknown as Array<{ timestamp: string; signal: number; signal_type: string; price: number; symbol: string }>)
+    : (signals as unknown as Array<{ timestamp: string; signal: number; signal_type: string; price: number; symbol: string }>) || [];
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">交易信号分析</h3>
-      <div className="text-slate-400">交易信号图 - 待实现</div>
+      {signalsData.length === 0 ? (
+        <div className="text-slate-400 text-sm">无交易信号数据</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <MetricCard
+              label="总信号数"
+              value={signalsData.length.toString()}
+            />
+            <MetricCard
+              label="买入信号"
+              value={signalsData.filter(s => s.signal > 0).length.toString()}
+            />
+            <MetricCard
+              label="卖出信号"
+              value={signalsData.filter(s => s.signal < 0).length.toString()}
+            />
+            <MetricCard
+              label="涉及股票"
+              value={[...new Set(signalsData.map(s => s.symbol))].length.toString()}
+            />
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-slate-700">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-800">
+                <tr>
+                  <th className="px-4 py-2 text-left text-slate-300">时间</th>
+                  <th className="px-4 py-2 text-left text-slate-300">股票</th>
+                  <th className="px-4 py-2 text-left text-slate-300">信号类型</th>
+                  <th className="px-4 py-2 text-right text-slate-300">价格</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700">
+                {signalsData.map((signal, idx) => (
+                  <tr key={idx} className="hover:bg-slate-800/50">
+                    <td className="px-4 py-2 text-slate-300">
+                      {signal.timestamp ? new Date(signal.timestamp).toLocaleString() : '-'}
+                    </td>
+                    <td className="px-4 py-2 text-slate-300">{signal.symbol || '-'}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        signal.signal > 0
+                          ? 'bg-green-500/20 text-green-400'
+                          : signal.signal < 0
+                          ? 'bg-red-500/20 text-red-400'
+                          : 'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {signal.signal_type || 'UNKNOWN'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right text-slate-300">
+                      {signal.price !== undefined ? `¥${signal.price.toFixed(2)}` : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -509,9 +999,68 @@ function DetailsTab({
   trades: Trade[];
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h3 className="text-lg font-semibold">详细数据</h3>
-      <div className="text-slate-400">详细数据表格 - 待实现</div>
+
+      {/* Equity Records Section */}
+      <div>
+        <h4 className="text-sm font-medium text-slate-400 mb-2">净值记录</h4>
+        {equityRecords.length === 0 ? (
+          <div className="text-slate-500 text-sm">无净值记录</div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-64 overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-800 sticky top-0">
+                <tr>
+                  <th className="px-3 py-2 text-left text-slate-300">时间</th>
+                  <th className="px-3 py-2 text-right text-slate-300">总资产</th>
+                  <th className="px-3 py-2 text-right text-slate-300">持仓市值</th>
+                  <th className="px-3 py-2 text-right text-slate-300">现金</th>
+                  <th className="px-3 py-2 text-right text-slate-300">持仓占比</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700">
+                {equityRecords.slice(-100).map((record, idx) => (
+                  <tr key={idx} className="hover:bg-slate-800/50">
+                    <td className="px-3 py-2 text-slate-300">
+                      {record.timestamp ? new Date(record.timestamp).toLocaleString() : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-right text-slate-300">
+                      {record.total_value !== undefined ? `¥${record.total_value.toLocaleString()}` : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-right text-slate-300">
+                      ¥{(record.positions_value || 0).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-right text-slate-300">
+                      {record.cash !== undefined ? `¥${record.cash.toLocaleString()}` : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-right text-slate-300">
+                      {record.total_value ? `${(((record.positions_value || 0) / record.total_value) * 100).toFixed(2)}%` : '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {equityRecords.length > 100 && (
+              <div className="text-xs text-slate-500 text-center py-2">
+                仅显示最近100条记录（共{equityRecords.length}条）
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Trades Section */}
+      <div>
+        <h4 className="text-sm font-medium text-slate-400 mb-2">交易记录</h4>
+        {trades.length === 0 ? (
+          <div className="text-slate-500 text-sm">无交易记录</div>
+        ) : (
+          <div className="text-xs text-slate-500">
+            共 {trades.length} 笔交易，详见"交易记录"标签页
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -520,10 +1069,56 @@ function DebugTab({ debugData }: { debugData?: Record<string, unknown> }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">规则解析器调试数据</h3>
-      {debugData ? (
-        <div className="text-slate-400">调试数据 - 待实现</div>
+      {!debugData || Object.keys(debugData).length === 0 ? (
+        <div className="text-slate-500 text-sm">
+          无调试数据可用（仅在使用自定义规则策略时生成）
+        </div>
       ) : (
-        <div className="text-slate-500 text-sm">无调试数据可用（仅在使用自定义规则策略时生成）</div>
+        <div className="space-y-4">
+          {Object.entries(debugData).map(([strategyName, data]) => {
+            if (!isSerializedDataFrame(data)) return null;
+            const records = data.__data__ as Record<string, unknown>[];
+            const columns = records.length > 0 ? Object.keys(records[0]) : [];
+
+            return (
+              <div key={strategyName} className="space-y-2">
+                <h4 className="text-sm font-medium text-slate-400">策略: {strategyName}</h4>
+                <div className="text-xs text-slate-500 mb-1">
+                  {records.length} 条记录, {columns.length} 个字段
+                </div>
+                <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-64 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-800 sticky top-0">
+                      <tr>
+                        {columns.slice(0, 10).map((col) => (
+                          <th key={col} className="px-3 py-2 text-left text-slate-300">
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700">
+                      {records.slice(0, 50).map((record, idx) => (
+                        <tr key={idx} className="hover:bg-slate-800/50">
+                          {columns.slice(0, 10).map((col) => (
+                            <td key={col} className="px-3 py-2 text-slate-300">
+                              {record[col]?.toString().slice(0, 50) || '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {records.length > 50 && (
+                    <div className="text-xs text-slate-500 text-center py-2">
+                      仅显示前50条记录（共{records.length}条）
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

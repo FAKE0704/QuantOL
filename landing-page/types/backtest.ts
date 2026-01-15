@@ -45,7 +45,7 @@ export interface EquityRecord {
 export interface Trade {
   timestamp: string;
   symbol: string;
-  type: "BUY" | "SELL" | "OPEN" | "CLOSE";
+  direction: "BUY" | "SELL" | "OPEN" | "CLOSE";
   price: number;
   quantity: number;
   amount: number;
@@ -78,6 +78,9 @@ export interface PerformanceMetrics {
   calmar_ratio?: number;
   volatility?: number;
   annual_return?: number;
+  total_profit_amount?: number;
+  profit_loss_ratio?: number;
+  avg_holding_days?: number;
 }
 
 /**

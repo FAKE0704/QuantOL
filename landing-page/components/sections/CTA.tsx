@@ -1,12 +1,15 @@
 'use client'
 
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { Link } from '@/lib/routing'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ctaContent } from '@/lib/data'
+import { siteConfig } from '@/lib/data'
 import { motion } from 'framer-motion'
 
 export function CTA() {
+  const t = useTranslations('cta')
+
   return (
     <section className="py-24 relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -50,10 +53,10 @@ export function CTA() {
           {/* Content */}
           <div className="relative z-10 max-w-2xl mx-auto">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
-              {ctaContent.title}
+              {t('title')}
             </h2>
             <p className="text-muted-foreground text-lg mb-8">
-              {ctaContent.description}
+              {t('description')}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Button
@@ -61,8 +64,8 @@ export function CTA() {
                 size="lg"
                 className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
               >
-                <Link href={ctaContent.buttonLink}>
-                  {ctaContent.buttonText}
+                <Link href={siteConfig.links.app}>
+                  {t('button')}
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </Link>
               </Button>
@@ -72,8 +75,8 @@ export function CTA() {
                 variant="outline"
                 className="border-border hover:bg-muted"
               >
-                <Link href={ctaContent.secondaryLink}>
-                  {ctaContent.secondaryText}
+                <Link href="/backtest">
+                  {t('secondary')}
                 </Link>
               </Button>
             </div>

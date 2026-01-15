@@ -7,13 +7,16 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRequireAuth } from "@/lib/store";
 import { useApi } from "@/lib/api";
 import { StreamlitChart } from "@/components/charts/StreamlitChart";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Link } from "@/lib/routing";
+import { ThemeSwitcher } from "@/components/layout/ThemeSwitcher";
 
 export default function DashboardPage() {
+  const t = useTranslations('dashboard')
   const { user, isLoading, token } = useRequireAuth();
   const { getDashboardStats, logout } = useApi();
 
@@ -66,25 +69,26 @@ export default function DashboardPage() {
                 href="/dashboard"
                 className="text-white hover:text-sky-400 transition-colors"
               >
-                Dashboard
+                {t('dashboard')}
               </Link>
               <Link
                 href="/backtest"
                 className="text-slate-400 hover:text-sky-400 transition-colors"
               >
-                Backtesting
+                {t('backtesting')}
               </Link>
               <Link
                 href="/trading"
                 className="text-slate-400 hover:text-sky-400 transition-colors"
               >
-                Trading
+                {t('trading')}
               </Link>
             </nav>
           </div>
 
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate-400">{user.username}</span>
+            <ThemeSwitcher />
             <Button
               variant="outline"
               size="sm"
@@ -94,7 +98,7 @@ export default function DashboardPage() {
               }}
               className="border-slate-700 text-slate-300 hover:bg-slate-800"
             >
-              Logout
+              {t('logout')}
             </Button>
           </div>
         </div>
@@ -104,39 +108,39 @@ export default function DashboardPage() {
       <main className="container mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
           <p className="text-slate-400">
-            Welcome back, {user.username}. Here&apos;s your trading overview.
+            {t('description', { name: user.username })}
           </p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <StatCard
-            title="Total Strategies"
+            title={t('totalStrategies')}
             value={stats.total_strategies}
-            change="Available strategies"
+            change={t('availableStrategies')}
             isLoading={isLoadingStats}
           />
           <StatCard
-            title="Active Backtests"
+            title={t('activeBacktests')}
             value={stats.active_backtests}
-            change="Running now"
+            change={t('runningNow')}
             isLoading={isLoadingStats}
           />
           <StatCard
-            title="Total Return"
+            title={t('totalReturn')}
             value="N/A"
-            change="Coming soon"
+            change={t('comingSoon')}
             isLoading={isLoadingStats}
-            tooltip="实时交易模块开发中"
+            tooltip={t('realtimeTradingInDev')}
           />
           <StatCard
-            title="Win Rate"
+            title={t('winRate')}
             value="N/A"
-            change="Coming soon"
+            change={t('comingSoon')}
             isLoading={isLoadingStats}
-            tooltip="实时交易模块开发中"
+            tooltip={t('realtimeTradingInDev')}
           />
         </div>
 
@@ -144,41 +148,41 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Performance Chart */}
           <ChartCard
-            title="Portfolio Performance"
-            description="Historical performance of your portfolio"
+            title={t('portfolioPerformance')}
+            description={t('portfolioPerformanceDesc')}
           >
             <div className="h-[400px] flex items-center justify-center text-slate-500">
-              Coming soon
+              {t('comingSoon')}
             </div>
           </ChartCard>
 
           {/* Returns Distribution */}
           <ChartCard
-            title="Returns Distribution"
-            description="Monthly returns breakdown"
+            title={t('returnsDistribution')}
+            description={t('returnsDistributionDesc')}
           >
             <div className="h-[400px] flex items-center justify-center text-slate-500">
-              Coming soon
+              {t('comingSoon')}
             </div>
           </ChartCard>
 
           {/* Drawdown Chart */}
           <ChartCard
-            title="Drawdown Analysis"
-            description="Portfolio drawdown over time"
+            title={t('drawdownAnalysis')}
+            description={t('drawdownAnalysisDesc')}
           >
             <div className="h-[400px] flex items-center justify-center text-slate-500">
-              Coming soon
+              {t('comingSoon')}
             </div>
           </ChartCard>
 
           {/* Trade History */}
           <ChartCard
-            title="Recent Trades"
-            description="Your latest trading activity"
+            title={t('recentTrades')}
+            description={t('recentTradesDesc')}
           >
             <div className="h-[400px] flex items-center justify-center text-slate-500">
-              Coming soon
+              {t('comingSoon')}
             </div>
           </ChartCard>
         </div>

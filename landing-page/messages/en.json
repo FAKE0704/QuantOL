@@ -1,0 +1,223 @@
+{
+  "site": {
+    "name": "QuantOL",
+    "description": "Professional Event-Driven Quantitative Trading Platform"
+  },
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "performance": "Performance",
+    "docs": "Docs",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "headline": "Professional Event-Driven Quantitative Trading Platform",
+    "subheadline": "Powerful Backtesting Engine · Smart Risk Control · Multi-Source Integration",
+    "description": "High-performance quantitative trading system based on Python, supporting multiple strategy development and backtesting, providing complete risk management and portfolio analysis tools.",
+    "stats": {
+      "strategies": "Strategies",
+      "indicators": "Indicators",
+      "dataSources": "Data Sources"
+    },
+    "ctas": {
+      "start": "Get Started",
+      "backtest": "Start Backtest"
+    }
+  },
+  "features": {
+    "eventDriven": {
+      "title": "Event-Driven Architecture",
+      "description": "Loose-coupled design based on message bus, supporting custom event handlers. Including complete event system like MarketDataEvent, SignalEvent, OrderEvent, FillEvent."
+    },
+    "backtesting": {
+      "title": "Multi-Strategy Backtesting Engine",
+      "description": "Support rule-based strategies, fixed investment strategies, and custom Python strategies. Provides various position management strategies like fixed percent, Kelly formula, and Martingale."
+    },
+    "riskControl": {
+      "title": "Smart Risk Control",
+      "description": "Multi-layer risk control system, including stop-loss/take-profit, maximum position limits, dynamic position adjustment. Real-time risk monitoring protects your investment."
+    },
+    "dataIntegration": {
+      "title": "Multi-Source Integration",
+      "description": "Seamlessly integrate mainstream data sources like Tushare, Baostock, AkShare. Supports dual database architecture with SQLite and PostgreSQL, flexible switching."
+    },
+    "indicators": {
+      "title": "Technical Indicator Library",
+      "description": "Built-in 50+ common technical indicators including MA, MACD, RSI, Bollinger Bands. Supports custom indicator calculation, easily build complex trading strategies."
+    },
+    "visualization": {
+      "title": "Real-time Visualization",
+      "description": "Interactive K-line charts and performance analysis charts based on Streamlit. Supports Plotly chart library, providing rich data visualization capabilities."
+    }
+  },
+  "performance": {
+    "annualReturn": "Annual Return",
+    "sharpeRatio": "Sharpe Ratio",
+    "maxDrawdown": "Max Drawdown",
+    "winRate": "Win Rate",
+    "profitLossRatio": "Profit/Loss Ratio",
+    "avgHoldingDays": "Avg Holding Days"
+  },
+  "architecture": {
+    "dataSource": {
+      "title": "Data Source Access",
+      "description": "Tushare, Baostock, AkShare"
+    },
+    "dataManagement": {
+      "title": "Data Management",
+      "description": "Data cleaning, caching, async loading"
+    },
+    "strategyEngine": {
+      "title": "Strategy Engine",
+      "description": "Signal generation, rule matching"
+    },
+    "riskManagement": {
+      "title": "Risk Management",
+      "description": "Position control, stop-loss/take-profit"
+    },
+    "portfolio": {
+      "title": "Portfolio",
+      "description": "Multi-asset allocation, rebalancing"
+    },
+    "orderExecution": {
+      "title": "Order Execution",
+      "description": "Simulated trading, fill records"
+    }
+  },
+  "cta": {
+    "title": "Start Your Quantitative Trading Journey",
+    "description": "Experience QuantOL's powerful quantitative trading features and build your exclusive trading strategy.",
+    "button": "Get Started",
+    "secondary": "Start Backtest"
+  },
+  "footer": {
+    "product": "Product",
+    "resources": "Resources",
+    "company": "Company",
+    "allRightsReserved": "All rights reserved",
+    "features": "Features",
+    "performance": "Performance",
+    "pricing": "Pricing",
+    "aboutUs": "About Us",
+    "contact": "Contact",
+    "changelog": "Changelog"
+  },
+  "docs": {
+    "gettingStarted": "Getting Started",
+    "getting-started": "Getting Started",
+    "installation": "Installation",
+    "first-strategy": "First Strategy",
+    "firstStrategy": "First Strategy",
+    "architecture": "Architecture",
+    "strategies": "Strategies",
+    "backtesting": "Backtesting",
+    "risk-management": "Risk Management",
+    "riskManagement": "Risk Management",
+    "api-events": "Event System",
+    "apiEvents": "Event System",
+    "api-data": "Data API",
+    "apiData": "Data API",
+    "api-strategy": "Strategy Base",
+    "apiStrategy": "Strategy Base",
+    "categories": {
+      "gettingStarted": "Getting Started",
+      "core": "Core Features",
+      "tradingRules": "Trading Rules",
+      "api": "API Reference"
+    },
+    "rulesSma": "SMA",
+    "rulesRef": "REF",
+    "rules-sma": "SMA",
+    "rules-ref": "REF"
+  },
+  "backtest": {
+    "title": "Backtesting",
+    "description": "Configure and run backtests to validate your trading strategies.",
+    "dashboard": "Dashboard",
+    "backtesting": "Backtesting",
+    "trading": "Trading",
+    "logout": "Logout",
+    "config": "Backtest Config",
+    "saveAsNew": "Save as New",
+    "customConfig": "Custom Config",
+    "default": "Default",
+    "updateConfig": "Update Config",
+    "updating": "Updating...",
+    "deleteConfig": "Delete Config",
+    "selectStocks": "Select Stocks",
+    "searchStock": "Search stock code or name...",
+    "searchHint": "Enter stock code or name to search",
+    "noResults": "No matching stocks found",
+    "selectedCount": "{count} stock(s) selected",
+    "dateFrequency": "Date & Frequency",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "frequency": "Frequency",
+    "basicConfig": "Basic Config",
+    "initialCapital": "Initial Capital",
+    "commissionRate": "Commission Rate",
+    "slippageRate": "Slippage Rate",
+    "positionStrategy": "Position Strategy",
+    "strategyType": "Strategy Type",
+    "positionPercent": "Position Percent",
+    "winRate": "Win Rate",
+    "winLossRatio": "Win/Loss Ratio",
+    "basePercent": "Base Percent",
+    "multiplier": "Multiplier",
+    "tradingStrategy": "Trading Strategy",
+    "openCondition": "Open Condition",
+    "closeCondition": "Close Condition",
+    "buyCondition": "Buy Condition",
+    "sellCondition": "Sell Condition",
+    "saveToStrategy": "Save to Strategy",
+    "saveAsNewStrategy": "Save as New Strategy",
+    "runBacktest": "Run Backtest",
+    "running": "Running...",
+    "reset": "Reset",
+    "configPlaceholder": "Configure parameters and click \"Run Backtest\"",
+    "resultHint": "Results will be displayed here",
+    "saveConfig": "Save as New Config",
+    "configName": "Config Name",
+    "configNamePlaceholder": "Enter config name",
+    "cancel": "Cancel",
+    "save": "Save",
+    "confirmDelete": "Are you sure you want to delete this config?",
+    "enterStrategyName": "Enter new strategy type name:",
+    "strategySaved": "Custom strategy updated",
+    "savedToStrategy": "Rules saved to \"{name}\"",
+    "newStrategyCreated": "New strategy \"{name}\" created",
+    "enterConfigName": "Enter config name",
+    "configSaved": "Config saved",
+    "saveFailed": "Save failed: {error}",
+    "updateFailed": "Update failed: {error}",
+    "deleteFailed": "Delete failed: {error}",
+    "configDeleted": "Config deleted",
+    "selectConfigFirst": "Select a config first",
+    "selectAtLeastOne": "Select at least one stock",
+    "backtestStartFailed": "Backtest start failed: {error}"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "description": "Welcome back, {name}. Here's your trading overview.",
+    "dashboard": "Dashboard",
+    "backtesting": "Backtesting",
+    "trading": "Trading",
+    "logout": "Logout",
+    "totalStrategies": "Total Strategies",
+    "activeBacktests": "Active Backtests",
+    "totalReturn": "Total Return",
+    "winRate": "Win Rate",
+    "availableStrategies": "Available strategies",
+    "runningNow": "Running now",
+    "comingSoon": "Coming soon",
+    "realtimeTradingInDev": "Real-time trading module in development",
+    "portfolioPerformance": "Portfolio Performance",
+    "portfolioPerformanceDesc": "Historical performance of your portfolio",
+    "returnsDistribution": "Returns Distribution",
+    "returnsDistributionDesc": "Monthly returns breakdown",
+    "drawdownAnalysis": "Drawdown Analysis",
+    "drawdownAnalysisDesc": "Portfolio drawdown over time",
+    "recentTrades": "Recent Trades",
+    "recentTradesDesc": "Your latest trading activity"
+  }
+}

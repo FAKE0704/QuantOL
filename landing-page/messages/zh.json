@@ -1,0 +1,223 @@
+{
+  "site": {
+    "name": "QuantOL",
+    "description": "专业级事件驱动量化交易平台"
+  },
+  "nav": {
+    "home": "首页",
+    "features": "功能",
+    "performance": "性能",
+    "docs": "文档",
+    "getStarted": "开始使用"
+  },
+  "hero": {
+    "headline": "专业级事件驱动量化交易平台",
+    "subheadline": "强大的回测引擎 · 智能风控系统 · 多数据源集成",
+    "description": "基于Python的高性能量化交易系统，支持多种策略开发与回测，提供完整的风险管理和投资组合分析工具。",
+    "stats": {
+      "strategies": "支持策略",
+      "indicators": "技术指标",
+      "dataSources": "数据源"
+    },
+    "ctas": {
+      "start": "开始使用",
+      "backtest": "开始回测"
+    }
+  },
+  "features": {
+    "eventDriven": {
+      "title": "事件驱动架构",
+      "description": "基于消息总线的松耦合设计，支持自定义事件处理器。包括MarketDataEvent、SignalEvent、OrderEvent、FillEvent等完整事件体系。"
+    },
+    "backtesting": {
+      "title": "多策略回测引擎",
+      "description": "支持规则策略、定投策略、自定义Python策略。提供固定比例、凯利公式、马丁格尔等多种仓位管理策略。"
+    },
+    "riskControl": {
+      "title": "智能风险控制",
+      "description": "多层风险控制系统，包括止损止盈、最大持仓限制、动态仓位调整等。实时监控风险指标，保护您的投资。"
+    },
+    "dataIntegration": {
+      "title": "多数据源集成",
+      "description": "无缝集成Tushare、Baostock、AkShare等主流数据源。支持SQLite和PostgreSQL双数据库架构，灵活切换。"
+    },
+    "indicators": {
+      "title": "技术指标库",
+      "description": "内置MA、MACD、RSI、布林带等50+常用技术指标。支持自定义指标计算，轻松构建复杂的交易策略。"
+    },
+    "visualization": {
+      "title": "实时可视化",
+      "description": "基于Streamlit的交互式K线图、性能分析图表。支持Plotly图表库，提供丰富的数据可视化能力。"
+    }
+  },
+  "performance": {
+    "annualReturn": "年化收益率",
+    "sharpeRatio": "夏普比率",
+    "maxDrawdown": "最大回撤",
+    "winRate": "胜率",
+    "profitLossRatio": "盈亏比",
+    "avgHoldingDays": "平均持仓天数"
+  },
+  "architecture": {
+    "dataSource": {
+      "title": "数据源接入",
+      "description": "Tushare、Baostock、AkShare"
+    },
+    "dataManagement": {
+      "title": "数据管理",
+      "description": "数据清洗、缓存、异步加载"
+    },
+    "strategyEngine": {
+      "title": "策略引擎",
+      "description": "信号生成、规则匹配"
+    },
+    "riskManagement": {
+      "title": "风险管理",
+      "description": "仓位控制、止损止盈"
+    },
+    "portfolio": {
+      "title": "投资组合",
+      "description": "多资产配置、再平衡"
+    },
+    "orderExecution": {
+      "title": "订单执行",
+      "description": "模拟交易、成交记录"
+    }
+  },
+  "cta": {
+    "title": "开始您的量化交易之旅",
+    "description": "立即体验QuantOL强大的量化交易功能，构建您的专属交易策略。",
+    "button": "立即开始",
+    "secondary": "开始回测"
+  },
+  "footer": {
+    "product": "产品",
+    "resources": "资源",
+    "company": "公司",
+    "allRightsReserved": "版权所有",
+    "features": "功能特性",
+    "performance": "性能指标",
+    "pricing": "定价",
+    "aboutUs": "关于我们",
+    "contact": "联系方式",
+    "changelog": "更新日志"
+  },
+  "docs": {
+    "gettingStarted": "快速开始",
+    "getting-started": "快速开始",
+    "installation": "安装配置",
+    "first-strategy": "第一个策略",
+    "firstStrategy": "第一个策略",
+    "architecture": "系统架构",
+    "strategies": "策略开发",
+    "backtesting": "回测引擎",
+    "risk-management": "风险管理",
+    "riskManagement": "风险管理",
+    "api-events": "事件系统",
+    "apiEvents": "事件系统",
+    "api-data": "数据接口",
+    "apiData": "数据接口",
+    "api-strategy": "策略基类",
+    "apiStrategy": "策略基类",
+    "categories": {
+      "gettingStarted": "入门指南",
+      "core": "核心功能",
+      "tradingRules": "交易策略规则",
+      "api": "API 参考"
+    },
+    "rulesSma": "SMA",
+    "rulesRef": "REF",
+    "rules-sma": "SMA",
+    "rules-ref": "REF"
+  },
+  "backtest": {
+    "title": "回测",
+    "description": "配置并运行回测以验证您的交易策略。",
+    "dashboard": "仪表板",
+    "backtesting": "回测",
+    "trading": "交易",
+    "logout": "退出登录",
+    "config": "回测配置",
+    "saveAsNew": "保存为新配置",
+    "customConfig": "自定义配置",
+    "default": "默认",
+    "updateConfig": "更新配置",
+    "updating": "更新中...",
+    "deleteConfig": "删除配置",
+    "selectStocks": "选择交易标的",
+    "searchStock": "搜索股票代码或名称...",
+    "searchHint": "请输入股票代码或名称进行搜索",
+    "noResults": "未找到匹配的股票",
+    "selectedCount": "已选择 {count} 只股票",
+    "dateFrequency": "日期与频率",
+    "startDate": "开始日期",
+    "endDate": "结束日期",
+    "frequency": "数据频率",
+    "basicConfig": "基础配置",
+    "initialCapital": "初始资金",
+    "commissionRate": "手续费率",
+    "slippageRate": "滑点率",
+    "positionStrategy": "仓位策略",
+    "strategyType": "策略类型",
+    "positionPercent": "仓位比例",
+    "winRate": "预估胜率",
+    "winLossRatio": "预估盈亏比",
+    "basePercent": "基础仓位比例",
+    "multiplier": "加倍系数",
+    "tradingStrategy": "交易策略配置",
+    "openCondition": "开仓条件",
+    "closeCondition": "清仓条件",
+    "buyCondition": "加仓条件",
+    "sellCondition": "平仓条件",
+    "saveToStrategy": "保存到当前策略",
+    "saveAsNewStrategy": "保存为新策略",
+    "runBacktest": "运行回测",
+    "running": "运行中...",
+    "reset": "重置",
+    "configPlaceholder": "配置回测参数后点击「运行回测」",
+    "resultHint": "结果将在此处显示",
+    "saveConfig": "保存为新配置",
+    "configName": "配置名称",
+    "configNamePlaceholder": "输入配置名称",
+    "cancel": "取消",
+    "save": "保存",
+    "confirmDelete": "确定要删除此配置吗？",
+    "enterStrategyName": "请输入新策略类型的名称:",
+    "strategySaved": "自定义策略已更新",
+    "savedToStrategy": "已保存规则到 \"{name}\"",
+    "newStrategyCreated": "新策略类型 \"{name}\" 已创建",
+    "enterConfigName": "请输入配置名称",
+    "configSaved": "配置已保存",
+    "saveFailed": "保存失败: {error}",
+    "updateFailed": "更新失败: {error}",
+    "deleteFailed": "删除失败: {error}",
+    "configDeleted": "配置已删除",
+    "selectConfigFirst": "请先选择一个配置",
+    "selectAtLeastOne": "请至少选择一只股票",
+    "backtestStartFailed": "回测启动失败: {error}"
+  },
+  "dashboard": {
+    "title": "仪表板",
+    "description": "欢迎回来，{name}。这是您的交易概览。",
+    "dashboard": "仪表板",
+    "backtesting": "回测",
+    "trading": "交易",
+    "logout": "退出登录",
+    "totalStrategies": "策略总数",
+    "activeBacktests": "运行中回测",
+    "totalReturn": "总回报",
+    "winRate": "胜率",
+    "availableStrategies": "可用策略",
+    "runningNow": "正在运行",
+    "comingSoon": "即将推出",
+    "realtimeTradingInDev": "实时交易模块开发中",
+    "portfolioPerformance": "投资组合表现",
+    "portfolioPerformanceDesc": "您的投资组合历史表现",
+    "returnsDistribution": "收益分布",
+    "returnsDistributionDesc": "月度收益明细",
+    "drawdownAnalysis": "回撤分析",
+    "drawdownAnalysisDesc": "投资组合随时间回撤情况",
+    "recentTrades": "最近交易",
+    "recentTradesDesc": "您最新的交易活动"
+  }
+}

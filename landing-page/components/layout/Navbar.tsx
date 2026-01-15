@@ -1,12 +1,15 @@
 'use client'
 
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { Link } from '@/lib/routing'
 import { useState, useEffect } from 'react'
 import { Menu, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { siteConfig, navLinks } from '@/lib/data'
+import { siteConfig } from '@/lib/data'
+import { LanguageSelector } from './LanguageSelector'
+import { ThemeSwitcher } from './ThemeSwitcher'
 
 export function Navbar() {
+  const t = useTranslations('nav')
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -40,30 +43,43 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) =>
-              link.external ? (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="text-slate-400 hover:text-sky-400 transition-colors"
-                >
-                  {link.name}
-                </a>
-              ) : (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="text-slate-400 hover:text-sky-400 transition-colors"
-                >
-                  {link.name}
-                </Link>
-              )
-            )}
+            <Link
+              href="/"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              {t('home')}
+            </Link>
+            <a
+              href="#features"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              {t('features')}
+            </a>
+            <a
+              href="#performance"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              {t('performance')}
+            </a>
+            <Link
+              href="/docs"
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              {t('docs')}
+            </Link>
+            <Link
+              href={siteConfig.links.app}
+              className="text-muted-foreground hover:text-primary transition-colors"
+            >
+              {t('getStarted')}
+            </Link>
+            <ThemeSwitcher />
+            <LanguageSelector />
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 text-slate-400 hover:text-white transition-colors"
+            className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -78,27 +94,45 @@ export function Navbar() {
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 space-y-4 border-t border-border">
-            {navLinks.map((link) =>
-              link.external ? (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="block text-slate-400 hover:text-sky-400 transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {link.name}
-                </a>
-              ) : (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className="block text-slate-400 hover:text-sky-400 transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {link.name}
-                </Link>
-              )
-            )}
+            <Link
+              href="/"
+              className="block text-muted-foreground hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t('home')}
+            </Link>
+            <a
+              href="#features"
+              className="block text-muted-foreground hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t('features')}
+            </a>
+            <a
+              href="#performance"
+              className="block text-muted-foreground hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t('performance')}
+            </a>
+            <Link
+              href="/docs"
+              className="block text-muted-foreground hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t('docs')}
+            </Link>
+            <Link
+              href={siteConfig.links.app}
+              className="block text-muted-foreground hover:text-primary transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              {t('getStarted')}
+            </Link>
+            <div className="pt-2 border-t border-border flex items-center gap-4">
+              <ThemeSwitcher />
+              <LanguageSelector />
+            </div>
           </div>
         )}
       </div>

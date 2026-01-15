@@ -48,30 +48,65 @@
 
 :root {
   --radius: 0.625rem;
+  /* Light theme (default) */
+  --background: 255 255 255;
+  --foreground: 15 23 42;
+  --card: 249 250 251;
+  --card-foreground: 15 23 42;
+  --popover: 255 255 255;
+  --popover-foreground: 15 23 42;
+  --primary: 14 165 233;
+  --primary-foreground: 255 255 255;
+  --secondary: 243 244 246;
+  --secondary-foreground: 15 23 42;
+  --muted: 243 244 246;
+  --muted-foreground: 100 116 139;
+  --accent: 139 92 246;
+  --accent-foreground: 255 255 255;
+  --destructive: 239 68 68;
+  --border: 229 231 235;
+  --input: 229 231 235;
+  --ring: 14 165 233;
+  --chart-1: 14 165 233;
+  --chart-2: 139 92 246;
+  --chart-3: 34 197 94;
+  --chart-4: 251 146 60;
+  --chart-5: 236 72 153;
+  --sidebar: 249 250 251;
+  --sidebar-foreground: 15 23 42;
+  --sidebar-primary: 14 165 233;
+  --sidebar-primary-foreground: 255 255 255;
+  --sidebar-accent: 243 244 246;
+  --sidebar-accent-foreground: 15 23 42;
+  --sidebar-border: 229 231 235;
+  --sidebar-ring: 14 165 233;
+}
+
+.dark {
   /* Dark fintech theme - sky blue primary, purple accent */
-  --background: 10 10 10; /* #0a0a0a */
-  --foreground: 229 229 229; /* #e5e5e5 */
-  --card: 20 20 20; /* #141414 */
+  --background: 10 10 10;
+  --foreground: 229 229 229;
+  --card: 20 20 20;
   --card-foreground: 229 229 229;
   --popover: 20 20 20;
   --popover-foreground: 229 229 229;
-  --primary: 14 165 233; /* #0ea5e9 - sky blue */
+  --primary: 14 165 233;
   --primary-foreground: 10 10 10;
-  --secondary: 38 38 38; /* #262626 */
+  --secondary: 38 38 38;
   --secondary-foreground: 229 229 229;
   --muted: 38 38 38;
-  --muted-foreground: 115 115 115; /* #737373 */
-  --accent: 139 92 246; /* #8b5cf6 - purple */
+  --muted-foreground: 115 115 115;
+  --accent: 139 92 246;
   --accent-foreground: 255 255 255;
-  --destructive: 239 68 68; /* #ef4444 */
+  --destructive: 239 68 68;
   --border: 38 38 38;
   --input: 38 38 38;
   --ring: 14 165 233;
-  --chart-1: 14 165 233; /* sky blue */
-  --chart-2: 139 92 246; /* purple */
-  --chart-3: 34 197 94; /* green */
-  --chart-4: 251 146 60; /* orange */
-  --chart-5: 236 72 153; /* pink */
+  --chart-1: 14 165 233;
+  --chart-2: 139 92 246;
+  --chart-3: 34 197 94;
+  --chart-4: 251 146 60;
+  --chart-5: 236 72 153;
   --sidebar: 20 20 20;
   --sidebar-foreground: 229 229 229;
   --sidebar-primary: 14 165 233;

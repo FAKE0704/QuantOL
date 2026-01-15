@@ -1,8 +1,13 @@
-import Link from 'next/link'
-import { Github, Twitter } from 'lucide-react'
-import { siteConfig, footerLinks } from '@/lib/data'
+'use client'
+
+import { useTranslations } from 'next-intl'
+import { Link } from '@/lib/routing'
+import { Github } from 'lucide-react'
+import { siteConfig } from '@/lib/data'
 
 export function Footer() {
+  const t = useTranslations('footer')
+
   return (
     <footer className="border-t border-border bg-card/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -34,70 +39,95 @@ export function Footer() {
 
           {/* Product Links */}
           <div>
-            <h3 className="font-semibold mb-4">产品</h3>
+            <h3 className="font-semibold mb-4">{t('product')}</h3>
             <ul className="space-y-2">
-              {footerLinks.product.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <a
+                  href="#features"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                >
+                  {t('features')}
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#performance"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                >
+                  {t('performance')}
+                </a>
+              </li>
+              <li>
+                <Link
+                  href="/docs/architecture"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                >
+                  {t('features')}
+                </Link>
+              </li>
             </ul>
           </div>
 
           {/* Resources Links */}
           <div>
-            <h3 className="font-semibold mb-4">资源</h3>
+            <h3 className="font-semibold mb-4">{t('resources')}</h3>
             <ul className="space-y-2">
-              {footerLinks.resources.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
+              <li>
+                <Link
+                  href="/docs/getting-started"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                >
+                  {t('features')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/docs/strategies"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                >
+                  {t('features')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/docs/api"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                >
+                  API
+                </Link>
+              </li>
             </ul>
           </div>
 
           {/* Company Links */}
           <div>
-            <h3 className="font-semibold mb-4">关于</h3>
+            <h3 className="font-semibold mb-4">{t('company')}</h3>
             <ul className="space-y-2">
-              {footerLinks.company.map((link) => (
-                <li key={link.name}>
-                  {link.href.startsWith('http') ? (
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                    >
-                      {link.name}
-                    </a>
-                  ) : (
-                    <Link
-                      href={link.href}
-                      className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-                    >
-                      {link.name}
-                    </Link>
-                  )}
-                </li>
-              ))}
+              <li>
+                <Link
+                  href="/about"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                >
+                  {t('aboutUs')}
+                </Link>
+              </li>
+              <li>
+                <a
+                  href={siteConfig.links.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+                >
+                  GitHub
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
         {/* Copyright */}
         <div className="mt-12 pt-8 border-t border-border text-center text-muted-foreground text-sm">
-          <p>&copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {siteConfig.name}. {t('allRightsReserved')}</p>
         </div>
       </div>
     </footer>

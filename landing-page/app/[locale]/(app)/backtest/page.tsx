@@ -7,14 +7,16 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useRequireAuth } from "@/lib/store";
 import { useApi, BacktestConfig as ApiBacktestConfig } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import Link from "next/link";
+import { Link } from "@/lib/routing";
 import { BacktestProgressBar } from "@/components/backtest/BacktestProgressBar";
 import { BacktestResultsView } from "@/components/backtest/BacktestResultsView";
 import { useBacktestWebSocket, type BacktestProgress } from "@/lib/hooks/useBacktestWebSocket";
+import { ThemeSwitcher } from "@/components/layout/ThemeSwitcher";
 
 // Types
 interface BacktestConfig {
@@ -182,6 +184,7 @@ function CollapsibleCard({ id, title, activeCard, onCardClick, children }: Colla
 }
 
 export default function BacktestPage() {
+  const t = useTranslations('backtest')
   const { user, isLoading, token } = useRequireAuth();
   const {
     getStocks,
@@ -833,25 +836,26 @@ export default function BacktestPage() {
                 href="/dashboard"
                 className="text-slate-400 hover:text-sky-400 transition-colors"
               >
-                Dashboard
+                {t('dashboard')}
               </Link>
               <Link
                 href="/backtest"
                 className="text-white hover:text-sky-400 transition-colors"
               >
-                Backtesting
+                {t('backtesting')}
               </Link>
               <Link
                 href="/trading"
                 className="text-slate-400 hover:text-sky-400 transition-colors"
               >
-                Trading
+                {t('trading')}
               </Link>
             </nav>
           </div>
 
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate-400">{user.username}</span>
+            <ThemeSwitcher />
             <Button
               variant="outline"
               size="sm"
@@ -861,7 +865,7 @@ export default function BacktestPage() {
               }}
               className="border-slate-700 text-slate-300 hover:bg-slate-800"
             >
-              Logout
+              {t('logout')}
             </Button>
           </div>
         </div>
@@ -870,9 +874,9 @@ export default function BacktestPage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Backtesting</h1>
+          <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
           <p className="text-slate-400">
-            Configure and run backtests to validate your trading strategies.
+            {t('description')}
           </p>
         </div>
 

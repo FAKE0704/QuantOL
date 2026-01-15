@@ -1,14 +1,38 @@
 'use client'
 
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { Link } from '@/lib/routing'
 import { ArrowRight, Play, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { heroContent } from '@/lib/data'
+import { siteConfig } from '@/lib/data'
 import { motion } from 'framer-motion'
 import { UserCount } from '@/components/UserCount'
 
 export function Hero() {
+  const t = useTranslations('hero')
+
+  const codePreview = `# 示例：双均线策略回测
+from src.core.strategy import RuleBasedStrategy
+from src.core.backtesting import BacktestEngine, BacktestConfig
+
+# 配置回测参数
+config = BacktestConfig(
+    start_date="2023-01-01",
+    end_date="2024-01-01",
+    initial_capital=100000,
+    position_strategy_type="fixed_percent"
+)
+
+# 创建并运行回测引擎
+engine = BacktestEngine(config)
+results = engine.run()
+
+# 查看回测结果
+print(f"年化收益率: {results.annual_return:.2%}")
+print(f"夏普比率: {results.sharpe_ratio:.2f}")
+print(f"最大回撤: {results.max_drawdown:.2%}")`
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background gradient */}
@@ -62,7 +86,7 @@ export function Hero() {
             >
               <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
                 <Sparkles className="w-3 h-3 mr-1" />
-                专业级量化交易平台
+                {t('headline')}
               </Badge>
             </motion.div>
 
@@ -83,7 +107,7 @@ export function Hero() {
               transition={{ delay: 0.4, duration: 0.6 }}
             >
               <span className="bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent">
-                {heroContent.headline}
+                {t('headline')}
               </span>
             </motion.h1>
 
@@ -94,7 +118,7 @@ export function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.6 }}
             >
-              {heroContent.subheadline}
+              {t('subheadline')}
             </motion.p>
 
             {/* Description */}
@@ -104,7 +128,7 @@ export function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.6 }}
             >
-              {heroContent.description}
+              {t('description')}
             </motion.p>
 
             {/* CTAs */}
@@ -114,33 +138,26 @@ export function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.6 }}
             >
-              {heroContent.ctas.map((cta) =>
-                cta.primary ? (
-                  <Button
-                    key={cta.label}
-                    asChild
-                    size="lg"
-                    className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
-                  >
-                    <Link href={cta.href}>
-                      {cta.label}
-                      <ArrowRight className="ml-2 w-4 h-4" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button
-                    key={cta.label}
-                    asChild
-                    size="lg"
-                    variant="outline"
-                    className="border-border hover:bg-muted"
-                  >
-                    <Link href={cta.href}>
-                      {cta.label}
-                    </Link>
-                  </Button>
-                )
-              )}
+              <Button
+                asChild
+                size="lg"
+                className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
+              >
+                <Link href={siteConfig.links.app}>
+                  {t('ctas.start')}
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="border-border hover:bg-muted"
+              >
+                <Link href="/backtest">
+                  {t('ctas.backtest')}
+                </Link>
+              </Button>
             </motion.div>
 
             {/* Stats */}
@@ -150,12 +167,18 @@ export function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6 }}
             >
-              {heroContent.stats.map((stat, index) => (
-                <div key={stat.label} className="space-y-1">
-                  <div className="text-2xl font-bold text-primary">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
+              <div className="space-y-1">
+                <div className="text-2xl font-bold text-primary">10+</div>
+                <div className="text-sm text-muted-foreground">{t('stats.strategies')}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold text-primary">50+</div>
+                <div className="text-sm text-muted-foreground">{t('stats.indicators')}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-2xl font-bold text-primary">3+</div>
+                <div className="text-sm text-muted-foreground">{t('stats.dataSources')}</div>
+              </div>
             </motion.div>
           </motion.div>
 
@@ -176,7 +199,7 @@ export function Hero() {
 
               {/* Code */}
               <pre className="font-mono text-sm text-muted-foreground overflow-x-auto">
-                <code>{heroContent.codePreview}</code>
+                <code>{codePreview}</code>
               </pre>
 
               {/* Glow effect */}

@@ -1,8 +1,8 @@
 'use client'
 
+import { useTranslations } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { features } from '@/lib/data'
 import { motion } from 'framer-motion'
 import {
   Network, LineChart, Shield, Database,
@@ -19,6 +19,17 @@ const iconMap: Record<string, LucideIcon> = {
 }
 
 export function Features() {
+  const t = useTranslations('features')
+
+  const featureList = [
+    { icon: 'Circuit', key: 'eventDriven' },
+    { icon: 'ChartLine', key: 'backtesting' },
+    { icon: 'Shield', key: 'riskControl' },
+    { icon: 'Database', key: 'dataIntegration' },
+    { icon: 'FunctionSquare', key: 'indicators' },
+    { icon: 'BarChart3', key: 'visualization' },
+  ]
+
   return (
     <section id="features" className="py-24 relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,11 +51,11 @@ export function Features() {
 
         {/* Features grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => {
+          {featureList.map((feature, index) => {
             const Icon = iconMap[feature.icon]
             return (
               <motion.div
-                key={feature.title}
+                key={feature.key}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -55,22 +66,16 @@ export function Features() {
                     <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
-                    <CardTitle className="text-xl">{feature.title}</CardTitle>
+                    <CardTitle className="text-xl">{t(`${feature.key}.title` as any)}</CardTitle>
                     <CardDescription className="text-muted-foreground">
-                      {feature.description}
+                      {t(`${feature.key}.description` as any)}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {feature.tech.map((tech) => (
-                        <Badge
-                          key={tech}
-                          variant="secondary"
-                          className="text-xs bg-muted text-muted-foreground hover:bg-muted/80"
-                        >
-                          {tech}
-                        </Badge>
-                      ))}
+                      <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground hover:bg-muted/80">
+                        Tech
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>

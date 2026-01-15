@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { BacktestProgressBar } from "@/components/backtest/BacktestProgressBar";
+import { BacktestResultsView } from "@/components/backtest/BacktestResultsView";
 import { useBacktestWebSocket } from "@/lib/hooks/useBacktestWebSocket";
 
 // Types
@@ -1426,21 +1427,7 @@ export default function BacktestPage() {
             )}
 
             {showResults && backtestId ? (
-              <Card className="p-6 bg-slate-900/50 border-slate-800">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">回测结果</h3>
-                  <span className="text-sm text-slate-400">ID: {backtestId}</span>
-                </div>
-                {/* Embed Streamlit chart with backtest results */}
-                <div className="bg-slate-800 rounded-lg overflow-hidden" style={{ height: "600px" }}>
-                  <iframe
-                    src={`/app?headless=true&chart=backtest&backtest=${backtestId}&token=${token}`}
-                    className="w-full h-full border-0"
-                    title="Backtest Results"
-                    sandbox="allow-scripts allow-same-origin"
-                  />
-                </div>
-              </Card>
+              <BacktestResultsView backtestId={backtestId} />
             ) : (
               <Card className="p-6 bg-slate-900/50 border-slate-800">
                 <div className="aspect-video bg-slate-800/50 rounded flex items-center justify-center">

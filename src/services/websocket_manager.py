@@ -19,6 +19,9 @@ class CustomEncoder(json.JSONEncoder):
         elif isinstance(o, np.integer):
             return int(o)
         elif isinstance(o, np.floating):
+            # 处理 NaN 和 Inf，转换为 None
+            if np.isnan(o) or np.isinf(o):
+                return None
             return float(o)
         elif isinstance(o, np.ndarray):
             return o.tolist()
@@ -33,6 +36,23 @@ class CustomEncoder(json.JSONEncoder):
         elif isinstance(o, pd.Series):
             return o.tolist()
         return super().default(o)
+
+    def iterencode(self, o, _one_shot=False):
+        """重写 iterencode 以处理 NaN 值"""
+        # 首先递归处理 NaN 值
+        def clean_nan(obj):
+            if isinstance(obj, dict):
+                return {k: clean_nan(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [clean_nan(v) for v in obj]
+            elif isinstance(obj, (float, np.floating)):
+                if np.isnan(obj) or np.isinf(obj):
+                    return None
+                return obj
+            return obj
+
+        cleaned_obj = clean_nan(o)
+        return super().iterencode(cleaned_obj, _one_shot)
 
 
 class WebSocketManager:

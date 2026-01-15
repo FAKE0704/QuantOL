@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { heroContent } from '@/lib/data'
 import { motion } from 'framer-motion'
+import { UserCount } from '@/components/UserCount'
 
 export function Hero() {
   return (
@@ -65,12 +66,21 @@ export function Hero() {
               </Badge>
             </motion.div>
 
+            {/* User Count */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+            >
+              <UserCount />
+            </motion.div>
+
             {/* Headline */}
             <motion.h1
               className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
             >
               <span className="bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent">
                 {heroContent.headline}
@@ -82,7 +92,7 @@ export function Hero() {
               className="text-xl text-muted-foreground"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
             >
               {heroContent.subheadline}
             </motion.p>
@@ -92,7 +102,7 @@ export function Hero() {
               className="text-muted-foreground max-w-lg"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
             >
               {heroContent.description}
             </motion.p>
@@ -102,7 +112,7 @@ export function Hero() {
               className="flex flex-wrap gap-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
+              transition={{ delay: 0.7, duration: 0.6 }}
             >
               {heroContent.ctas.map((cta) =>
                 cta.primary ? (
@@ -138,7 +148,7 @@ export function Hero() {
               className="flex gap-8 pt-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.6 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
             >
               {heroContent.stats.map((stat, index) => (
                 <div key={stat.label} className="space-y-1">

@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { BacktestProgressBar } from "@/components/backtest/BacktestProgressBar";
 import { BacktestResultsView } from "@/components/backtest/BacktestResultsView";
-import { useBacktestWebSocket } from "@/lib/hooks/useBacktestWebSocket";
+import { useBacktestWebSocket, type BacktestProgress } from "@/lib/hooks/useBacktestWebSocket";
 
 // Types
 interface BacktestConfig {
@@ -604,7 +604,7 @@ export default function BacktestPage() {
       console.log("Searching for stocks:", symbols);
       // Search for each symbol to populate the stocks list
       for (const symbol of symbols) {
-        await searchStocks(symbol, 100);
+        await searchStocks(symbol);
       }
       // Clear the search input after loading
       setStockSearch("");

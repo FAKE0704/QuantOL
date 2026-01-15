@@ -92,13 +92,38 @@ sleep 2
 
 echo -e "${GREEN}[3/6] 启动落地页 (Next.js)...${NC}"
 cd landing-page
-npm run dev > ../logs/landing-page.log 2>&1 &
+# 确保端口 3000 是空闲的（多次尝试清理）
+for i in {1..3}; do
+    if lsof -ti:3000 >/dev/null 2>&1; then
+        lsof -ti:3000 | xargs kill -9 2>/dev/null
+        echo "  清理端口 3000 (尝试 $i/3)"
+        sleep 2
+    else
+        break
+    fi
+done
+# 生产模式：每次启动都重新构建以确保使用最新代码
+echo "  构建生产版本..."
+if npm run build > ../logs/landing-page-build.log 2>&1; then
+    echo "  构建成功"
+else
+    echo -e "${RED}✗ 构建失败，请检查日志: logs/landing-page-build.log${NC}"
+    cat ../logs/landing-page-build.log | tail -20
+    exit 1
+fi
+npm start > ../logs/landing-page.log 2>&1 &
 LANDING_PID=$!
-echo -e "${GREEN}✓ 落地页已启动 (PID: $LANDING_PID, 端口: 3000)${NC}"
+# 等待并验证 Next.js 是否真的启动了
+sleep 5
+# 使用 curl 直接测试端口响应（最可靠的检查）
+if curl -s http://localhost:3000 >/dev/null 2>&1 && ps -p $LANDING_PID >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ 落地页已启动 (PID: $LANDING_PID, 端口: 3000)${NC}"
+else
+    echo -e "${RED}✗ 落地页启动失败，请检查日志: logs/landing-page.log${NC}"
+    tail -20 ../logs/landing-page.log
+    exit 1
+fi
 cd ..
-
-# 等待落地页启动
-sleep 3
 
 echo -e "${GREEN}[4/6] 启动 Streamlit 应用...${NC}"
 uv run streamlit run main.py --server.port 8501 > logs/streamlit.log 2>&1 &

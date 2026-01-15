@@ -112,7 +112,7 @@ export function Performance() {
                       border: '1px solid #262626',
                       borderRadius: '8px',
                     }}
-                    formatter={(value: number) => [`¥${value.toLocaleString()}`, '']}
+                    formatter={(value) => [`¥${(value || 0).toLocaleString()}`, '']}
                   />
                   <Legend />
                   <Line
@@ -155,7 +155,10 @@ export function Performance() {
                       transition={{ duration: 0.2 }}
                     >
                       <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/30">
-                        <step.icon className="w-7 h-7 text-primary" />
+                        {(() => {
+                          const IconComponent = iconMap[step.icon as keyof typeof iconMap] || AlertCircle;
+                          return <IconComponent className="w-7 h-7 text-primary" />;
+                        })()}
                       </div>
                       <div className="text-center">
                         <div className="font-semibold text-sm">{step.title}</div>

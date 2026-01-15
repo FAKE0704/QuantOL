@@ -72,7 +72,19 @@ pkill -f "streamlit run" 2>/dev/null
 pkill -f "streamlit" 2>/dev/null && echo -e "${GREEN}✓ Streamlit 进程已清理${NC}"
 
 # 强制停止 Next.js（可能有残留进程）
-pkill -f "next dev" 2>/dev/null && echo -e "${GREEN}✓ Next.js 进程已清理${NC}"
+pkill -f "next dev" 2>/dev/null
+pkill -f "next start" 2>/dev/null
+pkill -f "next-server" 2>/dev/null
+pkill -f "node.*landing-page" 2>/dev/null
+pkill -f "npm.*start" 2>/dev/null
+
+# 等待进程完全退出
+sleep 2
+
+# 确认清理成功
+if ! pgrep -f "next" >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Next.js 进程已清理${NC}"
+fi
 
 # 等待进程完全停止
 sleep 1

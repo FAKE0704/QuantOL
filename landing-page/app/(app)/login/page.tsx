@@ -6,7 +6,7 @@
  * User authentication page for QuantOL platform.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { useApi } from "@/lib/api";
 
 const MAX_USERS = 100;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, register, isLoading, error, clearError } = useAuth();
@@ -261,5 +261,22 @@ export default function LoginPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-950 via-slate-900 to-slate-950 px-4">
+        <Card className="w-full max-w-md p-8 bg-slate-900/50 border-slate-800 backdrop-blur">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto mb-4" />
+            <p className="text-slate-400">Loading...</p>
+          </div>
+        </Card>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

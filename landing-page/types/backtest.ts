@@ -142,6 +142,9 @@ export interface BacktestResults {
   // Debug data (策略调试数据)
   debug_data?: Record<string, SerializedDataFrame>;
 
+  // Parser data (包含所有中间指标的完整数据)
+  parser_data?: Record<string, SerializedDataFrame>;
+
   // Errors
   errors: unknown[];
 
@@ -190,4 +193,13 @@ export interface PriceData {
   low: number;
   close: number;
   volume?: number;
+}
+
+/**
+ * Indicator data for chart display (指标数据)
+ */
+export interface IndicatorData {
+  name: string;
+  color: string;
+  data: Array<{ time: number; value: number }>;
 }

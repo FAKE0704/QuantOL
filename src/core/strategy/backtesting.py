@@ -421,6 +421,13 @@ class BacktestEngine:
     async def run(self, start_date: datetime, end_date: datetime):
         """执行事件驱动的回测（异步版本）"""
 
+        # 自动清理旧日志（在回测开始前）
+        try:
+            from src.utils.log_cleaner import auto_cleanup_on_backtest_start
+            auto_cleanup_on_backtest_start()
+        except Exception as e:
+            logger.warning(f"自动清理日志失败: {e}")
+
         # 更新RuleParser数据引用
         self.update_rule_parser_data()
 
@@ -614,7 +621,7 @@ class BacktestEngine:
         # 记录信号到数据中
         if event.signal_type in [SignalType.OPEN, SignalType.BUY]:
             self.data.loc[idx, 'signal'] = 1
-        elif event.signal_type in [SignalType.SELL, SignalType.CLOSE]:
+        elif event.signal_type in [SignalType.SELL, SignalType.CLOSE, SignalType.LIQUIDATE]:
             self.data.loc[idx, 'signal'] = -1
         elif event.signal_type == SignalType.HEDGE:
             self.data.loc[idx, 'signal'] = 2  # 对冲信号
@@ -622,17 +629,18 @@ class BacktestEngine:
             self.data.loc[idx, 'signal'] = 3  # 再平衡信号
 
         # 使用仓位管理策略计算交易数量
-        if hasattr(self.position_strategy, 'calculate_position_size'):
+        # HEDGE 和 REBALANCE 信号使用专门的处理函数，不经过仓位策略
+        if event.signal_type == SignalType.HEDGE:
+            self._create_hedge_order(event)
+        elif event.signal_type == SignalType.REBALANCE:
+            self._create_rebalance_order(event)
+        elif hasattr(self.position_strategy, 'calculate_position_size'):
             # 使用新的固定比例仓位管理策略
             self._create_order_with_position_strategy(event)
         else:
             # 使用旧的订单创建方式（保持兼容性）
-            if event.signal_type in [SignalType.OPEN, SignalType.BUY, SignalType.SELL, SignalType.CLOSE]:
+            if event.signal_type in [SignalType.OPEN, SignalType.BUY, SignalType.SELL, SignalType.CLOSE, SignalType.LIQUIDATE]:
                 self._create_order_from_signal(event)
-            elif event.signal_type == SignalType.HEDGE:
-                self._create_hedge_order(event)
-            elif event.signal_type == SignalType.REBALANCE:
-                self._create_rebalance_order(event)
 
     def _create_order_with_position_strategy(self, event: StrategySignalEvent):
         """使用仓位管理策略创建订单"""
@@ -800,7 +808,7 @@ class BacktestEngine:
             # 确定订单方向
             if event.signal_type in [SignalType.OPEN, SignalType.BUY]:
                 direction = "BUY"
-            elif event.signal_type in [SignalType.SELL, SignalType.CLOSE]:
+            elif event.signal_type in [SignalType.SELL, SignalType.CLOSE, SignalType.LIQUIDATE]:
                 direction = "SELL"
             else:
                 self.log_error(f"不支持创建订单的信号类型: {event.signal_type}")
@@ -815,8 +823,8 @@ class BacktestEngine:
                 position_amount = self._calculate_position_amount(event)
                 quantity = self._calculate_order_quantity(position_amount, price)
             
-            # 对于CLOSE信号，计算全部持仓数量
-            if event.signal_type == SignalType.CLOSE:
+            # 对于CLOSE和LIQUIDATE信号，计算全部持仓数量
+            if event.signal_type in [SignalType.CLOSE, SignalType.LIQUIDATE]:
                 current_position = self.portfolio_manager.get_position(event.symbol)
                 if current_position and current_position.quantity > 0:
                     quantity = current_position.quantity
@@ -1089,6 +1097,16 @@ class BacktestEngine:
 
         print(f"[DEBUG] 最终收集到的debug_data数量: {len(debug_data)}")
 
+        # 收集 parser_data（包含所有中间指标的完整数据）
+        parser_data = {}
+        for strategy in self.strategies:
+            strategy_name = strategy.name if hasattr(strategy, 'name') else 'unknown'
+            if hasattr(strategy, 'parser') and strategy.parser.data is not None:
+                parser_data[strategy_name] = strategy.parser.data
+                print(f"[DEBUG] ✓ 找到parser_data: {strategy_name}, 列数: {len(strategy.parser.data.columns)}")
+
+        print(f"[DEBUG] 最终收集到的parser_data数量: {len(parser_data)}")
+
         # 准备价格数据（包含信号信息）
         price_data = self.data.copy() if hasattr(self, 'data') and not self.data.empty else None
 
@@ -1133,6 +1151,7 @@ class BacktestEngine:
             },
             "performance_metrics": performance_metrics,
             "debug_data": debug_data,  # 添加调试数据
+            "parser_data": parser_data,  # 添加parser数据（包含所有中间指标）
             "price_data": price_data,  # 添加价格数据
             "signals": signals_data,   # 添加信号数据
         }
@@ -1184,12 +1203,20 @@ class BacktestEngine:
                 metrics['annual_return'] = annual_return * 100  # 百分比
 
         # 计算波动率
-        metrics['volatility'] = float(returns_array.std()) * np.sqrt(252) * 100  # 年化波动率百分比
+        daily_volatility = float(returns_array.std())
+        metrics['volatility'] = daily_volatility * np.sqrt(252) * 100  # 年化波动率百分比
 
-        # 计算夏普比率（假设无风险利率为3%）
+        # 计算夏普比率（使用年化收益率计算，与annual_return保持一致）
         risk_free_rate = 0.03
-        excess_returns = returns_array - risk_free_rate / 252
-        if returns_array.std() > 0:
+        if days > 0 and 'annual_return' in metrics:
+            # 使用年化收益率计算夏普比率，确保与年化收益率指标一致
+            annual_return_decimal = metrics['annual_return'] / 100
+            annual_volatility = daily_volatility * np.sqrt(252)
+            sharpe_ratio = (annual_return_decimal - risk_free_rate) / annual_volatility
+            metrics['sharpe_ratio'] = float(sharpe_ratio)
+        elif returns_array.std() > 0:
+            # 备用方案：使用日收益率算术平均（传统方法）
+            excess_returns = returns_array - risk_free_rate / 252
             sharpe_ratio = (excess_returns.mean() / returns_array.std()) * np.sqrt(252)
             metrics['sharpe_ratio'] = float(sharpe_ratio)
         else:

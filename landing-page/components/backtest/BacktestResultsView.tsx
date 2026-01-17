@@ -223,7 +223,7 @@ export function BacktestResultsView({ backtestId }: BacktestResultsViewProps) {
 
           {/* 2. 交易记录 */}
           <TabsContent value="trades" className="mt-0">
-            <TradesTab trades={trades} priceData={priceData} />
+            <TradesTab trades={trades} priceData={priceData} parserData={results.parser_data} />
           </TabsContent>
 
           {/* 3. 仓位明细 */}
@@ -357,7 +357,18 @@ function SummaryTab({ results, trades, equityRecords }: { results: BacktestResul
   );
 }
 
-function TradesTab({ trades, priceData }: { trades: Trade[]; priceData?: import("@/types/backtest").PriceData[] }) {
+function TradesTab({
+  trades,
+  priceData,
+  parserData
+}: {
+  trades: Trade[];
+  priceData?: import("@/types/backtest").PriceData[];
+  parserData?: Record<string, import("@/types/backtest").SerializedDataFrame>;
+}) {
+  // 提取第一个策略的 parser_data
+  const firstStrategyData = parserData ? Object.values(parserData)[0] : undefined;
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">交易记录</h3>
@@ -366,7 +377,7 @@ function TradesTab({ trades, priceData }: { trades: Trade[]; priceData?: import(
       ) : (
         <>
           {priceData && priceData.length > 0 && (
-            <CandlestickChart priceData={priceData} trades={trades} />
+            <CandlestickChart priceData={priceData} trades={trades} parserData={firstStrategyData} />
           )}
           <div className="text-xs text-slate-500 mb-2">共 {trades.length} 笔交易</div>
           <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-96 overflow-y-auto">

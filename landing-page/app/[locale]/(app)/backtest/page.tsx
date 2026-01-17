@@ -1041,6 +1041,27 @@ export default function BacktestPage() {
               </div>
             </Card>
 
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Button
+                onClick={handleRunBacktest}
+                disabled={isRunning || config.symbols.length === 0}
+                className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+              >
+                {isRunning ? "运行中..." : "运行回测"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setConfig(defaultConfig);
+                  setSelectedStocks(new Set());
+                }}
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              >
+                重置
+              </Button>
+            </div>
+
             {/* Stock Selection */}
             <CollapsibleCard id="stocks" title="选择交易标的" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
@@ -1385,27 +1406,6 @@ export default function BacktestPage() {
                 )}
               </div>
             </CollapsibleCard>
-
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <Button
-                onClick={handleRunBacktest}
-                disabled={isRunning || config.symbols.length === 0}
-                className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
-              >
-                {isRunning ? "运行中..." : "运行回测"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setConfig(defaultConfig);
-                  setSelectedStocks(new Set());
-                }}
-                className="border-slate-700 text-slate-300 hover:bg-slate-800"
-              >
-                重置
-              </Button>
-            </div>
 
             {/* Trading Strategy */}
             <CollapsibleCard id="trading-strategy" title="交易策略配置" activeCard={activeCard} onCardClick={handleCardClick}>

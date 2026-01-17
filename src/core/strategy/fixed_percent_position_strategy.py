@@ -66,7 +66,7 @@ class FixedPercentPositionStrategy:
         """
 
         if signal_type == SignalType.LIQUIDATE:
-            return self._calculate_liquidate_position_size(current_position)
+            return -self._calculate_liquidate_position_size(current_position)
 
         if signal_type == SignalType.CLOSE:
             return -self._calculate_close_position_size(current_position)
@@ -281,7 +281,7 @@ class MartingalePositionStrategy(FixedPercentPositionStrategy):
         # 处理清仓信号
         if signal_type == SignalType.LIQUIDATE:
             self._reset_martingale_state(symbol)
-            return self._calculate_liquidate_position_size(current_position)
+            return -self._calculate_liquidate_position_size(current_position)
 
         if signal_type == SignalType.CLOSE or signal_type == SignalType.SELL:
             # 完全清仓

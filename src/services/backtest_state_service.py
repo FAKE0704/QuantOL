@@ -32,6 +32,17 @@ class CustomEncoder(json.JSONEncoder):
             return result
         elif isinstance(o, pd.Series):
             return o.tolist()
+        elif hasattr(o, '__dataclass_fields__'):
+            # 处理 dataclass 对象（如 Position）
+            from dataclasses import asdict
+            try:
+                return asdict(o)
+            except Exception:
+                # 如果序列化失败，返回字典表示
+                return {k: v for k, v in o.__dict__.items() if not k.startswith('_')}
+        elif o.__class__.__name__ == 'SimpleStock':
+            # 处理 SimpleStock 对象
+            return {'symbol': o.symbol, 'last_price': o.last_price}
         return super().default(o)
 
 
@@ -106,6 +117,8 @@ class BacktestStateService:
             return True
         except Exception as e:
             logger.error(f"更新回测状态失败: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def _restore_dataframe_attrs(self, obj: Any) -> Any:

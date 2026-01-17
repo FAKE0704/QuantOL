@@ -634,3 +634,41 @@ async def set_default_config(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to set default configuration: {str(e)}",
         )
+
+
+class RuleValidationRequest(BaseModel):
+    """Rule validation request model."""
+    rule: str
+
+
+class RuleValidationResponse(BaseModel):
+    """Rule validation response model."""
+    valid: bool
+    error: Optional[str] = None
+
+
+@router.post("/validate-rule", response_model=RuleValidationResponse)
+async def validate_rule(request: RuleValidationRequest):
+    """Validate a trading rule syntax.
+
+    Args:
+        request: Rule validation request containing the rule to validate
+
+    Returns:
+        Validation result with error message if invalid
+    """
+    try:
+        from src.core.strategy.rule_parser import RuleParser
+
+        is_valid, error_message = RuleParser.validate_syntax(request.rule)
+
+        return RuleValidationResponse(
+            valid=is_valid,
+            error=None if is_valid else error_message
+        )
+
+    except Exception as e:
+        return RuleValidationResponse(
+            valid=False,
+            error=f"验证失败: {str(e)}"
+        )

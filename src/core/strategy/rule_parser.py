@@ -262,8 +262,8 @@ class RuleParser:
                 left = f"({left})"
             if right_needs_parens:
                 right = f"({right})"
-                
-            return f"{left} {op} {right}"
+
+            return f"{left}{op}{right}"
         elif isinstance(node, ast.UnaryOp):
             operand = self._node_to_expr_simple(node.operand)
             op = self._get_operator_symbol(node.op)
@@ -386,7 +386,10 @@ class RuleParser:
                 self.data[col_name] = [float('nan')] * len(self.data)
             # 添加表达式注释
             self.data.attrs[f"{col_name}_expr"] = expr_str
-        
+            # 调试：记录新列创建
+            if col_name.startswith('SQRT') or col_name.startswith('VWAP') or col_name.startswith('Q('):
+                logger.debug(f"[子表达式列] 创建新列: '{col_name}', 类型: {'布尔' if bool_only else '数值'}")
+
         # 存储结果（跳过数字常量）
         if 0 <= self.current_index < len(self.data) and not (isinstance(node, ast.Constant) and isinstance(node.value, (int, float))):
             self.data.at[self.current_index, col_name] = bool(result) if bool_only else result
@@ -399,8 +402,9 @@ class RuleParser:
             result = self.OPERATORS[type(node.ops[0])](left, right)
             # 存储比较运算结果(bool值)
             self._store_expression_result(node, result, bool_only=True)
-            # 只存储有意义的表达式（避免存储数字常量和中间表达式）
-            # 不存储比较运算的子表达式，只存储最终布尔结果
+            # 存储比较运算的左右子表达式值（用于调试）
+            self._store_expression_result(node.left, left, bool_only=False)
+            self._store_expression_result(node.comparators[0], right, bool_only=False)
             return result
         elif isinstance(node, ast.BoolOp):
             return self._eval_bool_op(node)
@@ -411,25 +415,28 @@ class RuleParser:
         elif isinstance(node, ast.BinOp):
             left = self._eval(node.left)
             right = self._eval(node.right)
-            
+
             # 处理除零错误
             if isinstance(node.op, (ast.Div, ast.FloorDiv)) and right == 0:
                 # 获取当前时间信息
                 current_time = ""
                 if hasattr(self, 'data') and 'combined_time' in self.data.columns and 0 <= self.current_index < len(self.data):
                     current_time = self.data['combined_time'].iloc[self.current_index]
-                
+
                 # 获取表达式字符串用于更智能的错误处理
                 expr_str = self._node_to_expr(node)
-                
+
                 # 特殊处理：对于COST/POSITION表达式，当POSITION为0时返回0.0（不生成信号）
                 if 'COST' in expr_str and 'POSITION' in expr_str:
                     return 0.0  # 当持仓为0时，返回0.0表示不生成信号
-                
+
                 # 打印除零错误信息
                 return 0.0  # 其他除零情况返回0
-                
-            return self.OPERATORS[type(node.op)](left, right)
+
+            result = self.OPERATORS[type(node.op)](left, right)
+            # 存储二元运算结果（用于调试）
+            self._store_expression_result(node, result, bool_only=False)
+            return result
         elif isinstance(node, ast.Constant):
             try:
                 return float(node.value)
@@ -457,7 +464,9 @@ class RuleParser:
         result = self.OPERATORS[type(node.op)](*values)
         # 存储布尔运算结果(bool值)
         self._store_expression_result(node, result, bool_only=True)
-        # 只存储布尔运算结果，不存储子表达式（避免存储中间表达式）
+        # 存储布尔运算的子表达式值（用于调试）
+        for i, v in enumerate(node.values):
+            self._store_expression_result(v, values[i], bool_only=True)
         return result
     
     def _eval_variable(self, node) -> float:
@@ -540,11 +549,18 @@ class RuleParser:
             if period <= 0:
                 raise ValueError(f"周期必须为正整数，当前值: {period}")
 
-            start_idx = max(0, int(self.current_index) - period + 1)
-            end_idx = int(self.current_index) + 1
-            window_data = self.data[data_column].iloc[start_idx:end_idx]
-            result = window_data.quantile(quantile)
+            # 检查数据长度是否满足周期要求
+            if self.current_index < period - 1:
+                result = float('nan')  # 数据不足，返回 NaN
+            else:
+                start_idx = int(self.current_index) - period + 1
+                end_idx = int(self.current_index) + 1
+                window_data = self.data[data_column].iloc[start_idx:end_idx]
+                result = window_data.quantile(quantile)
 
+            # 存储到列（用于调试）
+            col_name = f"Q({data_column},{quantile},{period})"
+            self._store_expression_result(node, result, bool_only=False)
             return result
 
         # 特殊处理REF函数（需要解析器状态）
@@ -604,9 +620,9 @@ class RuleParser:
 
             period = int(period)
 
-            # 检查数据长度是否足够
+            # 检查数据长度是否足够（需要至少period个数据点）
             if self.current_index < period:
-                return 0.0
+                return float('nan')  # 数据不足，返回 NaN
 
             # 计算VWAP值
             try:

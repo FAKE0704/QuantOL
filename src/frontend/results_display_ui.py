@@ -485,13 +485,8 @@ class ResultsDisplayUI:
                 st.write(f"规则结果 ({len(rule_cols)}列):")
                 st.write(", ".join(rule_cols[:10]) + ("..." if len(rule_cols) > 10 else ""))
 
-            # 数据展示选项
-            show_columns = st.multiselect(
-                "选择要显示的列",
-                options=list(strategy_data.columns),
-                default=basic_cols + indicator_cols[:5],  # 默认显示基础数据和前5个指标
-                key=f"columns_{strategy_name}"
-            )
+            # 数据展示选项（默认显示所有列）
+            show_columns = list(strategy_data.columns)
 
             # 合并 equity_records 中的实际持仓数据到 debug_data
             equity_data = self._get_equity_data(results)

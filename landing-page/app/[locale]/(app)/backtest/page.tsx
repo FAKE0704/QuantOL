@@ -196,6 +196,7 @@ export default function BacktestPage() {
     getTradingStrategies,
     getPositionStrategies,
     logout,
+    validateRule,
   } = useApi();
 
   const [config, setConfig] = useState<BacktestConfig>(defaultConfig);
@@ -235,6 +236,46 @@ export default function BacktestPage() {
   const [configNameInput, setConfigNameInput] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Show toast message
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    console.log('Showing toast:', message, type);
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2000);
+  };
+
+  // Rule validation state
+  const [ruleValidation, setRuleValidation] = useState<Record<string, { valid: boolean; error: string | null }>>({});
+
+  // Debounced rule validation
+  const validateRuleDebounced = useCallback(
+    (ruleKey: string, ruleValue: string) => {
+      if (!ruleValue.trim()) {
+        setRuleValidation(prev => ({ ...prev, [ruleKey]: { valid: true, error: null } }));
+        return;
+      }
+
+      // Debounce validation with 500ms delay
+      const timer = setTimeout(async () => {
+        try {
+          const response = await validateRule(ruleValue);
+          // Handle both wrapped and unwrapped response formats
+          const validationData = response.data || response;
+          if (validationData && typeof validationData.valid === 'boolean') {
+            setRuleValidation(prev => ({ ...prev, [ruleKey]: { valid: validationData.valid, error: validationData.error } }));
+          }
+        } catch (error) {
+          // Silently fail on validation errors
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    },
+    [validateRule]
+  );
 
   // Debounce search input
   const debouncedSearch = useDebounce(stockSearch, 500);
@@ -364,10 +405,14 @@ export default function BacktestPage() {
 
   // Get rules for a strategy (from custom strategies or defaults)
   const getStrategyRules = (strategyValue: string) => {
-    // Check custom strategies first
-    const customStrategy = Object.values(customStrategies).find(s => s.label === strategyValue);
-    if (customStrategy) {
-      return customStrategy.rules;
+    // Check custom strategies first (by value/key)
+    if (customStrategies[strategyValue]) {
+      return customStrategies[strategyValue].rules;
+    }
+    // Also check by label for backward compatibility
+    const customStrategyByLabel = Object.values(customStrategies).find(s => s.label === strategyValue);
+    if (customStrategyByLabel) {
+      return customStrategyByLabel.rules;
     }
     // Check default strategies
     const defaultOption = tradingStrategyOptions.find(o => o.label === strategyValue || o.value === strategyValue);
@@ -379,9 +424,10 @@ export default function BacktestPage() {
 
   // Auto-fill rules when strategy type changes
   useEffect(() => {
-    const currentOption = tradingStrategyOptions.find(o => o.value === config.tradingStrategy);
+    // Get the current option from all strategy options (default + custom)
+    const currentOption = getAllStrategyOptions().find(o => o.value === config.tradingStrategy);
     if (currentOption) {
-      const rules = getStrategyRules(currentOption.label);
+      const rules = getStrategyRules(config.tradingStrategy);
       // Only auto-fill if current rules are empty
       if (!config.openRule && !config.closeRule && !config.buyRule && !config.sellRule) {
         setConfig({
@@ -397,7 +443,7 @@ export default function BacktestPage() {
 
   // Handle saving current rules to the selected strategy
   const handleSaveToStrategy = () => {
-    const currentOption = tradingStrategyOptions.find(o => o.value === config.tradingStrategy);
+    const currentOption = getAllStrategyOptions().find(o => o.value === config.tradingStrategy);
     if (!currentOption) return;
 
     const rules = {
@@ -418,7 +464,7 @@ export default function BacktestPage() {
         rules,
       };
       saveCustomStrategies(newStrategies);
-      alert("自定义策略已更新");
+      showToast("自定义策略已更新");
     } else {
       // For default strategies, we also save them to custom strategies
       // so users can modify the defaults
@@ -429,7 +475,12 @@ export default function BacktestPage() {
         rules,
       };
       saveCustomStrategies(newStrategies);
-      alert(`已保存规则到 "${currentOption.label}"`);
+      // Auto-switch to the custom strategy so the saved rules take effect immediately
+      setConfig({
+        ...config,
+        tradingStrategy: strategyKey,
+      });
+      showToast(`已保存规则到 "${currentOption.label}"`);
     }
   };
 
@@ -467,12 +518,20 @@ export default function BacktestPage() {
   };
 
   // Get all strategy options (default + custom)
+  // Custom strategies override default strategies with the same label
   const getAllStrategyOptions = () => {
     const customOptions = Object.entries(customStrategies).map(([key, value]) => ({
       value: key,
       label: value.label,
     }));
-    return [...tradingStrategyOptions, ...customOptions];
+
+    // Filter out default strategies that are overridden by custom strategies
+    const customLabels = new Set(customOptions.map(o => o.label));
+    const filteredDefaultOptions = tradingStrategyOptions.filter(
+      o => !customLabels.has(o.label)
+    );
+
+    return [...filteredDefaultOptions, ...customOptions];
   };
 
   // Card order for collapse logic
@@ -575,6 +634,12 @@ export default function BacktestPage() {
       return dateStr;
     };
 
+    // Extract rules
+    const openRule = configToLoad.open_rule || "";
+    const closeRule = configToLoad.close_rule || "";
+    const buyRule = configToLoad.buy_rule || "";
+    const sellRule = configToLoad.sell_rule || "";
+
     // Update the form state
     setConfig({
       startDate: formatDate(configToLoad.start_date),
@@ -588,11 +653,35 @@ export default function BacktestPage() {
       positionStrategy: configToLoad.position_strategy as "fixed_percent" | "kelly" | "martingale",
       positionParams: configToLoad.position_params as Record<string, number>,
       tradingStrategy: configToLoad.trading_strategy || "monthly_investment",
-      openRule: configToLoad.open_rule || "",
-      closeRule: configToLoad.close_rule || "",
-      buyRule: configToLoad.buy_rule || "",
-      sellRule: configToLoad.sell_rule || "",
+      openRule,
+      closeRule,
+      buyRule,
+      sellRule,
     });
+
+    // Validate all rules immediately after loading (bypass debounce)
+    const rulesToValidate: [string, string][] = [];
+    if (openRule) rulesToValidate.push(['openRule', openRule]);
+    if (closeRule) rulesToValidate.push(['closeRule', closeRule]);
+    if (buyRule) rulesToValidate.push(['buyRule', buyRule]);
+    if (sellRule) rulesToValidate.push(['sellRule', sellRule]);
+    // Validate all rules in parallel
+    for (const [key, rule] of rulesToValidate) {
+      try {
+        console.log(`[VALIDATE] Validating ${key}:`, rule);
+        const response = await validateRule(rule);
+        console.log(`[VALIDATE] Response for ${key}:`, response);
+        // Handle both wrapped and unwrapped response formats
+        const validationData = response.data || response;
+        if (validationData && typeof validationData.valid === 'boolean') {
+          console.log(`[VALIDATE] Setting validation state for ${key}:`, validationData);
+          setRuleValidation(prev => ({ ...prev, [key]: { valid: validationData.valid, error: validationData.error } }));
+        }
+      } catch (error) {
+        console.log(`[VALIDATE] Error validating ${key}:`, error);
+        // Silently fail on validation errors
+      }
+    }
 
     // Update selected stocks
     const newSelectedStocks = new Set(configToLoad.symbols);
@@ -824,6 +913,15 @@ export default function BacktestPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-lg shadow-xl text-sm font-medium transition-opacity duration-300 ${
+          toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -1288,6 +1386,27 @@ export default function BacktestPage() {
               </div>
             </CollapsibleCard>
 
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Button
+                onClick={handleRunBacktest}
+                disabled={isRunning || config.symbols.length === 0}
+                className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+              >
+                {isRunning ? "运行中..." : "运行回测"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setConfig(defaultConfig);
+                  setSelectedStocks(new Set());
+                }}
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              >
+                重置
+              </Button>
+            </div>
+
             {/* Trading Strategy */}
             <CollapsibleCard id="trading-strategy" title="交易策略配置" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
@@ -1313,66 +1432,122 @@ export default function BacktestPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="open-rule" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
-                      开仓条件
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="open-rule" className="block text-sm text-slate-400 cursor-pointer hover:text-slate-300">
+                        开仓条件
+                      </label>
+                      {config.openRule && ruleValidation.openRule && (
+                        <span className={`text-xs ${ruleValidation.openRule.valid ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {ruleValidation.openRule.valid ? '✓ 语法正确' : `✗ ${ruleValidation.openRule.error || '语法错误'}`}
+                        </span>
+                      )}
+                    </div>
                     <textarea
                       id="open-rule"
                       value={config.openRule}
-                      onChange={(e) =>
-                        setConfig({ ...config, openRule: e.target.value })
-                      }
+                      onChange={(e) => {
+                        setConfig({ ...config, openRule: e.target.value });
+                        validateRuleDebounced('openRule', e.target.value);
+                      }}
                       placeholder="如: close > ma20"
                       rows={3}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 text-sm resize-y"
+                      className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
+                        config.openRule && ruleValidation.openRule
+                          ? ruleValidation.openRule.valid
+                            ? 'border-emerald-600'
+                            : 'border-red-600'
+                          : 'border-slate-700'
+                      }`}
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="close-rule" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
-                      清仓条件
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="close-rule" className="block text-sm text-slate-400 cursor-pointer hover:text-slate-300">
+                        清仓条件
+                      </label>
+                      {config.closeRule && ruleValidation.closeRule && (
+                        <span className={`text-xs ${ruleValidation.closeRule.valid ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {ruleValidation.closeRule.valid ? '✓ 语法正确' : `✗ ${ruleValidation.closeRule.error || '语法错误'}`}
+                        </span>
+                      )}
+                    </div>
                     <textarea
                       id="close-rule"
                       value={config.closeRule}
-                      onChange={(e) =>
-                        setConfig({ ...config, closeRule: e.target.value })
-                      }
+                      onChange={(e) => {
+                        setConfig({ ...config, closeRule: e.target.value });
+                        validateRuleDebounced('closeRule', e.target.value);
+                      }}
                       placeholder="如: close < ma20"
                       rows={3}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 text-sm resize-y"
+                      className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
+                        config.closeRule && ruleValidation.closeRule
+                          ? ruleValidation.closeRule.valid
+                            ? 'border-emerald-600'
+                            : 'border-red-600'
+                          : 'border-slate-700'
+                      }`}
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="buy-rule" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
-                      加仓条件
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="buy-rule" className="block text-sm text-slate-400 cursor-pointer hover:text-slate-300">
+                        加仓条件
+                      </label>
+                      {config.buyRule && ruleValidation.buyRule && (
+                        <span className={`text-xs ${ruleValidation.buyRule.valid ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {ruleValidation.buyRule.valid ? '✓ 语法正确' : `✗ ${ruleValidation.buyRule.error || '语法错误'}`}
+                        </span>
+                      )}
+                    </div>
                     <textarea
                       id="buy-rule"
                       value={config.buyRule}
-                      onChange={(e) =>
-                        setConfig({ ...config, buyRule: e.target.value })
-                      }
+                      onChange={(e) => {
+                        setConfig({ ...config, buyRule: e.target.value });
+                        validateRuleDebounced('buyRule', e.target.value);
+                      }}
                       placeholder="如: rsi < 30"
                       rows={3}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 text-sm resize-y"
+                      className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
+                        config.buyRule && ruleValidation.buyRule
+                          ? ruleValidation.buyRule.valid
+                            ? 'border-emerald-600'
+                            : 'border-red-600'
+                          : 'border-slate-700'
+                      }`}
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="sell-rule" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
-                      平仓条件
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="sell-rule" className="block text-sm text-slate-400 cursor-pointer hover:text-slate-300">
+                        平仓条件
+                      </label>
+                      {config.sellRule && ruleValidation.sellRule && (
+                        <span className={`text-xs ${ruleValidation.sellRule.valid ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {ruleValidation.sellRule.valid ? '✓ 语法正确' : `✗ ${ruleValidation.sellRule.error || '语法错误'}`}
+                        </span>
+                      )}
+                    </div>
                     <textarea
                       id="sell-rule"
                       value={config.sellRule}
-                      onChange={(e) =>
-                        setConfig({ ...config, sellRule: e.target.value })
-                      }
+                      onChange={(e) => {
+                        setConfig({ ...config, sellRule: e.target.value });
+                        validateRuleDebounced('sellRule', e.target.value);
+                      }}
                       placeholder="如: rsi > 70"
                       rows={3}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500 text-sm resize-y"
+                      className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
+                        config.sellRule && ruleValidation.sellRule
+                          ? ruleValidation.sellRule.valid
+                            ? 'border-emerald-600'
+                            : 'border-red-600'
+                          : 'border-slate-700'
+                      }`}
                     />
                   </div>
                 </div>
@@ -1396,27 +1571,6 @@ export default function BacktestPage() {
                 </div>
               </div>
             </CollapsibleCard>
-
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <Button
-                onClick={handleRunBacktest}
-                disabled={isRunning || config.symbols.length === 0}
-                className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
-              >
-                {isRunning ? "运行中..." : "运行回测"}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setConfig(defaultConfig);
-                  setSelectedStocks(new Set());
-                }}
-                className="border-slate-700 text-slate-300 hover:bg-slate-800"
-              >
-                重置
-              </Button>
-            </div>
           </div>
 
           {/* Results / Chart Area */}

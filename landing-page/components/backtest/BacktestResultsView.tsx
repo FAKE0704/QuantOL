@@ -1138,10 +1138,10 @@ function DebugTab({ debugData }: { debugData?: Record<string, unknown> }) {
                   {records.length} 条记录, {columns.length} 个字段
                 </div>
                 <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-64 overflow-y-auto">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-xs whitespace-nowrap">
                     <thead className="bg-slate-800 sticky top-0">
                       <tr>
-                        {columns.slice(0, 10).map((col) => (
+                        {columns.map((col) => (
                           <th key={col} className="px-3 py-2 text-left text-slate-300">
                             {col}
                           </th>
@@ -1151,7 +1151,7 @@ function DebugTab({ debugData }: { debugData?: Record<string, unknown> }) {
                     <tbody className="divide-y divide-slate-700">
                       {records.slice(0, 50).map((record, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/50">
-                          {columns.slice(0, 10).map((col) => (
+                          {columns.map((col) => (
                             <td key={col} className="px-3 py-2 text-slate-300">
                               {record[col]?.toString().slice(0, 50) || '-'}
                             </td>

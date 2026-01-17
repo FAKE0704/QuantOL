@@ -418,13 +418,13 @@ class BacktestEngine:
         self.rule_parser.portfolio_manager = self.portfolio_manager
         logger.debug(f"update_rule_parser_data: 更新后rule_parser.data地址={id(self.rule_parser.data)}")
 
-    def run(self, start_date: datetime, end_date: datetime):
-        """执行事件驱动的回测"""
+    async def run(self, start_date: datetime, end_date: datetime):
+        """执行事件驱动的回测（异步版本）"""
 
         # 更新RuleParser数据引用
         self.update_rule_parser_data()
-        
-        
+
+
         # 根据数据频率处理时间字段
         if self.config.frequency.lower() == 'd':
             logger.debug(f"识别数据频率为：日线")
@@ -432,17 +432,17 @@ class BacktestEngine:
             # 为日线数据添加默认时间
             self.data['time'] = '00:00:00'
         else:
-            
+
             if 'time' not in self.data.columns:
                 raise ValueError("分钟线数据必须包含time字段")
-            
+
             # 检查time列的空值
             null_time_data = self.data[self.data['time'].isnull()]
             if not null_time_data.empty:
                 logger.warning(f"发现{len(null_time_data)}条time列为空的记录")
                 logger.debug(f"空time记录: {null_time_data.head()}")
-        
-        
+
+
         # 初始化signal列
         self.data['signal'] = 0  # 0:无信号, 1:买入, -1:卖出
         # 初始化净值记录
@@ -450,11 +450,11 @@ class BacktestEngine:
             'datetime': start_date,
             'close': self.data.iloc[0]['close']
         })
-        
+
         # 设置初始日期
         self.current_time = self.data['combined_time'].iloc[0]
-        
-        
+
+
         # 遍历触发事件
         logger.debug(f"开始回测... 数据总数: {len(self.data)}")
         logger.debug(f"数据列: {list(self.data.columns)}")
@@ -524,11 +524,42 @@ class BacktestEngine:
                 # 添加详细调试日志
                 # logger.debug(f"当前数据: {self.data.iloc[idx].to_dict()}")
 
+                # 每处理一行数据后让出控制权，允许事件循环处理其他任务（如发送WebSocket进度更新）
+                # 使用 sleep(0) 而不是实际的sleep，只是让出控制权
+                import asyncio
+                await asyncio.sleep(0)
+
             except Exception as e:
                 logger.error(f"回测循环第{idx}次迭代发生异常: {str(e)}", exc_info=True)
                 # 不中断回测，继续下一个数据点
                 continue
-        
+
+        # 回测循环完成后，同步parser.data到strategy.debug_data
+        # 这样动态生成的子表达式列（如SQRT、VWAP等）就会出现在调试数据tab中
+        logger.info("回测循环完成，开始同步debug_data...")
+        for strategy in self.strategies:
+            if hasattr(strategy, 'parser') and hasattr(strategy, 'debug_data'):
+                if id(strategy.parser.data) != id(strategy.debug_data):
+                    old_cols = len(strategy.debug_data.columns)
+                    strategy.debug_data = strategy.parser.data.copy()
+                    new_cols = len(strategy.debug_data.columns)
+                    logger.info(f"策略 {strategy.name}: debug_data已同步，列数从 {old_cols} 增加到 {new_cols}")
+
+                    # 打印所有列名（用于调试）
+                    all_cols = list(strategy.debug_data.columns)
+                    sub_expr_cols = [col for col in all_cols if any(x in col for x in ['SQRT', 'VWAP', 'Q('])]
+                    logger.info(f"所有列名 ({len(all_cols)}): {all_cols}")
+                    logger.info(f"子表达式列 ({len(sub_expr_cols)}): {sub_expr_cols}")
+
+                    # 检查子表达式列的数据（非空值数量）
+                    for col in sub_expr_cols:
+                        if col in strategy.debug_data.columns:
+                            non_null_count = strategy.debug_data[col].notna().sum()
+                            total_count = len(strategy.debug_data)
+                            logger.info(f"列 '{col}': 非空值={non_null_count}/{total_count}")
+                            # 显示前5个非空值
+                            non_null_values = strategy.debug_data[col].dropna().head(5).tolist()
+                            logger.info(f"  前5个非空值: {non_null_values}")
 
     def handle_trading_day_event(self, event):
         """处理交易日事件"""
@@ -1381,14 +1412,14 @@ class BacktestEngine:
     # 保留其他原有方法不变...
     # (get_results, create_order等)
 
-    def run_multi_symbol(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
-        """执行多符号回测
+    async def run_multi_symbol(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
+        """执行多符号回测（异步版本）
 
         对于每个符号，运行单独的回测，然后组合结果
         """
         if not self.multi_symbol_mode:
             # 单符号模式，直接运行普通回测
-            self.run(start_date, end_date)
+            await self.run(start_date, end_date)
             return self.get_results()
 
         # 多符号模式
@@ -1449,8 +1480,8 @@ class BacktestEngine:
                     symbol_strategy = strategy
                 symbol_engine.register_strategy(symbol_strategy)
 
-            # 运行回测
-            symbol_engine.run(start_date, end_date)
+            # 运行回测（异步）
+            await symbol_engine.run(start_date, end_date)
 
             # 存储单个符号的结果
             individual_results[symbol] = symbol_engine.get_results()

@@ -249,9 +249,9 @@ class BacktestTaskManager:
             end_date = datetime.strptime(config.end_date, "%Y%m%d")
 
             if config.is_multi_symbol():
-                results = engine.run_multi_symbol(start_date, end_date)
+                results = await engine.run_multi_symbol(start_date, end_date)
             else:
-                engine.run(start_date, end_date)
+                await engine.run(start_date, end_date)
                 results = engine.get_results()
 
             # 更新为完成状态

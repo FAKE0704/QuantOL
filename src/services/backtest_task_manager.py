@@ -240,7 +240,7 @@ class BacktestTaskManager:
             execution_service = BacktestExecutionService(session_state)
 
             # 初始化引擎（会自动创建和注册策略）
-            engine = execution_service.initialize_engine(config, data)
+            engine = execution_service.initialize_engine(config, data, backtest_id=backtest_id)
             engine.progress_callback = progress_callback
 
             print(f"[DEBUG] 引擎初始化完成，已注册策略数量: {len(engine.strategies)}")

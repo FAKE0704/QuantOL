@@ -14,9 +14,14 @@ class BacktestExecutionService:
     def __init__(self, session_state):
         self.session_state = session_state
 
-    def initialize_engine(self, backtest_config: Any, data: Any) -> BacktestEngine:
+    def initialize_engine(self, backtest_config: Any, data: Any, backtest_id: str = None) -> BacktestEngine:
         """初始化回测引擎"""
-        engine = BacktestEngine(config=backtest_config, data=data, db_adapter=self.session_state.db)
+        engine = BacktestEngine(
+            config=backtest_config,
+            data=data,
+            db_adapter=self.session_state.db,
+            backtest_id=backtest_id
+        )
 
         # 注册信号处理器
         engine.register_handler(StrategySignalEvent, self._create_signal_handler(engine))

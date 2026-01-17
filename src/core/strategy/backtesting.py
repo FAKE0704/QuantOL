@@ -15,6 +15,7 @@ import json
 import streamlit as st  # 新增streamlit导入
 from pathlib import Path
 from src.support.log.logger import logger
+from src.support.log.backtest_debug_logger import BacktestDebugLogger
 import os
 import pandas as pd
 import numpy as np
@@ -272,7 +273,7 @@ class BacktestConfig:
 class BacktestEngine:
     """回测引擎，负责执行回测流程"""
     
-    def __init__(self, config: BacktestConfig, data, progress_callback=None, db_adapter=None):
+    def __init__(self, config: BacktestConfig, data, progress_callback=None, db_adapter=None, backtest_id: str = None):
 
         self.config = config
         self.event_queue = []
@@ -289,6 +290,15 @@ class BacktestEngine:
 
         # 数据库适配器（用于TradeOrderManager）
         self.db_adapter = db_adapter
+
+        # 回测专用调试日志
+        self.backtest_id = backtest_id or f"bt_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        strategy_name = config.strategy_type or "未命名策略"
+        self.debug_logger = BacktestDebugLogger(
+            backtest_id=self.backtest_id,
+            strategy_name=strategy_name,
+            config=config.to_dict()
+        )
 
         # 支持单符号和多符号数据
         if isinstance(data, dict):
@@ -328,7 +338,8 @@ class BacktestEngine:
                 self.position_strategy = FixedPercentPositionStrategy(
                     percent=position_params.get("percent", 0.1),
                     use_initial_capital=position_params.get("use_initial_capital", True),
-                    min_lot_size=getattr(config, 'min_lot_size', 100)
+                    min_lot_size=getattr(config, 'min_lot_size', 100),
+                    debug_logger=self.debug_logger  # 传递调试日志记录器
                 )
                 logger.info(f"固定比例仓位管理策略创建成功: percent={self.position_strategy.percent}")
             elif config.position_strategy_type == "martingale":
@@ -340,7 +351,8 @@ class BacktestEngine:
                     base_percent=position_params.get("base_percent", 5.0) / 100,  # 转换为0-1
                     multiplier=position_params.get("multiplier", 2.0),
                     max_doubles=position_params.get("max_doubles", 5),
-                    min_lot_size=getattr(config, 'min_lot_size', 100)
+                    min_lot_size=getattr(config, 'min_lot_size', 100),
+                    debug_logger=self.debug_logger  # 传递调试日志记录器
                 )
                 logger.info(f"马丁格尔仓位管理策略创建成功: base_percent={self.position_strategy.base_percent}, multiplier={self.position_strategy.multiplier}, max_doubles={self.position_strategy.max_doubles}")
             else:
@@ -358,7 +370,8 @@ class BacktestEngine:
             self.position_strategy = FixedPercentPositionStrategy(
                 percent=0.1,
                 use_initial_capital=True,
-                min_lot_size=getattr(config, 'min_lot_size', 100)
+                min_lot_size=getattr(config, 'min_lot_size', 100),
+                debug_logger=self.debug_logger  # 传递调试日志记录器
             )
         
         # 初始化PortfolioManager
@@ -557,6 +570,16 @@ class BacktestEngine:
         # 调试：记录信号事件
         logger.info(f"处理信号事件: 信号类型={event.signal_type}, symbol={event.symbol}, price={event.price}, current_index={idx}")
 
+        # 记录信号到调试日志
+        rule_name = getattr(event, 'rule_name', '')
+        self.debug_logger.log_signal(
+            index=idx,
+            signal_type=str(event.signal_type),
+            symbol=event.symbol,
+            price=float(event.price),
+            rule_name=rule_name
+        )
+
         # 记录信号到数据中
         if event.signal_type in [SignalType.OPEN, SignalType.BUY]:
             self.data.loc[idx, 'signal'] = 1
@@ -600,6 +623,25 @@ class BacktestEngine:
                 # 单符号模式：获取目标符号的持仓
                 current_position = self.portfolio_manager.get_position_size(self.config.target_symbol)
 
+            # 调试：打印仓位策略类型和输入参数
+            idx = getattr(event, 'current_index', self.current_index)
+            strategy_info = self.position_strategy.get_strategy_info() if hasattr(self.position_strategy, 'get_strategy_info') else {}
+
+            # 手动计算预期值
+            expected_position_value = portfolio_data['available_cash'] * strategy_info.get('percent', 0.1)
+            expected_raw_quantity = expected_position_value / float(event.price) / self.config.min_lot_size
+            expected_quantity = int(expected_raw_quantity) * self.config.min_lot_size
+
+            self.debug_logger.log_info(
+                f"仓位策略调用前: strategy_type={strategy_info.get('strategy_type', 'unknown')}, "
+                f"percent={strategy_info.get('percent', 'N/A')}, min_lot_size={strategy_info.get('min_lot_size', 'N/A')}, "
+                f"signal_type={event.signal_type}, current_position={current_position}, "
+                f"available_cash={portfolio_data['available_cash']:.2f}, price={event.price}"
+            )
+            self.debug_logger.log_info(
+                f"手动计算预期: position_value={expected_position_value:.2f}, raw_quantity={expected_raw_quantity:.2f}, expected_quantity={expected_quantity}"
+            )
+
             # 使用仓位管理策略计算交易数量
             quantity = self.position_strategy.calculate_position_size(
                 signal_type=event.signal_type,
@@ -608,7 +650,27 @@ class BacktestEngine:
                 current_position=current_position
             )
 
+            self.debug_logger.log_info(f"仓位策略返回: quantity={quantity}")
+
             logger.debug(f"仓位策略计算结果: {quantity}, 信号类型: {event.signal_type}, 当前持仓: {current_position}")
+
+            # 记录仓位计算到调试日志
+            reason = ""
+            if quantity == 0:
+                if portfolio_data['available_cash'] < float(event.price) * self.config.min_lot_size:
+                    reason = "可用资金不足"
+                elif current_position > 0 and event.signal_type in [SignalType.OPEN, SignalType.BUY]:
+                    reason = f"仓位策略返回0（预期={expected_quantity}）"
+
+            self.debug_logger.log_position_calculation(
+                index=idx,
+                signal_type=str(event.signal_type),
+                available_cash=portfolio_data['available_cash'],
+                total_equity=portfolio_data['total_equity'],
+                current_position=current_position,
+                calculated_quantity=quantity,
+                reason=reason
+            )
 
             # 创建交易订单
             if quantity > 0:
@@ -617,10 +679,18 @@ class BacktestEngine:
             elif quantity < 0:
                 # 卖出订单
                 self._create_sell_order(event, abs(quantity))
+            else:
+                # 数量为0，记录跳过原因
+                self.debug_logger.log_order_skipped(
+                    index=idx,
+                    signal_type=str(event.signal_type),
+                    reason=reason or "仓位策略返回0"
+                )
 
         except Exception as e:
             error_msg = f"仓位策略订单创建失败: {str(e)}"
-            logger.error(error_msg)
+            logger.error(error_msg, exc_info=True)
+            self.debug_logger.log_error(error_msg)
             self.errors.append(error_msg)
 
     def _create_buy_order(self, event: StrategySignalEvent, quantity: int):
@@ -641,9 +711,20 @@ class BacktestEngine:
             self.event_queue.append(order_event)
             logger.debug(f"创建买入订单: {quantity}股 {event.symbol} @ {event.price}")
 
+            # 记录到调试日志
+            idx = getattr(event, 'current_index', self.current_index)
+            self.debug_logger.log_order_created(
+                index=idx,
+                direction="BUY",
+                symbol=event.symbol,
+                quantity=quantity,
+                price=float(event.price)
+            )
+
         except Exception as e:
             error_msg = f"买入订单创建失败: {str(e)}"
             logger.error(error_msg)
+            self.debug_logger.log_error(error_msg)
             self.errors.append(error_msg)
 
     def _create_sell_order(self, event: StrategySignalEvent, quantity: int):
@@ -664,9 +745,20 @@ class BacktestEngine:
             self.event_queue.append(order_event)
             logger.debug(f"创建卖出订单: {quantity}股 {event.symbol} @ {event.price}")
 
+            # 记录到调试日志
+            idx = getattr(event, 'current_index', self.current_index)
+            self.debug_logger.log_order_created(
+                index=idx,
+                direction="SELL",
+                symbol=event.symbol,
+                quantity=quantity,
+                price=float(event.price)
+            )
+
         except Exception as e:
             error_msg = f"卖出订单创建失败: {str(e)}"
             logger.error(error_msg)
+            self.debug_logger.log_error(error_msg)
             self.errors.append(error_msg)
 
     def _create_order_from_signal(self, event: StrategySignalEvent):
@@ -828,7 +920,7 @@ class BacktestEngine:
             if not success:
                 self.log_error(f"订单执行失败: {event.direction} {event.quantity}@{event.price}")
                 return
-                
+
             # 记录交易
             trade_record = {
                 'timestamp': self.current_time,
@@ -847,6 +939,16 @@ class BacktestEngine:
                 trade_record['martingale_level'] = self.position_strategy.get_martingale_level(event.symbol)
 
             self.trades.append(trade_record)
+
+            # 记录到调试日志
+            self.debug_logger.log_trade_executed(
+                index=self.current_index if self.current_index is not None else 0,
+                direction=event.direction,
+                symbol=event.symbol,
+                quantity=event.quantity,
+                price=float(event.price),
+                commission=commission
+            )
                 
             
         except Exception as e:
@@ -975,6 +1077,10 @@ class BacktestEngine:
                 # 添加信号类型描述
                 signal_type_map = {1: 'BUY', -1: 'SELL', 2: 'HEDGE', 3: 'REBALANCE'}
                 signals_data['signal_type'] = signals_data['signal'].map(signal_type_map)
+
+        # 写入调试日志汇总
+        self.debug_logger.write_summary(total_data_points=len(self.data))
+        self.debug_logger.close()
 
         return {
             "summary": {

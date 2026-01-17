@@ -348,7 +348,7 @@ function TradesTab({ trades }: { trades: Trade[] }) {
       ) : (
         <>
           <div className="text-xs text-slate-500 mb-2">共 {trades.length} 笔交易</div>
-          <div className="overflow-x-auto rounded-lg border border-slate-700">
+          <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-96 overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-800">
                 <tr>
@@ -979,7 +979,7 @@ function SignalsTab({ signals }: { signals?: unknown }) {
               value={[...new Set(signalsData.map(s => s.symbol))].length.toString()}
             />
           </div>
-          <div className="overflow-x-auto rounded-lg border border-slate-700">
+          <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-96 overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-800">
                 <tr>

@@ -302,13 +302,13 @@ function SummaryTab({ results, trades, equityRecords }: { results: BacktestResul
 
   // 获取盈亏比（后端已计算）
   const profitLossRatio = results.performance_metrics?.profit_loss_ratio;
-  const profitLossRatioDisplay = profitLossRatio !== undefined
+  const profitLossRatioDisplay = profitLossRatio != null
     ? (profitLossRatio === Infinity ? '∞' : profitLossRatio.toFixed(2))
     : 'N/A';
 
   // 获取年化收益率（后端已计算）
   const annualReturn = results.performance_metrics?.annual_return;
-  const annualReturnDisplay = annualReturn !== undefined ? `${annualReturn.toFixed(2)}%` : 'N/A';
+  const annualReturnDisplay = annualReturn != null ? `${annualReturn.toFixed(2)}%` : 'N/A';
 
   return (
     <div className="space-y-4">
@@ -378,7 +378,7 @@ function TradesTab({ trades }: { trades: Trade[] }) {
                       </span>
                     </td>
                     <td className="px-4 py-2 text-right text-slate-300">
-                      {trade.price !== undefined ? `¥${trade.price.toFixed(2)}` : '-'}
+                      {trade.price != null ? `¥${trade.price.toFixed(2)}` : '-'}
                     </td>
                     <td className="px-4 py-2 text-right text-slate-300">
                       {trade.quantity ?? '-'}
@@ -387,7 +387,7 @@ function TradesTab({ trades }: { trades: Trade[] }) {
                       {trade.amount !== undefined ? `¥${trade.amount.toLocaleString()}` : '-'}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      {trade.profit !== undefined ? (
+                      {trade.profit != null ? (
                         <span className={trade.profit >= 0 ? 'text-green-400' : 'text-red-400'}>
                           {trade.profit >= 0 ? '+' : ''}¥{trade.profit.toFixed(2)}
                         </span>
@@ -409,7 +409,12 @@ function TradesTab({ trades }: { trades: Trade[] }) {
 function PositionsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
   // Calculate average position allocation from equity records
   const avgAllocation = equityRecords.length > 0
-    ? equityRecords.reduce((sum, record) => sum + ((record.positions_value || 0) / record.total_value), 0) / equityRecords.length
+    ? equityRecords.reduce((sum, record) => {
+        const ratio = record.total_value && record.total_value > 0
+          ? (record.positions_value || 0) / record.total_value
+          : 0;
+        return sum + ratio;
+      }, 0) / equityRecords.length
     : 0;
 
   const avgCash = 1 - avgAllocation;
@@ -439,7 +444,7 @@ function PositionsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                    label={({ name, percent }) => `${name}: ${isFinite(percent) ? (percent * 100).toFixed(1) : '0.0'}%`}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -450,7 +455,7 @@ function PositionsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
                   </Pie>
                   <Tooltip
                     contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
-                    formatter={(value: number) => [`${value.toFixed(2)}%`, '']}
+                    formatter={(value: number) => [`${isFinite(value) ? value.toFixed(2) : '0.00'}%`, '']}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -470,11 +475,11 @@ function PositionsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
                 />
                 <MetricCard
                   label="最高持仓占比"
-                  value={`${Math.max(...equityRecords.map(r => ((r.positions_value || 0) / r.total_value) * 100)).toFixed(2)}%`}
+                  value={`${Math.max(...equityRecords.map(r => r.total_value > 0 ? ((r.positions_value || 0) / r.total_value) * 100 : 0)).toFixed(2)}%`}
                 />
                 <MetricCard
                   label="最低持仓占比"
-                  value={`${Math.min(...equityRecords.map(r => ((r.positions_value || 0) / r.total_value) * 100)).toFixed(2)}%`}
+                  value={`${Math.min(...equityRecords.map(r => r.total_value > 0 ? ((r.positions_value || 0) / r.total_value) * 100 : 0)).toFixed(2)}%`}
                 />
               </div>
 
@@ -562,7 +567,7 @@ function EquityTab({
                 contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
                 labelStyle={{ color: "#94a3b8" }}
                 // @ts-expect-error - Recharts formatter type is overly strict
-                formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, name]}
+                formatter={(value: number, name: string) => [`${isFinite(value) ? value.toFixed(2) : '0.00'}%`, name]}
                 labelFormatter={(value: any) => new Date(value).toLocaleString()}
               />
               <Legend wrapperStyle={{ color: "#94a3b8" }} />
@@ -656,7 +661,7 @@ function EquityTab({
           />
           <MetricCard
             label="总收益"
-            value={`${chartData[chartData.length - 1].return_pct.toFixed(2)}%`}
+            value={`${(chartData[chartData.length - 1].return_pct ?? 0).toFixed(2)}%`}
           />
         </div>
       )}
@@ -693,7 +698,7 @@ function PerformanceTab({ results }: { results: BacktestResults }) {
 
   // 辅助函数：格式化数字，处理 NaN 和 Infinity
   const formatNumber = (value: number | undefined, decimals: number = 3): string | undefined => {
-    if (value === undefined || isNaN(value) || !isFinite(value)) {
+    if (value == null || isNaN(value) || !isFinite(value)) {
       return undefined;
     }
     return value.toFixed(decimals);
@@ -741,7 +746,7 @@ function PerformanceTab({ results }: { results: BacktestResults }) {
           <MetricCard
             label="盈亏比"
             value={
-              metrics.profit_loss_ratio === undefined || isNaN(metrics.profit_loss_ratio)
+              metrics.profit_loss_ratio == null || isNaN(metrics.profit_loss_ratio)
                 ? 'N/A'
                 : !isFinite(metrics.profit_loss_ratio)
                 ? '∞'
@@ -751,7 +756,7 @@ function PerformanceTab({ results }: { results: BacktestResults }) {
           <MetricCard
             label="平均持仓天数"
             value={
-              metrics.avg_holding_days !== undefined && !isNaN(metrics.avg_holding_days)
+              metrics.avg_holding_days != null && !isNaN(metrics.avg_holding_days)
                 ? `${metrics.avg_holding_days.toFixed(1)}天`
                 : 'N/A'
             }
@@ -777,6 +782,9 @@ function DrawdownTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
 
   const maxDrawdown = Math.max(...drawdownData.map(d => d.drawdown));
 
+  // Handle edge cases where maxDrawdown might be NaN or -Infinity
+  const safeMaxDrawdown = isFinite(maxDrawdown) ? maxDrawdown : 0;
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">回撤分析</h3>
@@ -785,7 +793,7 @@ function DrawdownTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <MetricCard label="最大回撤" value={`${maxDrawdown.toFixed(2)}%`} />
+            <MetricCard label="最大回撤" value={`${safeMaxDrawdown.toFixed(2)}%`} />
             <MetricCard
               label="回撤次数"
               value={drawdownData.filter(d => d.drawdown > 0).length.toString()}
@@ -815,7 +823,7 @@ function DrawdownTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
                 <Tooltip
                   contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
                   labelStyle={{ color: "#94a3b8" }}
-                  formatter={(value: number) => [`${value.toFixed(2)}%`, '回撤']}
+                  formatter={(value: number) => [`${isFinite(value) ? value.toFixed(2) : '0.00'}%`, '回撤']}
                   labelFormatter={(value: any) => new Date(value).toLocaleString()}
                 />
                 <Area
@@ -839,23 +847,45 @@ function ReturnsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
   // Calculate daily returns
   const returns = equityRecords.slice(1).map((record, idx) => {
     const prevValue = equityRecords[idx].total_value;
-    const dailyReturn = ((record.total_value - prevValue) / prevValue) * 100;
+    const dailyReturn = prevValue !== 0 ? ((record.total_value - prevValue) / prevValue) * 100 : 0;
     return {
       timestamp: record.timestamp,
       return: dailyReturn,
     };
   });
 
+  // Check if we have valid returns data
+  if (returns.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">收益分布</h3>
+        <div className="text-slate-400 text-sm">数据不足，无法计算收益分布</div>
+      </div>
+    );
+  }
+
+  // Filter out NaN and Infinity values
+  const validReturns = returns.filter(r => isFinite(r.return));
+
+  if (validReturns.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">收益分布</h3>
+        <div className="text-slate-400 text-sm">无有效收益数据</div>
+      </div>
+    );
+  }
+
   // Create histogram data
   const bins = 20;
-  const minReturn = Math.min(...returns.map(r => r.return));
-  const maxReturn = Math.max(...returns.map(r => r.return));
+  const minReturn = Math.min(...validReturns.map(r => r.return));
+  const maxReturn = Math.max(...validReturns.map(r => r.return));
   const binSize = (maxReturn - minReturn) / bins;
 
   const histogram = Array.from({ length: bins }, (_, i) => {
     const binStart = minReturn + i * binSize;
     const binEnd = binStart + binSize;
-    const count = returns.filter(r => r.return >= binStart && r.return < binEnd).length;
+    const count = validReturns.filter(r => r.return >= binStart && r.return < binEnd).length;
     return {
       range: `${binStart.toFixed(2)}% - ${binEnd.toFixed(2)}%`,
       count,
@@ -863,9 +893,9 @@ function ReturnsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
     };
   });
 
-  const avgReturn = returns.reduce((sum, r) => sum + r.return, 0) / returns.length;
-  const positiveReturns = returns.filter(r => r.return > 0).length;
-  const negativeReturns = returns.filter(r => r.return < 0).length;
+  const avgReturn = validReturns.reduce((sum, r) => sum + r.return, 0) / validReturns.length;
+  const positiveReturns = validReturns.filter(r => r.return > 0).length;
+  const negativeReturns = validReturns.filter(r => r.return < 0).length;
 
   return (
     <div className="space-y-4">
@@ -978,7 +1008,7 @@ function SignalsTab({ signals }: { signals?: unknown }) {
                       </span>
                     </td>
                     <td className="px-4 py-2 text-right text-slate-300">
-                      {signal.price !== undefined ? `¥${signal.price.toFixed(2)}` : '-'}
+                      {signal.price != null ? `¥${signal.price.toFixed(2)}` : '-'}
                     </td>
                   </tr>
                 ))}
@@ -1035,7 +1065,7 @@ function DetailsTab({
                       {record.cash !== undefined ? `¥${record.cash.toLocaleString()}` : '-'}
                     </td>
                     <td className="px-3 py-2 text-right text-slate-300">
-                      {record.total_value ? `${(((record.positions_value || 0) / record.total_value) * 100).toFixed(2)}%` : '-'}
+                      {record.total_value && isFinite(record.total_value) && record.total_value > 0 ? `${(((record.positions_value || 0) / record.total_value) * 100).toFixed(2)}%` : '-'}
                     </td>
                   </tr>
                 ))}

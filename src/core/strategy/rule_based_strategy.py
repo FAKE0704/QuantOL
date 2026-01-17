@@ -195,26 +195,44 @@ class RuleBasedStrategy(BaseStrategy):
             self.parser.current_index = current_index
             logger.debug(f"generate_signals被调用，当前索引: {current_index}, 数据长度: {len(self.Data)}")
 
-            # 按优先级顺序检查规则：开仓 > 清仓 > 加仓 > 平仓
-            signal = self._generate_signal_from_rule(self.open_rule_expr, SignalType.OPEN, '开仓')
-            if signal:
-                logger.info(f"生成开仓信号: {signal}")
-                return signal
+            # 获取当前标的的持仓状态
+            current_symbol = self.Data['code'].iloc[-1] if 'code' in self.Data.columns else None
+            current_position = 0
+            if self.portfolio_manager and current_symbol:
+                position = self.portfolio_manager.get_position(current_symbol)
+                current_position = position.quantity if position else 0
 
-            signal = self._generate_signal_from_rule(self.close_rule_expr, SignalType.CLOSE, '清仓')
-            if signal:
-                logger.info(f"生成清仓信号: {signal}")
-                return signal
+            logger.debug(f"当前持仓状态: symbol={current_symbol}, position={current_position}")
 
-            signal = self._generate_signal_from_rule(self.buy_rule_expr, SignalType.BUY, '加仓')
-            if signal:
-                logger.info(f"生成加仓信号: {signal}")
-                return signal
+            # 根据持仓状态决定检查哪些规则
+            if current_position == 0:
+                # 无持仓：只检查开仓规则
+                logger.debug("无持仓状态，检查开仓规则")
+                signal = self._generate_signal_from_rule(self.open_rule_expr, SignalType.OPEN, '开仓')
+                if signal:
+                    logger.info(f"生成开仓信号: {signal}")
+                    return signal
+            else:
+                # 有持仓：检查清仓、加仓、平仓规则（按优先级）
+                logger.debug(f"有持仓状态(持仓={current_position})，检查清仓/加仓/平仓规则")
 
-            signal = self._generate_signal_from_rule(self.sell_rule_expr, SignalType.SELL, '平仓')
-            if signal:
-                logger.info(f"生成平仓信号: {signal}")
-                return signal
+                # 优先检查清仓规则（完全退出）
+                signal = self._generate_signal_from_rule(self.close_rule_expr, SignalType.LIQUIDATE, '清仓')
+                if signal:
+                    logger.info(f"生成清仓信号: {signal}")
+                    return signal
+
+                # 其次检查平仓规则（部分退出）
+                signal = self._generate_signal_from_rule(self.sell_rule_expr, SignalType.SELL, '平仓')
+                if signal:
+                    logger.info(f"生成平仓信号: {signal}")
+                    return signal
+
+                # 最后检查加仓规则
+                signal = self._generate_signal_from_rule(self.buy_rule_expr, SignalType.BUY, '加仓')
+                if signal:
+                    logger.info(f"生成加仓信号: {signal}")
+                    return signal
 
             return None
 

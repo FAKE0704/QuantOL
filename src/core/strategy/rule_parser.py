@@ -521,7 +521,32 @@ class RuleParser:
             window_data = self.data[data_column].iloc[start_idx:end_idx]
             # logger.debug(f"[DEBUG] SMA计算窗口数据({period}期): {window_data.values}")
             # logger.debug(f"[DEBUG] SMA计算窗口索引: {max(0, self.current_index-period+1)}:{self.current_index+1}")
-        
+
+        # 特殊处理Q函数：分位数计算
+        if func_name.upper() == 'Q':
+            if len(node.args) != 3:
+                raise ValueError("Q需要3个参数 (Q(series, quantile, period))")
+
+            data_column = self._node_to_expr(node.args[0]).strip('\"\'')
+            quantile_val = self._eval(node.args[1])
+            period_val = self._eval(node.args[2])
+
+            quantile = float(quantile_val) if isinstance(quantile_val, (int, float)) else 0.5
+            period = int(period_val) if isinstance(period_val, (int, float)) else 5
+
+            if not 0 <= quantile <= 1:
+                raise ValueError(f"分位数必须在0到1之间，当前值: {quantile}")
+
+            if period <= 0:
+                raise ValueError(f"周期必须为正整数，当前值: {period}")
+
+            start_idx = max(0, int(self.current_index) - period + 1)
+            end_idx = int(self.current_index) + 1
+            window_data = self.data[data_column].iloc[start_idx:end_idx]
+            result = window_data.quantile(quantile)
+
+            return result
+
         # 特殊处理REF函数（需要解析器状态）
         if func_name == 'REF':
             if func_name not in self._indicators:

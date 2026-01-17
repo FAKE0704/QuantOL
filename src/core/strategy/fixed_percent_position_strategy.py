@@ -5,10 +5,13 @@
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, TYPE_CHECKING
 from src.core.strategy.signal_types import SignalType
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from src.support.log.backtest_debug_logger import BacktestDebugLogger
 
 class FixedPercentPositionStrategy:
     """
@@ -22,7 +25,7 @@ class FixedPercentPositionStrategy:
     - 清仓信号：完全清仓所有仓位
     """
 
-    def __init__(self, percent: float = 0.1, use_initial_capital: bool = True, min_lot_size: int = 100):
+    def __init__(self, percent: float = 0.1, use_initial_capital: bool = True, min_lot_size: int = 100, debug_logger: Optional['BacktestDebugLogger'] = None):
         """
         初始化固定比例仓位策略
 
@@ -30,6 +33,7 @@ class FixedPercentPositionStrategy:
             percent: 仓位比例（0-1之间）
             use_initial_capital: 是否基于初始资金计算（True）或当前权益（False）
             min_lot_size: 最小交易手数
+            debug_logger: 可选的调试日志记录器
         """
         if not 0 < percent <= 1:
             raise ValueError("仓位比例必须在0到1之间")
@@ -37,6 +41,7 @@ class FixedPercentPositionStrategy:
         self.percent = percent
         self.use_initial_capital = use_initial_capital
         self.min_lot_size = min_lot_size
+        self.debug_logger = debug_logger  # 调试日志记录器
 
     def calculate_position_size(self, signal_type: SignalType, portfolio_data: Dict[str, float],
                              current_price: float, current_position: int = 0) -> int:
@@ -44,7 +49,7 @@ class FixedPercentPositionStrategy:
         计算目标仓位大小
 
         Args:
-            signal_type: 信号类型（OPEN, ADD, CLOSE, LIQUIDATE）
+            signal_type: 信号类型（OPEN, BUY, SELL, CLOSE, LIQUIDATE）
             portfolio_data: 投资组合数据
                 - initial_capital: 初始资金
                 - available_cash: 可用现金
@@ -54,50 +59,45 @@ class FixedPercentPositionStrategy:
 
         Returns:
             int: 目标交易数量（正数买入，负数卖出，0表示无操作）
+
+        Raises:
+            AttributeError: 当使用的 SignalType 不存在时
+            ValueError: 当参数无效时
         """
 
-        try:
-            if signal_type == SignalType.LIQUIDATE:
-                return self._calculate_liquidate_position_size(current_position)
+        if signal_type == SignalType.LIQUIDATE:
+            return self._calculate_liquidate_position_size(current_position)
 
-            if signal_type == SignalType.CLOSE:
-                return -self._calculate_close_position_size(current_position)
+        if signal_type == SignalType.CLOSE:
+            return -self._calculate_close_position_size(current_position)
 
-            # 计算可用资金
-            available_capital = self._get_available_capital(portfolio_data)
+        # 计算可用资金
+        available_capital = self._get_available_capital(portfolio_data)
 
-            if signal_type == SignalType.OPEN:
-                return self._calculate_open_position_size(
-                    portfolio_data['available_cash'], current_price, current_position
-                )
-            elif signal_type == SignalType.ADD:
-                return self._calculate_add_position_size(
-                    portfolio_data['available_cash'], current_price
-                )
-            elif signal_type in [SignalType.BUY, SignalType.SELL]:
-                # 对于通用买卖信号，根据当前持仓状态决定操作
-                if current_position > 0:
-                    # 有持仓时，BUY信号作为加仓处理
-                    if signal_type == SignalType.BUY:
-                        return self._calculate_add_position_size(
-                            portfolio_data['available_cash'], current_price
-                        )
-                    else:  # SELL
-                        return -self._calculate_close_position_size(current_position)
+        if signal_type == SignalType.OPEN:
+            return self._calculate_open_position_size(
+                portfolio_data['available_cash'], current_price, current_position
+            )
+        elif signal_type in [SignalType.BUY, SignalType.SELL]:
+            # 对于通用买卖信号，根据当前持仓状态决定操作
+            if current_position > 0:
+                # 有持仓时，BUY信号作为加仓处理
+                if signal_type == SignalType.BUY:
+                    return self._calculate_add_position_size(
+                        portfolio_data['available_cash'], current_price
+                    )
+                else:  # SELL
+                    return -self._calculate_close_position_size(current_position)
+            else:
+                # 无持仓时，只有BUY信号可以开仓
+                if signal_type == SignalType.BUY:
+                    return self._calculate_open_position_size(
+                        portfolio_data['available_cash'], current_price, current_position
+                    )
                 else:
-                    # 无持仓时，只有BUY信号可以开仓
-                    if signal_type == SignalType.BUY:
-                        return self._calculate_open_position_size(
-                            portfolio_data['available_cash'], current_price, current_position
-                        )
-                    else:
-                        return 0
+                    return 0
 
-            return 0
-
-        except Exception as e:
-            logger.error(f"计算仓位大小失败: {str(e)}")
-            return 0
+        return 0
 
     def _get_available_capital(self, portfolio_data: Dict[str, float]) -> float:
         """获取可用资金"""
@@ -132,15 +132,21 @@ class FixedPercentPositionStrategy:
         """计算加仓数量"""
         # 加仓时按固定比例计算
         position_value = available_cash * self.percent
-        additional_quantity = int(position_value / current_price / self.min_lot_size) * self.min_lot_size
+        raw_quantity = position_value / current_price / self.min_lot_size
+        additional_quantity = int(raw_quantity) * self.min_lot_size
+
+        # 使用调试日志记录计算过程
+        self.debug_logger.log_info(
+            f"_calculate_add_position_size: available_cash={available_cash:.2f}, price={current_price:.2f}, "
+            f"percent={self.percent}, min_lot={self.min_lot_size}, "
+            f"position_value={position_value:.2f}, raw_quantity={raw_quantity:.2f}, result={additional_quantity}"
+        )
 
         # 检查资金是否足够
         required_cash = additional_quantity * current_price
         if required_cash > available_cash:
             additional_quantity = int(available_cash / current_price / self.min_lot_size) * self.min_lot_size
-
-        if additional_quantity > 0:
-            logger.debug(f"加仓计算: 可用资金={available_cash}, 价格={current_price}, 数量={additional_quantity}")
+            self.debug_logger.log_info(f"_calculate_add_position_size资金不足调整后: {additional_quantity}")
 
         return additional_quantity
 
@@ -249,7 +255,7 @@ class MartingalePositionStrategy(FixedPercentPositionStrategy):
         计算目标仓位大小（Martingale版本）
 
         Args:
-            signal_type: 信号类型（OPEN, ADD, CLOSE, LIQUIDATE, BUY, SELL）
+            signal_type: 信号类型（OPEN, BUY, SELL, CLOSE, LIQUIDATE）
             portfolio_data: 投资组合数据
             current_price: 当前价格
             current_position: 当前持仓数量
@@ -257,62 +263,54 @@ class MartingalePositionStrategy(FixedPercentPositionStrategy):
 
         Returns:
             int: 目标交易数量（正数买入，负数卖出，0表示无操作）
+
+        Raises:
+            ValueError: 当 symbol 参数为 None 时
         """
         if symbol is None:
-            logger.warning("Martingale策略需要symbol参数")
-            return 0
+            raise ValueError("Martingale策略需要symbol参数")
 
-        try:
-            # 获取或初始化martingale状态
+        # 获取或初始化martingale状态
+        state = self._get_or_init_martingale_state(symbol)
+
+        # 检查持仓状态，如果清仓则重置martingale状态
+        if current_position == 0 and state['level'] > 0:
+            self._reset_martingale_state(symbol)
             state = self._get_or_init_martingale_state(symbol)
 
-            # 检查持仓状态，如果清仓则重置martingale状态
-            if current_position == 0 and state['level'] > 0:
-                self._reset_martingale_state(symbol)
-                state = self._get_or_init_martingale_state(symbol)
+        # 处理清仓信号
+        if signal_type == SignalType.LIQUIDATE:
+            self._reset_martingale_state(symbol)
+            return self._calculate_liquidate_position_size(current_position)
 
-            # 处理清仓信号
-            if signal_type == SignalType.LIQUIDATE:
-                self._reset_martingale_state(symbol)
-                return self._calculate_liquidate_position_size(current_position)
+        if signal_type == SignalType.CLOSE or signal_type == SignalType.SELL:
+            # 完全清仓
+            self._reset_martingale_state(symbol)
+            return -current_position
 
-            if signal_type == SignalType.CLOSE or signal_type == SignalType.SELL:
-                # 完全清仓
-                self._reset_martingale_state(symbol)
-                return -current_position
+        # 计算可用资金
+        available_capital = self._get_available_capital(portfolio_data)
 
-            # 计算可用资金
-            available_capital = self._get_available_capital(portfolio_data)
-
-            # 开仓或加仓
-            if signal_type in [SignalType.OPEN, SignalType.BUY]:
-                if current_position == 0:
-                    # 开仓 - 使用基础仓位
-                    quantity = self._calculate_open_position_size(
-                        portfolio_data['available_cash'], current_price, current_position
-                    )
-                    if quantity > 0:
-                        # 记录入场价格
-                        state['entry_price'] = current_price
-                        state['level'] = 0
-                        logger.info(f"Martingale开仓: {symbol}, 价格={current_price}, 数量={quantity}, level=0")
-                    return quantity
-                else:
-                    # 加仓 - 使用martingale倍数
-                    return self._calculate_martingale_add_position_size(
-                        symbol, portfolio_data['available_cash'], current_price, state
-                    )
-            elif signal_type == SignalType.ADD:
+        # 开仓或加仓
+        if signal_type in [SignalType.OPEN, SignalType.BUY]:
+            if current_position == 0:
+                # 开仓 - 使用基础仓位
+                quantity = self._calculate_open_position_size(
+                    portfolio_data['available_cash'], current_price, current_position
+                )
+                if quantity > 0:
+                    # 记录入场价格
+                    state['entry_price'] = current_price
+                    state['level'] = 0
+                    logger.info(f"Martingale开仓: {symbol}, 价格={current_price}, 数量={quantity}, level=0")
+                return quantity
+            else:
                 # 加仓 - 使用martingale倍数
                 return self._calculate_martingale_add_position_size(
                     symbol, portfolio_data['available_cash'], current_price, state
                 )
 
-            return 0
-
-        except Exception as e:
-            logger.error(f"计算Martingale仓位大小失败: {str(e)}")
-            return 0
+        return 0
 
     def _calculate_martingale_add_position_size(self, symbol: str, available_cash: float,
                                                current_price: float, state: Dict[str, Any]) -> int:

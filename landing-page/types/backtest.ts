@@ -179,3 +179,15 @@ export function getTimestamp(value: unknown): string {
   if (value instanceof Date) return value.toISOString();
   return "";
 }
+
+/**
+ * Price data for candlestick chart (K线数据)
+ */
+export interface PriceData {
+  time: string;  // ISO format timestamp or Unix timestamp
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume?: number;
+}

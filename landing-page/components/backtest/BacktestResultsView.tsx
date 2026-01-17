@@ -38,6 +38,7 @@ import {
   Scatter,
   ZAxis,
 } from "recharts";
+import { CandlestickChart } from "./CandlestickChart";
 
 interface BacktestResultsViewProps {
   backtestId: string;
@@ -150,6 +151,23 @@ export function BacktestResultsView({ backtestId }: BacktestResultsViewProps) {
     ? (results.trades.__data__ as unknown as Trade[])
     : (results.trades as unknown as Trade[])) || [];
 
+  // Parse price_data for candlestick chart
+  const priceData = (results.price_data && isSerializedDataFrame(results.price_data)
+    ? results.price_data.__data__.map((item: Record<string, unknown>) => ({
+        // 优先使用 combined_time（包含时分秒），其次使用 time，最后使用 date
+        time: String(item.combined_time || item.time || item.date || ""),
+        open: Number(item.open) || 0,
+        high: Number(item.high) || 0,
+        low: Number(item.low) || 0,
+        close: Number(item.close) || 0,
+        volume: item.volume ? Number(item.volume) : undefined,
+      }))
+    : []) || [];
+
+  // Debug: 检查 price_data 解析结果
+  console.log("BacktestResultsView: priceData.length =", priceData.length);
+  console.log("BacktestResultsView: First 3 priceData:", priceData.slice(0, 3));
+
   const combinedEquity = (results.combined_equity && isSerializedDataFrame(results.combined_equity)
     ? (results.combined_equity.__data__ as unknown as EquityRecord[])
     : (results.combined_equity as unknown as EquityRecord[])) || [];
@@ -205,7 +223,7 @@ export function BacktestResultsView({ backtestId }: BacktestResultsViewProps) {
 
           {/* 2. 交易记录 */}
           <TabsContent value="trades" className="mt-0">
-            <TradesTab trades={trades} />
+            <TradesTab trades={trades} priceData={priceData} />
           </TabsContent>
 
           {/* 3. 仓位明细 */}
@@ -339,7 +357,7 @@ function SummaryTab({ results, trades, equityRecords }: { results: BacktestResul
   );
 }
 
-function TradesTab({ trades }: { trades: Trade[] }) {
+function TradesTab({ trades, priceData }: { trades: Trade[]; priceData?: import("@/types/backtest").PriceData[] }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">交易记录</h3>
@@ -347,6 +365,9 @@ function TradesTab({ trades }: { trades: Trade[] }) {
         <div className="text-slate-400 text-sm">无交易记录</div>
       ) : (
         <>
+          {priceData && priceData.length > 0 && (
+            <CandlestickChart priceData={priceData} trades={trades} />
+          )}
           <div className="text-xs text-slate-500 mb-2">共 {trades.length} 笔交易</div>
           <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-96 overflow-y-auto">
             <table className="w-full text-sm">

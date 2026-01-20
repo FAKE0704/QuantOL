@@ -54,15 +54,22 @@ cd ..
 
 # 启动 Nginx 反向代理
 echo -e "${YELLOW}[3/3] 启动 Nginx 反向代理 (端口: 8087)...${NC}"
-nginx -c $(pwd)/nginx.conf -p $(pwd) -g "pid logs/nginx-dev.pid;" > logs/nginx-dev.log 2>&1 &
-NGINX_PID=$!
-echo $NGINX_PID > logs/nginx.pid
-sleep 2
-if ps -p $NGINX_PID > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Nginx 已启动 (PID: $NGINX_PID, 端口: 8087)${NC}"
+
+# 检查端口是否被占用
+if lsof -Pi :8087 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Nginx 已在运行（端口 8087）${NC}"
 else
-    echo -e "${RED}✗ Nginx 启动失败，请检查日志: logs/nginx-dev.log${NC}"
-    tail -20 logs/nginx-dev.log
+    nginx -c $(pwd)/nginx.conf -p $(pwd) -g "pid logs/nginx-dev.pid;" > logs/nginx-dev.log 2>&1 &
+    sleep 2
+    # 检查端口是否成功监听
+    if lsof -Pi :8087 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        NGINX_PID=$(cat logs/nginx-dev.pid 2>/dev/null)
+        echo $NGINX_PID > logs/nginx.pid
+        echo -e "${GREEN}✓ Nginx 已启动 (PID: $NGINX_PID, 端口: 8087)${NC}"
+    else
+        echo -e "${RED}✗ Nginx 启动失败，请检查日志: logs/nginx-dev.log${NC}"
+        tail -20 logs/nginx-dev.log
+    fi
 fi
 
 echo ""

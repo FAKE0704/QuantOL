@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="4.5 5.2 11.7 13.3">
+  <g>
+    <!-- Six circles in middle layer with the size of the former outer circles -->
+    <!-- Top circle -->
+    <circle cx="10.3613" cy="6.44531" r="1.03516" fill="black"/>
+    <!-- Top-left circle -->
+    <circle cx="5.69336" cy="9.15039" r="1.03516" fill="black"/>
+    <!-- Top-right circle -->
+    <circle cx="15.0195" cy="9.15039" r="1.03516" fill="black"/>
+    <!-- Bottom-left circle -->
+    <circle cx="5.69336" cy="14.5801" r="1.03516" fill="black"/>
+    <!-- Bottom-right circle -->
+    <circle cx="15.0195" cy="14.5801" r="1.03516" fill="black"/>
+    <!-- Bottom circle -->
+    <circle cx="10.3613" cy="17.2754" r="1.03516" fill="black"/>
+    <!-- Central circle (unchanged) -->
+    <path d="M10.3613 13.4961C11.2695 13.4961 11.9922 12.7734 11.9922 11.8652C11.9922 10.9668 11.25 10.2344 10.3613 10.2344C9.47266 10.2344 8.73047 10.9766 8.73047 11.8652C8.73047 12.7539 9.46289 13.4961 10.3613 13.4961Z" fill="black"/>
+  </g>
+</svg>

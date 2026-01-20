@@ -19,6 +19,7 @@ import { ParameterConfig } from "@/components/backtest/ParameterConfig";
 import { OptimizationResults, ScreeningResult } from "@/components/backtest/OptimizationResults";
 import { useBacktestWebSocket, type BacktestProgress } from "@/lib/hooks/useBacktestWebSocket";
 import { ThemeSwitcher } from "@/components/layout/ThemeSwitcher";
+import { CoffeeModal } from "@/components/layout/CoffeeModal";
 import { OptimizationConfig, STRATEGY_TEMPLATES } from "@/types/optimization";
 
 // Types
@@ -163,7 +164,7 @@ function CollapsibleCard({ id, title, activeCard, onCardClick, children }: Colla
 
   return (
     <Card
-      className={`bg-slate-900/50 border-slate-800 transition-all duration-300 ${
+      className={`bg-[#FFEFD5] dark:bg-card border-border transition-all duration-300 ${
         isActive ? "ring-2 ring-sky-500/50" : ""
       } ${isCollapsed ? "cursor-pointer" : ""}`}
       onClick={() => isCollapsed && onCardClick(id)}
@@ -174,7 +175,7 @@ function CollapsibleCard({ id, title, activeCard, onCardClick, children }: Colla
           onClick={() => !isCollapsed && onCardClick(id)}
         >
           <h3 className="text-lg font-semibold">{title}</h3>
-          <span className={`text-slate-400 transition-transform duration-300 ${isActive ? "rotate-180" : ""}`}>
+          <span className={`text-muted-foreground transition-transform duration-300 ${isActive ? "rotate-180" : ""}`}>
             {isCollapsed ? "▶" : "▼"}
           </span>
         </div>
@@ -1109,7 +1110,7 @@ export default function BacktestPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-24 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-lg shadow-xl text-sm font-medium transition-opacity duration-300 ${
@@ -1120,7 +1121,7 @@ export default function BacktestPage() {
       )}
 
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
+      <header className="border-b border-border bg-card/50 backdrop-blur">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/" className="text-2xl font-bold text-sky-500">
@@ -1129,19 +1130,19 @@ export default function BacktestPage() {
             <nav className="hidden md:flex items-center gap-4">
               <Link
                 href="/dashboard"
-                className="text-slate-400 hover:text-sky-400 transition-colors"
+                className="text-muted-foreground hover:text-sky-400 transition-colors"
               >
                 {t('dashboard')}
               </Link>
               <Link
                 href="/backtest"
-                className="text-white hover:text-sky-400 transition-colors"
+                className="text-foreground hover:text-sky-400 transition-colors"
               >
                 {t('backtesting')}
               </Link>
               <Link
                 href="/trading"
-                className="text-slate-400 hover:text-sky-400 transition-colors"
+                className="text-muted-foreground hover:text-sky-400 transition-colors"
               >
                 {t('trading')}
               </Link>
@@ -1149,16 +1150,16 @@ export default function BacktestPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-400">{user.username}</span>
+            <span className="text-sm text-muted-foreground">{user.username}</span>
             <ThemeSwitcher />
+            <CoffeeModal />
             <Button
-              variant="outline"
               size="sm"
               onClick={async () => {
                 await logout();
                 window.location.href = "/login";
               }}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              className="bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
             >
               {t('logout')}
             </Button>
@@ -1170,7 +1171,7 @@ export default function BacktestPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
-          <p className="text-slate-400">
+          <p className="text-muted-foreground">
             {t('description')}
           </p>
         </div>
@@ -1179,15 +1180,14 @@ export default function BacktestPage() {
           {/* Configuration Panel */}
           <div className="lg:col-span-1 space-y-6">
             {/* Config Selector */}
-            <Card className="p-4 bg-slate-900/50 border-slate-800">
+            <Card className="p-4 bg-[#FFEFD5] dark:bg-card/50 shadow-md hover:shadow-lg transition-all">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-300">回测配置</h3>
+                  <h3 className="text-sm font-semibold text-foreground">回测配置</h3>
                   <Button
                     size="sm"
-                    variant="outline"
                     onClick={() => setShowSaveDialog(true)}
-                    className="h-7 px-2 text-xs border-sky-600 text-sky-400 hover:bg-sky-600/10"
+                    className="h-7 px-2 text-xs bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
                   >
                     保存为新配置
                   </Button>
@@ -1203,7 +1203,7 @@ export default function BacktestPage() {
                       handleLoadConfig(Number(val));
                     }
                   }}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white text-sm"
+                  className="w-full px-3 py-2 bg-input border border-border rounded text-foreground text-sm"
                 >
                   <option value="custom">自定义配置</option>
                   {savedConfigs.map((cfg) => (
@@ -1218,18 +1218,16 @@ export default function BacktestPage() {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
                       onClick={handleUpdateConfig}
                       disabled={isUpdating}
-                      className="flex-1 h-8 text-xs border-emerald-600 text-emerald-400 hover:bg-emerald-600/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 h-8 text-xs bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isUpdating ? "更新中..." : "更新配置"}
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
                       onClick={() => handleDeleteConfig(selectedConfigId)}
-                      className="flex-1 h-8 text-xs border-red-600 text-red-400 hover:bg-red-600/10"
+                      className="flex-1 h-8 text-xs bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
                     >
                       删除配置
                     </Button>
@@ -1243,17 +1241,16 @@ export default function BacktestPage() {
               <Button
                 onClick={handleRunBacktest}
                 disabled={isRunning || config.symbols.length === 0}
-                className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                className="flex-1 bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRunning ? "运行中..." : "运行回测"}
               </Button>
               <Button
-                variant="outline"
                 onClick={() => {
                   setConfig(defaultConfig);
                   setSelectedStocks(new Set());
                 }}
-                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                className="bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
               >
                 重置
               </Button>
@@ -1267,7 +1264,7 @@ export default function BacktestPage() {
                   placeholder="搜索股票代码或名称..."
                   value={stockSearch}
                   onChange={(e) => setStockSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500"
+                  className="w-full px-3 py-2 bg-input border border-border rounded text-foreground placeholder-muted-foreground"
                 />
 
                 <div className="max-h-48 overflow-y-auto space-y-1">
@@ -1276,7 +1273,7 @@ export default function BacktestPage() {
                       <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-sky-500" />
                     </div>
                   ) : stocks.length === 0 ? (
-                    <div className="text-center py-4 text-slate-500 text-sm">
+                    <div className="text-center py-4 text-muted-foreground text-sm">
                       {stockSearch.length === 0
                         ? "请输入股票代码或名称进行搜索"
                         : "未找到匹配的股票"}
@@ -1285,22 +1282,22 @@ export default function BacktestPage() {
                     stocks.slice(0, 50).map((stock) => (
                       <label
                         key={stock.code}
-                        className="flex items-center gap-2 p-2 hover:bg-slate-800 rounded cursor-pointer"
+                        className="flex items-center gap-2 p-2 hover:bg-muted rounded cursor-pointer"
                       >
                         <input
                           type="checkbox"
                           checked={selectedStocks.has(stock.code)}
                           onChange={() => handleStockToggle(stock.code)}
-                          className="rounded border-slate-600 bg-slate-800 text-sky-500 focus:ring-sky-500"
+                          className="rounded border-border bg-input text-sky-500 focus:ring-sky-500"
                         />
-                        <span className="text-sm text-slate-300">{stock.code}</span>
-                        <span className="text-xs text-slate-500 truncate">{stock.name}</span>
+                        <span className="text-sm text-foreground">{stock.code}</span>
+                        <span className="text-xs text-muted-foreground truncate">{stock.name}</span>
                       </label>
                     ))
                   )}
                 </div>
 
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   已选择 {selectedStocks.size} 只股票
                 </p>
               </div>
@@ -1310,7 +1307,7 @@ export default function BacktestPage() {
             <CollapsibleCard id="date-frequency" title="日期与频率" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="start-date" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                  <label htmlFor="start-date" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                     开始日期
                   </label>
                   <input
@@ -1322,12 +1319,12 @@ export default function BacktestPage() {
                       setConfig({ ...config, startDate: e.target.value })
                     }
                     onFocus={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white select-none cursor-pointer"
+                    className="w-full px-3 py-2 bg-input border border-border rounded text-foreground select-none cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="end-date" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                  <label htmlFor="end-date" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                     结束日期
                   </label>
                   <input
@@ -1339,12 +1336,12 @@ export default function BacktestPage() {
                       setConfig({ ...config, endDate: e.target.value })
                     }
                     onFocus={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white select-none cursor-pointer"
+                    className="w-full px-3 py-2 bg-input border border-border rounded text-foreground select-none cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="frequency" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                  <label htmlFor="frequency" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                     数据频率
                   </label>
                   <select
@@ -1353,7 +1350,7 @@ export default function BacktestPage() {
                     onChange={(e) =>
                       setConfig({ ...config, frequency: e.target.value })
                     }
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                    className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                   >
                     {frequencyOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -1369,7 +1366,7 @@ export default function BacktestPage() {
             <CollapsibleCard id="basic-config" title="基础配置" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="initial-capital" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                  <label htmlFor="initial-capital" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                     初始资金
                   </label>
                   <input
@@ -1382,7 +1379,7 @@ export default function BacktestPage() {
                         initialCapital: Number(e.target.value),
                       })
                     }
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                    className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                     min="1000"
                     step="10000"
                   />
@@ -1390,7 +1387,7 @@ export default function BacktestPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="commission-rate" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                    <label htmlFor="commission-rate" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                       手续费率
                     </label>
                     <input
@@ -1403,7 +1400,7 @@ export default function BacktestPage() {
                           commissionRate: Number(e.target.value),
                         })
                       }
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                      className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                       min="0"
                       max="0.1"
                       step="0.0001"
@@ -1411,7 +1408,7 @@ export default function BacktestPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="slippage" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                    <label htmlFor="slippage" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                       滑点率
                     </label>
                     <input
@@ -1424,7 +1421,7 @@ export default function BacktestPage() {
                           slippage: Number(e.target.value),
                         })
                       }
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                      className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                       min="0"
                       max="0.1"
                       step="0.0001"
@@ -1438,7 +1435,7 @@ export default function BacktestPage() {
             <CollapsibleCard id="position-strategy" title="仓位策略" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="position-strategy" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                  <label htmlFor="position-strategy" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                     策略类型
                   </label>
                   <select
@@ -1464,7 +1461,7 @@ export default function BacktestPage() {
                                 },
                       })
                     }
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                    className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                   >
                     {positionStrategyOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -1476,7 +1473,7 @@ export default function BacktestPage() {
 
                 {config.positionStrategy === "fixed_percent" && (
                   <div>
-                    <label htmlFor="position-percent" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                    <label htmlFor="position-percent" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                       仓位比例
                     </label>
                     <input
@@ -1491,7 +1488,7 @@ export default function BacktestPage() {
                           },
                         })
                       }
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                      className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                       min="0"
                       max="100"
                       step="0.01"
@@ -1505,7 +1502,7 @@ export default function BacktestPage() {
                 {config.positionStrategy === "kelly" && (
                   <div className="space-y-3">
                     <div>
-                      <label htmlFor="kelly-win-rate" className="block text-sm text-slate-400 mb-1 cursor-pointer hover:text-slate-300">
+                      <label htmlFor="kelly-win-rate" className="block text-sm text-muted-foreground mb-1 cursor-pointer hover:text-foreground">
                         预估胜率
                       </label>
                       <input
@@ -1521,14 +1518,14 @@ export default function BacktestPage() {
                             },
                           })
                         }
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                        className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                         min="0"
                         max="100"
                         step="0.01"
                       />
                     </div>
                     <div>
-                      <label htmlFor="kelly-win-loss-ratio" className="block text-sm text-slate-400 mb-1 cursor-pointer hover:text-slate-300">
+                      <label htmlFor="kelly-win-loss-ratio" className="block text-sm text-muted-foreground mb-1 cursor-pointer hover:text-foreground">
                         预估盈亏比
                       </label>
                       <input
@@ -1544,7 +1541,7 @@ export default function BacktestPage() {
                             },
                           })
                         }
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                        className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                         min="0.1"
                         max="5"
                         step="0.1"
@@ -1556,7 +1553,7 @@ export default function BacktestPage() {
                 {config.positionStrategy === "martingale" && (
                   <div className="space-y-3">
                     <div>
-                      <label htmlFor="martingale-base-percent" className="block text-sm text-slate-400 mb-1 cursor-pointer hover:text-slate-300">
+                      <label htmlFor="martingale-base-percent" className="block text-sm text-muted-foreground mb-1 cursor-pointer hover:text-foreground">
                         基础仓位比例
                       </label>
                       <input
@@ -1572,14 +1569,14 @@ export default function BacktestPage() {
                             },
                           })
                         }
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                        className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                         min="0"
                         max="20"
                         step="0.01"
                       />
                     </div>
                     <div>
-                      <label htmlFor="martingale-multiplier" className="block text-sm text-slate-400 mb-1 cursor-pointer hover:text-slate-300">
+                      <label htmlFor="martingale-multiplier" className="block text-sm text-muted-foreground mb-1 cursor-pointer hover:text-foreground">
                         加倍系数
                       </label>
                       <input
@@ -1595,7 +1592,7 @@ export default function BacktestPage() {
                             },
                           })
                         }
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                        className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                         min="1"
                         max="5"
                         step="0.1"
@@ -1610,7 +1607,7 @@ export default function BacktestPage() {
             <CollapsibleCard id="trading-strategy" title="交易策略配置" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="trading-strategy" className="block text-sm text-slate-400 mb-2 cursor-pointer hover:text-slate-300">
+                  <label htmlFor="trading-strategy" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
                     策略类型
                   </label>
                   <select
@@ -1619,7 +1616,7 @@ export default function BacktestPage() {
                     onChange={(e) =>
                       setConfig({ ...config, tradingStrategy: e.target.value, openRule: "", closeRule: "", buyRule: "", sellRule: "" })
                     }
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white"
+                    className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
                   >
                     {getAllStrategyOptions().map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -1632,7 +1629,7 @@ export default function BacktestPage() {
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="open-rule" className="block text-sm text-slate-400 cursor-pointer hover:text-slate-300">
+                      <label htmlFor="open-rule" className="block text-sm text-muted-foreground cursor-pointer hover:text-foreground">
                         开仓条件
                       </label>
                       {config.openRule && ruleValidation.openRule && (
@@ -1650,19 +1647,19 @@ export default function BacktestPage() {
                       }}
                       placeholder="如: close > SMA(close, 20)"
                       rows={3}
-                      className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
+                      className={`w-full px-3 py-2 bg-input border rounded text-foreground placeholder-muted-foreground text-sm resize-y ${
                         config.openRule && ruleValidation.openRule
                           ? ruleValidation.openRule.valid
                             ? 'border-emerald-600'
                             : 'border-red-600'
-                          : 'border-slate-700'
+                          : 'border-border'
                       }`}
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="close-rule" className="block text-sm text-slate-400 cursor-pointer hover:text-slate-300">
+                      <label htmlFor="close-rule" className="block text-sm text-muted-foreground cursor-pointer hover:text-foreground">
                         清仓条件
                       </label>
                       {config.closeRule && ruleValidation.closeRule && (
@@ -1680,19 +1677,19 @@ export default function BacktestPage() {
                       }}
                       placeholder="如: close < SMA(close, 20)"
                       rows={3}
-                      className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
+                      className={`w-full px-3 py-2 bg-input border rounded text-foreground placeholder-muted-foreground text-sm resize-y ${
                         config.closeRule && ruleValidation.closeRule
                           ? ruleValidation.closeRule.valid
                             ? 'border-emerald-600'
                             : 'border-red-600'
-                          : 'border-slate-700'
+                          : 'border-border'
                       }`}
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="buy-rule" className="block text-sm text-slate-400 cursor-pointer hover:text-slate-300">
+                      <label htmlFor="buy-rule" className="block text-sm text-muted-foreground cursor-pointer hover:text-foreground">
                         加仓条件
                       </label>
                       {config.buyRule && ruleValidation.buyRule && (
@@ -1710,19 +1707,19 @@ export default function BacktestPage() {
                       }}
                       placeholder="如: RSI(close, 14) < 30"
                       rows={3}
-                      className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
+                      className={`w-full px-3 py-2 bg-input border rounded text-foreground placeholder-muted-foreground text-sm resize-y ${
                         config.buyRule && ruleValidation.buyRule
                           ? ruleValidation.buyRule.valid
                             ? 'border-emerald-600'
                             : 'border-red-600'
-                          : 'border-slate-700'
+                          : 'border-border'
                       }`}
                     />
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="sell-rule" className="block text-sm text-slate-400 cursor-pointer hover:text-slate-300">
+                      <label htmlFor="sell-rule" className="block text-sm text-muted-foreground cursor-pointer hover:text-foreground">
                         平仓条件
                       </label>
                       {config.sellRule && ruleValidation.sellRule && (
@@ -1740,12 +1737,12 @@ export default function BacktestPage() {
                       }}
                       placeholder="如: RSI(close, 14) > 70"
                       rows={3}
-                      className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
+                      className={`w-full px-3 py-2 bg-input border rounded text-foreground placeholder-muted-foreground text-sm resize-y ${
                         config.sellRule && ruleValidation.sellRule
                           ? ruleValidation.sellRule.valid
                             ? 'border-emerald-600'
                             : 'border-red-600'
-                          : 'border-slate-700'
+                          : 'border-border'
                       }`}
                     />
                   </div>
@@ -1755,15 +1752,13 @@ export default function BacktestPage() {
                 <div className="flex gap-3 pt-2">
                   <Button
                     onClick={handleSaveToStrategy}
-                    variant="outline"
-                    className="flex-1 border-sky-600 text-sky-400 hover:bg-sky-600/10"
+                    className="flex-1 bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
                   >
                     保存到当前策略
                   </Button>
                   <Button
                     onClick={handleSaveAsNewStrategy}
-                    variant="outline"
-                    className="flex-1 border-emerald-600 text-emerald-400 hover:bg-emerald-600/10"
+                    className="flex-1 bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
                   >
                     保存为新策略
                   </Button>
@@ -1777,18 +1772,14 @@ export default function BacktestPage() {
                 {/* Toggle optimization */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-300">启用参数优化</h4>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <h4 className="text-sm font-semibold text-foreground">启用参数优化</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
                       自动搜索最优参数组合
                     </p>
                   </div>
                   <button
                     onClick={() => setShowOptimization(!showOptimization)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      showOptimization
-                        ? "bg-sky-600 text-white"
-                        : "bg-slate-700 text-slate-400 hover:bg-slate-600"
-                    }`}
+                    className="px-4 py-2 rounded-full text-sm font-medium transition-all bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white shadow-md hover:shadow-lg"
                   >
                     {showOptimization ? "已启用" : "已禁用"}
                   </button>
@@ -1798,7 +1789,7 @@ export default function BacktestPage() {
                 {showOptimization && (
                   <>
                     {/* Template Selection */}
-                    <div className="border-t border-slate-700 pt-4">
+                    <div className="border-t border-border pt-4">
                       <ParameterConfig
                         config={optimizationConfig}
                         onConfigChange={setOptimizationConfig}
@@ -1817,14 +1808,14 @@ export default function BacktestPage() {
                     <Button
                       onClick={handleRunOptimization}
                       disabled={optimizationConfig.parameter_ranges.length === 0 || optimizationStatus === "screening"}
-                      className="w-full bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700 text-white"
+                      className="w-full bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {optimizationStatus === "screening" ? "优化中..." : "开始参数优化"}
                     </Button>
 
                     {/* Optimization Results */}
                     {optimizationId && (
-                      <div className="border-t border-slate-700 pt-4">
+                      <div className="border-t border-border pt-4">
                         <OptimizationResults
                           optimizationId={optimizationId}
                           results={optimizationResults}
@@ -1855,13 +1846,13 @@ export default function BacktestPage() {
             {showResults && backtestId ? (
               <BacktestResultsView backtestId={backtestId} />
             ) : (
-              <Card className="p-6 bg-slate-900/50 border-slate-800">
-                <div className="aspect-video bg-slate-800/50 rounded flex items-center justify-center">
+              <Card className="p-6 bg-[#FFEFD5] dark:bg-card/50 shadow-md hover:shadow-lg transition-all">
+                <div className="aspect-video bg-muted/50 rounded flex items-center justify-center">
                   <div className="text-center">
-                    <p className="text-slate-400 mb-2">
+                    <p className="text-muted-foreground mb-2">
                       配置回测参数后点击"运行回测"
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted-foreground">
                       结果将在此处显示
                     </p>
                   </div>
@@ -1875,11 +1866,11 @@ export default function BacktestPage() {
       {/* Save Config Dialog */}
       {showSaveDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="p-6 bg-slate-900 border-slate-800 w-96">
+          <Card className="p-6 bg-[#FFEFD5] dark:bg-card shadow-md hover:shadow-lg transition-all w-96">
             <h3 className="text-lg font-semibold mb-4">保存为新配置</h3>
             <div className="space-y-4">
               <div>
-                <label htmlFor="config-name" className="block text-sm text-slate-400 mb-2">
+                <label htmlFor="config-name" className="block text-sm text-muted-foreground mb-2">
                   配置名称
                 </label>
                 <input
@@ -1888,7 +1879,7 @@ export default function BacktestPage() {
                   value={configNameInput}
                   onChange={(e) => setConfigNameInput(e.target.value)}
                   placeholder="输入配置名称"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-white placeholder-slate-500"
+                  className="w-full px-3 py-2 bg-input border border-border rounded text-foreground placeholder-muted-foreground"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -1899,18 +1890,17 @@ export default function BacktestPage() {
               </div>
               <div className="flex gap-3">
                 <Button
-                  variant="outline"
                   onClick={() => {
                     setShowSaveDialog(false);
                     setConfigNameInput("");
                   }}
-                  className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800"
+                  className="flex-1 bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
                 >
                   取消
                 </Button>
                 <Button
                   onClick={handleSaveAsNewConfig}
-                  className="flex-1 bg-sky-600 hover:bg-sky-700 text-white"
+                  className="flex-1 bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
                 >
                   保存
                 </Button>

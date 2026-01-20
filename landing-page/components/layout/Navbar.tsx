@@ -3,15 +3,19 @@
 import { useTranslations } from 'next-intl'
 import { Link } from '@/lib/routing'
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { siteConfig } from '@/lib/data'
 import { LanguageSelector } from './LanguageSelector'
 import { ThemeSwitcher } from './ThemeSwitcher'
+import { CoffeeModal } from './CoffeeModal'
 
 export function Navbar() {
   const t = useTranslations('nav')
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const pathname = usePathname()
+  const isHomePage = pathname === '/' || pathname === '/zh' || pathname === '/en'
 
   useEffect(() => {
     const handleScroll = () => {
@@ -75,6 +79,7 @@ export function Navbar() {
             </Link>
             <ThemeSwitcher />
             <LanguageSelector />
+            {!isHomePage && <CoffeeModal />}
           </div>
 
           {/* Mobile Menu Button */}
@@ -133,6 +138,11 @@ export function Navbar() {
               <ThemeSwitcher />
               <LanguageSelector />
             </div>
+            {!isHomePage && (
+              <div className="pt-2 border-t border-border">
+                <CoffeeModal />
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -112,6 +112,12 @@ class BacktestTaskManager:
     async def _execute_backtest_async(self, backtest_id: str, request: Any):
         """异步执行回测的核心逻辑"""
         try:
+            # 添加调试日志
+            print(f"[DEBUG] 接收到的回测请求:")
+            print(f"  start_date: {request.start_date} (type: {type(request.start_date)})")
+            print(f"  end_date: {request.end_date} (type: {type(request.end_date)})")
+            print(f"  symbols: {request.symbols}")
+
             # 更新状态为running
             backtest_state_service.update_status(backtest_id, "running")
             await websocket_manager.broadcast_progress(

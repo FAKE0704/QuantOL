@@ -6,7 +6,7 @@
  * Configure and run backtests with the QuantOL platform.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useRequireAuth } from "@/lib/store";
 import { useApi, BacktestConfig as ApiBacktestConfig } from "@/lib/api";
@@ -15,8 +15,11 @@ import { Card } from "@/components/ui/card";
 import { Link } from "@/lib/routing";
 import { BacktestProgressBar } from "@/components/backtest/BacktestProgressBar";
 import { BacktestResultsView } from "@/components/backtest/BacktestResultsView";
+import { ParameterConfig } from "@/components/backtest/ParameterConfig";
+import { OptimizationResults, ScreeningResult } from "@/components/backtest/OptimizationResults";
 import { useBacktestWebSocket, type BacktestProgress } from "@/lib/hooks/useBacktestWebSocket";
 import { ThemeSwitcher } from "@/components/layout/ThemeSwitcher";
+import { OptimizationConfig, STRATEGY_TEMPLATES } from "@/types/optimization";
 
 // Types
 interface BacktestConfig {
@@ -53,9 +56,11 @@ interface Stock {
 
 const defaultConfig: BacktestConfig = {
   startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split("T")[0],
-  endDate: new Date().toISOString().split("T")[0],
+    .toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })
+    .replace(/\//g, "-"),
+  endDate: new Date()
+    .toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" })
+    .replace(/\//g, "-"),
   frequency: "d",
   symbols: [],
   initialCapital: 1000000,
@@ -197,6 +202,8 @@ export default function BacktestPage() {
     getPositionStrategies,
     logout,
     validateRule,
+    startOptimization,
+    getOptimizationResults,
   } = useApi();
 
   const [config, setConfig] = useState<BacktestConfig>(defaultConfig);
@@ -247,8 +254,44 @@ export default function BacktestPage() {
     setTimeout(() => setToast(null), 2000);
   };
 
+  // Max date for date inputs (today, updated periodically)
+  const [maxDate, setMaxDate] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  });
+
+  // Update maxDate every minute to handle midnight crossing
+  useEffect(() => {
+    const updateMaxDate = () => {
+      const today = new Date();
+      setMaxDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
+    };
+
+    const interval = setInterval(updateMaxDate, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
   // Rule validation state
   const [ruleValidation, setRuleValidation] = useState<Record<string, { valid: boolean; error: string | null }>>({});
+
+  // Optimization state
+  const [showOptimization, setShowOptimization] = useState(false);
+  const [optimizationConfig, setOptimizationConfig] = useState<OptimizationConfig>({
+    parameter_ranges: [],
+    scan_method: "random",
+    random_samples: 50,
+    screening_period: {
+      start_date: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0].replace(/-/g, ""),
+      end_date: new Date().toISOString().split("T")[0].replace(/-/g, ""),
+    },
+    screening_metric: "sharpe_ratio",
+    top_n_candidates: 5,
+  });
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [optimizationId, setOptimizationId] = useState<string>("");
+  const [optimizationResults, setOptimizationResults] = useState<ScreeningResult[]>([]);
+  const [optimizationStatus, setOptimizationStatus] = useState<"pending" | "screening" | "completed" | "failed">("pending");
+  const [optimizationError, setOptimizationError] = useState<string>();
 
   // Debounced rule validation
   const validateRuleDebounced = useCallback(
@@ -351,11 +394,12 @@ export default function BacktestPage() {
   const searchStocks = async (search: string) => {
     setIsLoadingStocks(true);
     try {
-      // 限制只能选择"市北高新"和"平安银行"（临时限制，以后需要恢复原逻辑）
+      // 限制只能选择指定股票（临时限制，以后需要恢复原逻辑）
       // 注意：baostock API需要带交易所前缀的格式（如sh.600604, sz.000001）
       const allowedStocks = [
         { code: "sh.600604", name: "市北高新" },
         { code: "sz.000001", name: "平安银行" },
+        { code: "sz.002692", name: "远程股份" },
       ];
       // 根据搜索关键词过滤
       const filtered = allowedStocks.filter(
@@ -581,9 +625,10 @@ export default function BacktestPage() {
 
   const handleBacktestError = useCallback((error: string) => {
     console.error("回测失败:", error);
+    showToast(error, "error");
     setShowProgress(false);
     setIsRunning(false);  // 确保按钮状态恢复
-  }, []);
+  }, [showToast]);
 
   // WebSocket连接回测进度
   useBacktestWebSocket({
@@ -845,6 +890,28 @@ export default function BacktestPage() {
       return;
     }
 
+    // 验证日期：结束日期不能超过今天
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);  // 重置时间为00:00:00
+
+    const endDate = new Date(config.endDate);
+    endDate.setHours(0, 0, 0, 0);
+
+    if (endDate > today) {
+      const todayStr = today.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\//g, "-");
+      showToast(`结束日期不能超过今天（${todayStr}）`, "error");
+      return;
+    }
+
+    // 验证开始日期早于结束日期
+    const startDate = new Date(config.startDate);
+    startDate.setHours(0, 0, 0, 0);
+
+    if (startDate > endDate) {
+      showToast("开始日期不能晚于结束日期", "error");
+      return;
+    }
+
     setIsRunning(true);
     setShowResults(false);  // 隐藏之前的结果
     setBacktestProgress(null);  // 重置进度
@@ -899,6 +966,136 @@ export default function BacktestPage() {
       setIsRunning(false);  // 只有在错误时才恢复按钮状态
     }
     // 移除 finally 块，避免立即恢复按钮状态
+  };
+
+  const handleRunOptimization = async () => {
+    if (optimizationConfig.parameter_ranges.length === 0) {
+      alert("请至少配置一个参数范围");
+      return;
+    }
+
+    if (config.symbols.length === 0) {
+      alert("请至少选择一只股票");
+      return;
+    }
+
+    setOptimizationStatus("screening");
+    setOptimizationError(undefined);
+
+    try {
+      // Get template rules
+      const template = selectedTemplate ? STRATEGY_TEMPLATES[selectedTemplate] : null;
+      const ruleTemplates = {
+        open_rule_template: template?.open_rule_template || config.openRule || undefined,
+        close_rule_template: template?.close_rule_template || config.closeRule || undefined,
+        buy_rule_template: template?.buy_rule_template || config.buyRule || undefined,
+        sell_rule_template: template?.sell_rule_template || config.sellRule || undefined,
+      };
+
+      // Format dates for backend (YYYYMMDD)
+      const formatDate = (dateStr: string) => {
+        const [year, month, day] = dateStr.split("-");
+        return `${year}${month}${day}`;
+      };
+
+      const response = await startOptimization({
+        base_config: {
+          start_date: formatDate(config.startDate),
+          end_date: formatDate(config.endDate),
+          frequency: config.frequency,
+          symbols: config.symbols,
+          initial_capital: config.initialCapital,
+          commission_rate: config.commissionRate,
+          slippage: config.slippage,
+          position_strategy: config.positionStrategy,
+          position_params: config.positionParams,
+        },
+        rule_templates: ruleTemplates,
+        optimization_config: {
+          parameter_ranges: optimizationConfig.parameter_ranges,
+          scan_method: optimizationConfig.scan_method,
+          random_samples: optimizationConfig.random_samples,
+          screening_period: optimizationConfig.screening_period,
+          screening_metric: optimizationConfig.screening_metric,
+          top_n_candidates: optimizationConfig.top_n_candidates,
+          performance_thresholds: optimizationConfig.performance_thresholds,
+        },
+      });
+
+      if (response.success && response.data?.optimization_id) {
+        setOptimizationId(response.data.optimization_id);
+
+        // Poll for results
+        pollOptimizationResults(response.data.optimization_id);
+      } else {
+        setOptimizationStatus("failed");
+        setOptimizationError(response.message || "优化启动失败");
+        alert("优化启动失败: " + (response.message || "未知错误"));
+      }
+    } catch (error) {
+      console.error("Optimization failed:", error);
+      setOptimizationStatus("failed");
+      setOptimizationError(error instanceof Error ? error.message : "未知错误");
+      alert("优化启动失败: " + (error instanceof Error ? error.message : "未知错误"));
+    }
+  };
+
+  const pollOptimizationResults = async (optId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await getOptimizationResults(optId);
+
+        if (response.success && response.data) {
+          const { status, screening_results, error } = response.data;
+
+          if (status === "completed" && screening_results) {
+            setOptimizationStatus("completed");
+            setOptimizationResults(screening_results);
+            clearInterval(pollInterval);
+          } else if (status === "failed") {
+            setOptimizationStatus("failed");
+            setOptimizationError(error || "优化失败");
+            clearInterval(pollInterval);
+          }
+          // Still screening, continue polling
+        }
+      } catch (error) {
+        console.error("Failed to poll optimization results:", error);
+        setOptimizationStatus("failed");
+        setOptimizationError(error instanceof Error ? error.message : "获取结果失败");
+        clearInterval(pollInterval);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Cleanup on unmount
+    return () => clearInterval(pollInterval);
+  };
+
+  const handleSelectOptimizationResult = (result: ScreeningResult) => {
+    // Apply the selected parameters to the current configuration
+    if (selectedTemplate) {
+      const template = STRATEGY_TEMPLATES[selectedTemplate];
+
+      // Render rules with selected parameters
+      const renderTemplate = (templateStr: string | undefined) => {
+        if (!templateStr) return "";
+        let rendered = templateStr;
+        Object.entries(result.parameters).forEach(([key, value]) => {
+          rendered = rendered.replace(new RegExp(`\\{${key}\\}`, "g"), String(value));
+        });
+        return rendered;
+      };
+
+      setConfig({
+        ...config,
+        openRule: renderTemplate(template.open_rule_template),
+        closeRule: renderTemplate(template.close_rule_template),
+        buyRule: renderTemplate(template.buy_rule_template),
+        sellRule: renderTemplate(template.sell_rule_template),
+      });
+
+      showToast(`已应用参数组合 #${result.rank}`, "success");
+    }
   };
 
   if (isLoading) {
@@ -1119,6 +1316,7 @@ export default function BacktestPage() {
                   <input
                     id="start-date"
                     type="date"
+                    max={maxDate}
                     value={config.startDate}
                     onChange={(e) =>
                       setConfig({ ...config, startDate: e.target.value })
@@ -1135,6 +1333,7 @@ export default function BacktestPage() {
                   <input
                     id="end-date"
                     type="date"
+                    max={maxDate}
                     value={config.endDate}
                     onChange={(e) =>
                       setConfig({ ...config, endDate: e.target.value })
@@ -1449,7 +1648,7 @@ export default function BacktestPage() {
                         setConfig({ ...config, openRule: e.target.value });
                         validateRuleDebounced('openRule', e.target.value);
                       }}
-                      placeholder="如: close > ma20"
+                      placeholder="如: close > SMA(close, 20)"
                       rows={3}
                       className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
                         config.openRule && ruleValidation.openRule
@@ -1479,7 +1678,7 @@ export default function BacktestPage() {
                         setConfig({ ...config, closeRule: e.target.value });
                         validateRuleDebounced('closeRule', e.target.value);
                       }}
-                      placeholder="如: close < ma20"
+                      placeholder="如: close < SMA(close, 20)"
                       rows={3}
                       className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
                         config.closeRule && ruleValidation.closeRule
@@ -1509,7 +1708,7 @@ export default function BacktestPage() {
                         setConfig({ ...config, buyRule: e.target.value });
                         validateRuleDebounced('buyRule', e.target.value);
                       }}
-                      placeholder="如: rsi < 30"
+                      placeholder="如: RSI(close, 14) < 30"
                       rows={3}
                       className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
                         config.buyRule && ruleValidation.buyRule
@@ -1539,7 +1738,7 @@ export default function BacktestPage() {
                         setConfig({ ...config, sellRule: e.target.value });
                         validateRuleDebounced('sellRule', e.target.value);
                       }}
-                      placeholder="如: rsi > 70"
+                      placeholder="如: RSI(close, 14) > 70"
                       rows={3}
                       className={`w-full px-3 py-2 bg-slate-800 border rounded text-white placeholder-slate-500 text-sm resize-y ${
                         config.sellRule && ruleValidation.sellRule
@@ -1569,6 +1768,74 @@ export default function BacktestPage() {
                     保存为新策略
                   </Button>
                 </div>
+              </div>
+            </CollapsibleCard>
+
+            {/* Parameter Optimization */}
+            <CollapsibleCard id="optimization" title="参数优化" activeCard={activeCard} onCardClick={handleCardClick}>
+              <div className="space-y-4">
+                {/* Toggle optimization */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-300">启用参数优化</h4>
+                    <p className="text-xs text-slate-500 mt-1">
+                      自动搜索最优参数组合
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowOptimization(!showOptimization)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      showOptimization
+                        ? "bg-sky-600 text-white"
+                        : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                    }`}
+                  >
+                    {showOptimization ? "已启用" : "已禁用"}
+                  </button>
+                </div>
+
+                {/* Optimization Configuration */}
+                {showOptimization && (
+                  <>
+                    {/* Template Selection */}
+                    <div className="border-t border-slate-700 pt-4">
+                      <ParameterConfig
+                        config={optimizationConfig}
+                        onConfigChange={setOptimizationConfig}
+                        selectedTemplate={selectedTemplate}
+                        onTemplateChange={setSelectedTemplate}
+                        currentRules={{
+                          openRule: config.openRule,
+                          closeRule: config.closeRule,
+                          buyRule: config.buyRule,
+                          sellRule: config.sellRule,
+                        }}
+                      />
+                    </div>
+
+                    {/* Run Optimization Button */}
+                    <Button
+                      onClick={handleRunOptimization}
+                      disabled={optimizationConfig.parameter_ranges.length === 0 || optimizationStatus === "screening"}
+                      className="w-full bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-700 hover:to-emerald-700 text-white"
+                    >
+                      {optimizationStatus === "screening" ? "优化中..." : "开始参数优化"}
+                    </Button>
+
+                    {/* Optimization Results */}
+                    {optimizationId && (
+                      <div className="border-t border-slate-700 pt-4">
+                        <OptimizationResults
+                          optimizationId={optimizationId}
+                          results={optimizationResults}
+                          status={optimizationStatus}
+                          error={optimizationError}
+                          onSelectResult={handleSelectOptimizationResult}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </CollapsibleCard>
           </div>

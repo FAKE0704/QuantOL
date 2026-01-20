@@ -407,8 +407,13 @@ class BacktestEngine:
         """获取数据库适配器（支持两种模式）"""
         if self.db_adapter is not None:
             return self.db_adapter
-        # 回退到Streamlit模式
-        return st.session_state.db
+        # 回退到Streamlit模式（安全检查）
+        if hasattr(st.session_state, 'db'):
+            return st.session_state.db
+        raise AttributeError(
+            "st.session_state.db 不存在。请确保："
+            "1) 在Streamlit环境中运行，或 2) 传入了db_adapter参数"
+        )
 
     def update_rule_parser_data(self):
         """更新RuleParser的数据引用"""
@@ -1115,12 +1120,36 @@ class BacktestEngine:
         if price_data is not None and 'signal' in price_data.columns:
             # 过滤出有信号的记录
             signal_records = price_data[price_data['signal'] != 0].copy()
+
             if not signal_records.empty:
+                # 生成时间戳字符串，合并 date 和 time 列
+                timestamps = []
+                for idx in signal_records.index:
+                    if 'date' in signal_records.columns:
+                        date_str = signal_records.loc[idx, 'date']
+                        # date 列格式: 'YYYY-MM-DD'
+                        if 'time' in signal_records.columns:
+                            time_val = signal_records.loc[idx, 'time']
+                            # time 列可能是 time 对象或字符串
+                            if isinstance(time_val, str):
+                                timestamp = f"{date_str} {time_val}"
+                            else:
+                                # time 对象，转换为字符串
+                                time_str = str(time_val)
+                                timestamp = f"{date_str} {time_str}"
+                        else:
+                            # 没有 time 列，只使用 date
+                            timestamp = date_str
+                        timestamps.append(timestamp)
+                    else:
+                        # 回退到使用 index
+                        timestamps.append(str(idx))
+
                 # 创建信号数据格式
                 signals_data = pd.DataFrame({
-                    'timestamp': signal_records.index,
-                    'signal': signal_records['signal'],
-                    'price': signal_records['close'],
+                    'timestamp': timestamps,
+                    'signal': signal_records['signal'].values,
+                    'price': signal_records['close'].values,
                     'symbol': self.config.target_symbol
                 })
                 # 添加信号类型描述
@@ -1206,19 +1235,22 @@ class BacktestEngine:
         daily_volatility = float(returns_array.std())
         metrics['volatility'] = daily_volatility * np.sqrt(252) * 100  # 年化波动率百分比
 
-        # 计算夏普比率（使用年化收益率计算，与annual_return保持一致）
+        # 计算夏普比率（使用日收益率均值计算，这是标准方法）
         risk_free_rate = 0.03
-        if days > 0 and 'annual_return' in metrics:
-            # 使用年化收益率计算夏普比率，确保与年化收益率指标一致
-            annual_return_decimal = metrics['annual_return'] / 100
-            annual_volatility = daily_volatility * np.sqrt(252)
-            sharpe_ratio = (annual_return_decimal - risk_free_rate) / annual_volatility
-            metrics['sharpe_ratio'] = float(sharpe_ratio)
-        elif returns_array.std() > 0:
-            # 备用方案：使用日收益率算术平均（传统方法）
-            excess_returns = returns_array - risk_free_rate / 252
-            sharpe_ratio = (excess_returns.mean() / returns_array.std()) * np.sqrt(252)
-            metrics['sharpe_ratio'] = float(sharpe_ratio)
+        mean_daily_return = returns_array.mean()
+        if daily_volatility > 0:
+            # 标准夏普比率计算：使用日收益率数据
+            # Sharpe = (E[R] - Rf) / σ，其中E[R]是日收益率均值，σ是日收益率标准差
+            daily_risk_free = risk_free_rate / 252  # 日无风险利率
+            daily_sharpe = (mean_daily_return - daily_risk_free) / daily_volatility
+            annual_sharpe = daily_sharpe * np.sqrt(252)  # 年化
+
+            self.debug_logger.log_extra(f"【夏普比率调试】equity_records: {len(equity_records)}, returns: {len(returns_array)}, days: {days if days > 0 else 'N/A'}")
+            self.debug_logger.log_extra(f"【夏普比率调试】mean_daily_return: {mean_daily_return:.6f}, daily_volatility: {daily_volatility:.6f}")
+            self.debug_logger.log_extra(f"【夏普比率调试】daily_sharpe = ({mean_daily_return:.6f} - {daily_risk_free:.6f}) / {daily_volatility:.6f} = {daily_sharpe:.4f}")
+            self.debug_logger.log_extra(f"【夏普比率调试】annual_sharpe = {daily_sharpe:.4f} * √252 = {annual_sharpe:.2f}")
+
+            metrics['sharpe_ratio'] = float(annual_sharpe)
         else:
             metrics['sharpe_ratio'] = 0.0
 

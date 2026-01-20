@@ -28,6 +28,52 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+} from "recharts";
+
+// 24小时制时间格式化函数
+function formatDateTime(timestamp: string | Date | object | null | undefined): string {
+  if (!timestamp) return '-';
+
+  let date: Date;
+
+  if (typeof timestamp === 'string') {
+    date = new Date(timestamp);
+  } else if (timestamp instanceof Date) {
+    date = timestamp;
+  } else if (typeof timestamp === 'object') {
+    // 处理可能的 Pandas Timestamp 序列化对象
+    // 尝试提取常见的日期字段
+    const year = (timestamp as any).year;
+    const month = (timestamp as any).month;
+    const day = (timestamp as any).day;
+    const hour = (timestamp as any).hour || 0;
+    const minute = (timestamp as any).minute || 0;
+    const second = (timestamp as any).second || 0;
+    if (year !== undefined && month !== undefined && day !== undefined) {
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
+    }
+    // 如果无法解析，返回字符串表示
+    return String(timestamp);
+  } else {
+    return String(timestamp);
+  }
+
+  // 检查日期是否有效
+  if (isNaN(date.getTime())) {
+    console.warn('[formatDateTime] 无效的日期:', timestamp);
+    return String(timestamp);
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+import {
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -397,7 +443,7 @@ function TradesTab({
                 {trades.map((trade, idx) => (
                   <tr key={idx} className="hover:bg-slate-800/50">
                     <td className="px-4 py-2 text-slate-300">
-                      {trade.timestamp ? new Date(trade.timestamp).toLocaleString() : '-'}
+                      {formatDateTime(trade.timestamp)}
                     </td>
                     <td className="px-4 py-2 text-slate-300">{trade.symbol || '-'}</td>
                     <td className="px-4 py-2">
@@ -600,7 +646,7 @@ function EquityTab({
                 labelStyle={{ color: "#94a3b8" }}
                 // @ts-expect-error - Recharts formatter type is overly strict
                 formatter={(value: number, name: string) => [`${isFinite(value) ? value.toFixed(2) : '0.00'}%`, name]}
-                labelFormatter={(value: any) => new Date(value).toLocaleString()}
+                labelFormatter={(value: any) => formatDateTime(value)}
               />
               <Legend wrapperStyle={{ color: "#94a3b8" }} />
               <Line
@@ -647,7 +693,7 @@ function EquityTab({
                 contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
                 labelStyle={{ color: "#94a3b8" }}
                 formatter={(value: number) => `¥${value.toLocaleString()}`}
-                labelFormatter={(value: any) => new Date(value).toLocaleString()}
+                labelFormatter={(value: any) => formatDateTime(value)}
               />
               <Legend wrapperStyle={{ color: "#94a3b8" }} />
               <Line
@@ -856,7 +902,7 @@ function DrawdownTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
                   contentStyle={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "8px" }}
                   labelStyle={{ color: "#94a3b8" }}
                   formatter={(value: number) => [`${isFinite(value) ? value.toFixed(2) : '0.00'}%`, '回撤']}
-                  labelFormatter={(value: any) => new Date(value).toLocaleString()}
+                  labelFormatter={(value: any) => formatDateTime(value)}
                 />
                 <Area
                   type="monotone"
@@ -983,8 +1029,8 @@ function ReturnsTab({ equityRecords }: { equityRecords: EquityRecord[] }) {
 function SignalsTab({ signals }: { signals?: unknown }) {
   // Parse signals data
   const signalsData = signals && isSerializedDataFrame(signals)
-    ? (signals.__data__ as unknown as Array<{ timestamp: string; signal: number; signal_type: string; price: number; symbol: string }>)
-    : (signals as unknown as Array<{ timestamp: string; signal: number; signal_type: string; price: number; symbol: string }>) || [];
+    ? (signals.__data__ as unknown as Array<{ timestamp: any; signal: number; signal_type: string; price: number; symbol: string }>)
+    : (signals as unknown as Array<{ timestamp: any; signal: number; signal_type: string; price: number; symbol: string }>) || [];
 
   return (
     <div className="space-y-4">
@@ -1025,7 +1071,7 @@ function SignalsTab({ signals }: { signals?: unknown }) {
                 {signalsData.map((signal, idx) => (
                   <tr key={idx} className="hover:bg-slate-800/50">
                     <td className="px-4 py-2 text-slate-300">
-                      {signal.timestamp ? new Date(signal.timestamp).toLocaleString() : '-'}
+                      {formatDateTime(signal.timestamp)}
                     </td>
                     <td className="px-4 py-2 text-slate-300">{signal.symbol || '-'}</td>
                     <td className="px-4 py-2">
@@ -1085,7 +1131,7 @@ function DetailsTab({
                 {equityRecords.slice(-100).map((record, idx) => (
                   <tr key={idx} className="hover:bg-slate-800/50">
                     <td className="px-3 py-2 text-slate-300">
-                      {record.timestamp ? new Date(record.timestamp).toLocaleString() : '-'}
+                      {formatDateTime(record.timestamp)}
                     </td>
                     <td className="px-3 py-2 text-right text-slate-300">
                       {record.total_value !== undefined ? `¥${record.total_value.toLocaleString()}` : '-'}

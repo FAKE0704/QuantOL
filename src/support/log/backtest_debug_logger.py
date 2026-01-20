@@ -210,6 +210,10 @@ class BacktestDebugLogger:
         """记录普通信息"""
         self.logger.info(f"[信息] {message}")
 
+    def log_extra(self, message: str):
+        """记录额外调试信息"""
+        self.logger.info(f"{message}")
+
     def write_summary(self, total_data_points: int):
         """
         写入回测汇总统计

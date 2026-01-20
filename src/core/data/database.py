@@ -271,12 +271,12 @@ class DatabaseManager(DatabaseAdapter):
         try:
             # 确保日期格式正确
             if isinstance(start_date, str):
-                start_dt = pd.to_datetime(start_date).date()
+                start_dt = pd.to_datetime(start_date, format="%Y%m%d").date()
             else:
                 start_dt = start_date
 
             if isinstance(end_date, str):
-                end_dt = pd.to_datetime(end_date).date()
+                end_dt = pd.to_datetime(end_date, format="%Y%m%d").date()
             else:
                 end_dt = end_date
 
@@ -349,12 +349,12 @@ class DatabaseManager(DatabaseAdapter):
         try:
             # 确保日期格式正确
             if isinstance(start_date, str):
-                start_dt = pd.to_datetime(start_date).date()
+                start_dt = pd.to_datetime(start_date, format="%Y%m%d").date()
             else:
                 start_dt = start_date
 
             if isinstance(end_date, str):
-                end_dt = pd.to_datetime(end_date).date()
+                end_dt = pd.to_datetime(end_date, format="%Y%m%d").date()
             else:
                 end_dt = end_date
 

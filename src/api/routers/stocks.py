@@ -52,6 +52,14 @@ class StockDetailResponse(BaseModel):
     data: Optional[StockInfo] = None
 
 
+class StockDataRangeResponse(BaseModel):
+    """Stock data range response model."""
+
+    success: bool
+    message: str
+    data: Optional[dict] = None
+
+
 # Endpoints
 
 
@@ -172,4 +180,66 @@ async def get_stock_info(code: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch stock info: {str(e)}",
+        )
+
+
+@router.get("/stocks/{code}/data-range", response_model=StockDataRangeResponse)
+async def get_stock_data_range(code: str, frequency: str = Query("d", description="Data frequency")):
+    """Get available date range for a specific stock.
+
+    Args:
+        code: Stock code
+        frequency: Data frequency (d/w/m)
+
+    Returns:
+        Stock data range with min_date and max_date
+    """
+    try:
+        db = get_db_adapter()
+        await db.initialize()
+
+        # 直接查询数据库获取日期范围
+        import sqlite3
+        import os
+
+        db_path = os.environ.get("SQLITE_DB_PATH", "./data/quantdb.sqlite")
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """SELECT MIN(date), MAX(date), COUNT(*), data_source
+               FROM StockData
+               WHERE code = ? AND frequency = ?
+               GROUP BY data_source
+               ORDER BY COUNT(*) DESC
+               LIMIT 1""",
+            (code, frequency)
+        )
+        result = cursor.fetchone()
+
+        conn.close()
+
+        if not result or result[2] == 0:
+            return StockDataRangeResponse(
+                success=False,
+                message=f"No data found for {code}",
+                data=None
+            )
+
+        return StockDataRangeResponse(
+            success=True,
+            message=f"Data range found for {code}",
+            data={
+                "code": code,
+                "min_date": result[0],
+                "max_date": result[1],
+                "record_count": result[2],
+                "data_source": result[3]
+            }
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch data range: {str(e)}",
         )

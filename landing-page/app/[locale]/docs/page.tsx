@@ -32,6 +32,16 @@ export default function DocsPage() {
     },
   ]
 
+  const indicatorLinks = [
+    { title: 'SMA - 简单移动平均', slug: 'rules-sma', desc: 'SMA(close, period)' },
+    { title: 'RSI - 相对强弱指数', slug: 'rules-rsi', desc: 'RSI(close, period)' },
+    { title: 'REF - 引用历史数据', slug: 'rules-ref', desc: 'REF(expr, period)' },
+    { title: 'VWAP - 成交量加权平均价', slug: 'rules-vwap', desc: 'VWAP(period)' },
+    { title: 'C_P - 典型价格', slug: 'rules-cp', desc: 'C_P(period)' },
+    { title: 'Q - 分位数计算', slug: 'rules-q', desc: 'Q(series, q, period)' },
+    { title: 'SQRT - 开方', slug: 'rules-sqrt', desc: 'SQRT(x, n)' },
+  ]
+
   return (
     <div className="py-8">
       <div className="mb-8">
@@ -43,7 +53,7 @@ export default function DocsPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 mb-12">
         {quickLinks.map((link) => {
           const Icon = link.icon
           return (
@@ -66,6 +76,25 @@ export default function DocsPage() {
             </Link>
           )
         })}
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-4">交易策略规则</h2>
+        <p className="text-slate-400 mb-6">配置交易条件时可用的函数（点击查看详情）</p>
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {indicatorLinks.map((link) => (
+            <Link
+              key={link.slug}
+              href={`/docs/${link.slug}`}
+              className="group p-4 rounded-lg border border-border hover:border-primary/50 bg-card hover:bg-card/80 transition-all"
+            >
+              <h3 className="text-base font-semibold mb-1 group-hover:text-primary transition-colors">
+                {link.title}
+              </h3>
+              <code className="text-sm text-sky-400">{link.desc}</code>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="mt-12 p-6 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-border">

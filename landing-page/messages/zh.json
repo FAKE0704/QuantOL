@@ -128,7 +128,17 @@
     "rulesSma": "SMA",
     "rulesRef": "REF",
     "rules-sma": "SMA",
-    "rules-ref": "REF"
+    "rules-ref": "REF",
+    "rulesRsi": "RSI",
+    "rules-rsi": "RSI",
+    "rulesVwap": "VWAP",
+    "rules-vwap": "VWAP",
+    "rulesCp": "C_P",
+    "rules-cp": "C_P",
+    "rulesQ": "Q",
+    "rules-q": "Q",
+    "rulesSqrt": "SQRT",
+    "rules-sqrt": "SQRT"
   },
   "backtest": {
     "title": "回测",

@@ -36,18 +36,22 @@ class BaostockDataSource(DataSource):
 
         # 确保日期格式正确
         if isinstance(start_date, str):
-            start_dt = pd.to_datetime(start_date).date()
+            start_dt = pd.to_datetime(start_date, format="%Y%m%d").date()
         else:
             start_dt = start_date
 
         if isinstance(end_date, str):
-            end_dt = pd.to_datetime(end_date).date()
+            end_dt = pd.to_datetime(end_date, format="%Y%m%d").date()
         else:
             end_dt = end_date
 
         freq = frequency if frequency is not None else self.default_frequency
         task_id = f"{symbol}_{freq}_load"
         progress_service.start_task(task_id, 1)
+
+        # 添加调试日志
+        from src.support.log.logger import logger
+        logger.info(f"[Baostock] Loading data: symbol={symbol}, start_date={start_date} ({type(start_date)}), end_date={end_date} ({type(end_date)}), start_dt={start_dt}, end_dt={end_dt}")
 
         lg = bs.login()
         if lg.error_code != '0':
@@ -73,6 +77,8 @@ class BaostockDataSource(DataSource):
             # 转换为baostock需要的日期格式
             start_date_str = start_dt.strftime("%Y-%m-%d")
             end_date_str = end_dt.strftime("%Y-%m-%d")
+
+            logger.info(f"[Baostock] Calling API: symbol={symbol}, start_date_str={start_date_str}, end_date_str={end_date_str}, freq={freq}")
 
             rs = bs.query_history_k_data_plus(
                 symbol,

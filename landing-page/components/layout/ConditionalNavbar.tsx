@@ -4,7 +4,7 @@ import { usePathname } from '@/lib/routing'
 import { Navbar } from './Navbar'
 
 // 不显示 Navbar 的路径（不含 locale 前缀）
-const HIDE_NAVBAR_PATHS = ['/dashboard', '/backtest', '/login', '/register']
+const HIDE_NAVBAR_PATHS = ['/dashboard', '/backtest', '/settings', '/register']
 
 export function ConditionalNavbar() {
   const pathname = usePathname()

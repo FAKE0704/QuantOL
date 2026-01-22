@@ -14,11 +14,12 @@ import { StreamlitChart } from "@/components/charts/StreamlitChart";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/lib/routing";
 import { ThemeSwitcher } from "@/components/layout/ThemeSwitcher";
+import { UserAccountMenu } from "@/components/layout/UserAccountMenu";
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard')
-  const { user, isLoading, token } = useRequireAuth();
-  const { getDashboardStats, logout } = useApi();
+  const { user, isLoading, token, logout } = useRequireAuth();
+  const { getDashboardStats } = useApi();
 
   const [stats, setStats] = useState({
     total_strategies: 0,
@@ -87,19 +88,14 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-400">{user.username}</span>
             <ThemeSwitcher />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
+            <UserAccountMenu
+              username={user.username}
+              onLogout={async () => {
                 await logout();
                 window.location.href = "/login";
               }}
-              className="border-slate-700 text-slate-300 hover:bg-slate-800"
-            >
-              {t('logout')}
-            </Button>
+            />
           </div>
         </div>
       </header>

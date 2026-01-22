@@ -219,5 +219,45 @@
     "drawdownAnalysisDesc": "Portfolio drawdown over time",
     "recentTrades": "Recent Trades",
     "recentTradesDesc": "Your latest trading activity"
+  },
+  "login": {
+    "title": "QuantOL",
+    "subtitle": "Quantitative Trading Platform",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "usernameOrEmail": "Username or Email",
+    "enterUsernameOrEmail": "Enter your username or email",
+    "password": "Password",
+    "enterPassword": "Enter your password",
+    "signingIn": "Signing in...",
+    "signingUp": "Creating account...",
+    "username": "Username",
+    "chooseUsername": "Choose a username",
+    "email": "Email",
+    "enterEmail": "Enter your email",
+    "createPassword": "Create a password",
+    "registrationClosed": "Registration is currently closed",
+    "backToHome": "← Back to home",
+    "accountsLeft": "({count} accounts left)"
+  },
+  "account": {
+    "accountLabel": "Account",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account settings and preferences",
+    "dashboard": "Dashboard",
+    "backtesting": "Backtesting",
+    "trading": "Trading",
+    "dataSource": {
+      "title": "Data Source Selection",
+      "description": "Choose your preferred data source for market data",
+      "note": "Some data sources may require API keys or additional configuration",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "saved": "Saved!"
+    }
   }
 }

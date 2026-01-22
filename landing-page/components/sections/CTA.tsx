@@ -2,9 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/lib/routing'
-import { ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { siteConfig } from '@/lib/data'
+import { Play } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export function CTA() {
@@ -59,26 +57,13 @@ export function CTA() {
               {t('description')}
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
+              <Link
+                href="/backtest"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-gray-800 dark:hover:from-amber-600 dark:hover:to-orange-600 text-white rounded-full text-base font-medium transition-all shadow-md hover:shadow-lg"
               >
-                <Link href={siteConfig.links.app}>
-                  {t('button')}
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="border-border hover:bg-muted"
-              >
-                <Link href="/backtest">
-                  {t('secondary')}
-                </Link>
-              </Button>
+                <Play className="w-4 h-4" />
+                {t('secondary')}
+              </Link>
             </div>
           </div>
         </motion.div>

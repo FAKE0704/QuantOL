@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { ConditionalNavbar } from '@/components/layout/ConditionalNavbar'
+import { ConditionalFooter } from '@/components/layout/ConditionalFooter'
 import { ClientProvider } from '@/components/providers/ClientProvider'
 import '../globals.css'
 
@@ -47,7 +48,7 @@ export default async function LocaleLayout({
           <ClientProvider>
             <ConditionalNavbar />
             <main className="min-h-screen">{children}</main>
-            <Footer />
+            <ConditionalFooter />
           </ClientProvider>
         </NextIntlClientProvider>
       </body>

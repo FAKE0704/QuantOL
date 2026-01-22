@@ -49,7 +49,7 @@
 :root {
   --radius: 0.625rem;
   /* Light theme (default) */
-  --background: 255 255 255;
+  --background: 249 247 242;
   --foreground: 15 23 42;
   --card: 249 250 251;
   --card-foreground: 15 23 42;

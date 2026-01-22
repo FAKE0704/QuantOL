@@ -229,5 +229,45 @@
     "drawdownAnalysisDesc": "投资组合随时间回撤情况",
     "recentTrades": "最近交易",
     "recentTradesDesc": "您最新的交易活动"
+  },
+  "login": {
+    "title": "QuantOL",
+    "subtitle": "量化交易平台",
+    "signIn": "登录",
+    "signUp": "注册",
+    "usernameOrEmail": "用户名或邮箱",
+    "enterUsernameOrEmail": "输入您的用户名或邮箱",
+    "password": "密码",
+    "enterPassword": "输入您的密码",
+    "signingIn": "登录中...",
+    "signingUp": "创建账户...",
+    "username": "用户名",
+    "chooseUsername": "选择用户名",
+    "email": "邮箱",
+    "enterEmail": "输入您的邮箱",
+    "createPassword": "创建密码",
+    "registrationClosed": "注册目前关闭",
+    "backToHome": "← 返回首页",
+    "accountsLeft": "（剩余 {count} 个账户）"
+  },
+  "account": {
+    "accountLabel": "账号",
+    "settings": "设置",
+    "logout": "退出登录"
+  },
+  "settings": {
+    "title": "设置",
+    "description": "管理您的账号设置和偏好",
+    "dashboard": "仪表板",
+    "backtesting": "回测",
+    "trading": "交易",
+    "dataSource": {
+      "title": "数据源选择",
+      "description": "选择您偏好的市场数据源",
+      "note": "部分数据源可能需要 API 密钥或额外配置",
+      "save": "保存更改",
+      "saving": "保存中...",
+      "saved": "已保存！"
+    }
   }
 }

@@ -35,39 +35,6 @@ print(f"最大回撤: {results.max_drawdown:.2%}")`
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5" />
-
-      {/* Animated grid background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20" />
-
-      {/* Animated gradient orbs */}
-      <motion.div
-        className="absolute top-1/4 -left-20 w-96 h-96 bg-primary/20 rounded-full blur-3xl"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent/20 rounded-full blur-3xl"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut",
-          delay: 4
-        }}
-      />
-
       {/* Content */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -138,26 +105,13 @@ print(f"最大回撤: {results.max_drawdown:.2%}")`
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.6 }}
             >
-              <Button
-                asChild
-                size="lg"
-                className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white"
+              <Link
+                href="/backtest"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-black dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-gray-800 dark:hover:from-amber-600 dark:hover:to-orange-600 text-white rounded-full text-base font-medium transition-all shadow-md hover:shadow-lg"
               >
-                <Link href={siteConfig.links.app}>
-                  {t('ctas.start')}
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="border-border hover:bg-muted"
-              >
-                <Link href="/backtest">
-                  {t('ctas.backtest')}
-                </Link>
-              </Button>
+                <Play className="w-4 h-4" />
+                {t('ctas.backtest')}
+              </Link>
             </motion.div>
 
             {/* Stats */}

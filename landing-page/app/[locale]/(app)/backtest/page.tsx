@@ -19,6 +19,7 @@ import { ParameterConfig } from "@/components/backtest/ParameterConfig";
 import { OptimizationResults, ScreeningResult } from "@/components/backtest/OptimizationResults";
 import { useBacktestWebSocket, type BacktestProgress } from "@/lib/hooks/useBacktestWebSocket";
 import { ThemeSwitcher } from "@/components/layout/ThemeSwitcher";
+import { UserAccountMenu } from "@/components/layout/UserAccountMenu";
 import { CoffeeModal } from "@/components/layout/CoffeeModal";
 import { OptimizationConfig, STRATEGY_TEMPLATES } from "@/types/optimization";
 
@@ -191,7 +192,7 @@ function CollapsibleCard({ id, title, activeCard, onCardClick, children }: Colla
 
 export default function BacktestPage() {
   const t = useTranslations('backtest')
-  const { user, isLoading, token } = useRequireAuth();
+  const { user, isLoading, token, logout } = useRequireAuth();
   const {
     getStocks,
     runBacktest,
@@ -201,7 +202,6 @@ export default function BacktestPage() {
     deleteBacktestConfig,
     getTradingStrategies,
     getPositionStrategies,
-    logout,
     validateRule,
     startOptimization,
     getOptimizationResults,
@@ -395,27 +395,10 @@ export default function BacktestPage() {
   const searchStocks = async (search: string) => {
     setIsLoadingStocks(true);
     try {
-      // 限制只能选择指定股票（临时限制，以后需要恢复原逻辑）
-      // 注意：baostock API需要带交易所前缀的格式（如sh.600604, sz.000001）
-      const allowedStocks = [
-        { code: "sh.600604", name: "市北高新" },
-        { code: "sz.000001", name: "平安银行" },
-        { code: "sz.002692", name: "远程股份" },
-      ];
-      // 根据搜索关键词过滤
-      const filtered = allowedStocks.filter(
-        s =>
-          !search ||
-          s.code.includes(search) ||
-          s.name.includes(search)
-      );
-      setStocks(filtered);
-
-      // 原逻辑（以后恢复时使用）：
-      // const response = await getStocks(search, 100);
-      // if (response.success && response.data) {
-      //   setStocks(response.data);
-      // }
+      const response = await getStocks(search, 100);
+      if (response.success && response.data) {
+        setStocks(response.data);
+      }
     } catch (error) {
       console.error("Failed to search stocks:", error);
     } finally {
@@ -1150,19 +1133,15 @@ export default function BacktestPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user.username}</span>
             <ThemeSwitcher />
             <CoffeeModal />
-            <Button
-              size="sm"
-              onClick={async () => {
+            <UserAccountMenu
+              username={user.username}
+              onLogout={async () => {
                 await logout();
                 window.location.href = "/login";
               }}
-              className="bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
-            >
-              {t('logout')}
-            </Button>
+            />
           </div>
         </div>
       </header>

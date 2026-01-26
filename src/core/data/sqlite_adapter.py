@@ -481,6 +481,22 @@ class SQLiteAdapter(DatabaseAdapter):
             await conn.execute(sql4)
             logger.info("✅ StrategyTypes表创建成功")
 
+            # 创建 UserSettings 表（用户数据源配置）
+            logger.info("🔨 开始创建UserSettings表...")
+            sql5 = """
+                CREATE TABLE IF NOT EXISTS UserSettings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL UNIQUE,
+                    data_source TEXT DEFAULT 'baostock',
+                    tushare_token TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """
+
+            await conn.execute(sql5)
+            logger.info("✅ UserSettings表创建成功")
+
             # 初始化默认策略类型（如果表为空）
             cursor = await conn.execute("SELECT COUNT(*) FROM StrategyTypes")
             row = await cursor.fetchone()

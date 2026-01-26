@@ -254,7 +254,7 @@
     "dataSource": {
       "title": "Data Source Selection",
       "description": "Choose your preferred data source for market data",
-      "note": "Some data sources may require API keys or additional configuration",
+      "note": "Each user can configure their own data source",
       "save": "Save Changes",
       "saving": "Saving...",
       "saved": "Saved!"

@@ -6,46 +6,90 @@
  * User settings including data source selection.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { useRequireAuth } from "@/lib/store";
+import { useApi } from "@/lib/api";
 import { UserAccountMenu } from "@/components/layout/UserAccountMenu";
 import { ThemeSwitcher } from "@/components/layout/ThemeSwitcher";
 import { CoffeeModal } from "@/components/layout/CoffeeModal";
 import { Link } from "@/lib/routing";
-import { Settings as SettingsIcon, Database, Check, Loader2 } from "lucide-react";
+import { Settings as SettingsIcon, Database, Check, Loader2, Key } from "lucide-react";
 
 // Available data sources
 const DATA_SOURCES = [
-  { id: "tushare", name: "Tushare", description: "Professional financial data provider" },
-  { id: "baostock", name: "Baostock", description: "Free securities data" },
-  { id: "akshare", name: "AkShare", description: "Chinese economic data" },
-  { id: "yahoo", name: "Yahoo Finance", description: "Global market data" },
+  { id: "tushare", name: "Tushare", description: "Professional financial data provider", requiresToken: true },
+  { id: "baostock", name: "Baostock", description: "Free securities data", requiresToken: false },
+  { id: "akshare", name: "AkShare", description: "Chinese economic data", requiresToken: false },
+  { id: "yahoo", name: "Yahoo Finance", description: "Global market data", requiresToken: false },
 ];
 
 export default function SettingsPage() {
   const t = useTranslations('settings');
-  const { user, isLoading, token } = useRequireAuth();
-  const { logout } = useRequireAuth();
+  const { user, isLoading, token, logout } = useRequireAuth();
+  const { getDataSourceConfig, updateDataSourceConfig } = useApi();
 
   // Data source selection state
-  const [selectedSource, setSelectedSource] = useState<string>("tushare");
+  const [selectedSource, setSelectedSource] = useState<string>("baostock");
+  const [tushareToken, setTushareToken] = useState<string>("");
+  const [tokenPreview, setTokenPreview] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  // Load user's data source configuration on mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const response = await getDataSourceConfig();
+        if (response.success && response.data) {
+          setSelectedSource(response.data.data_source);
+          setTokenPreview(response.data.token_preview || "");
+        }
+      } catch (error) {
+        console.error("Failed to load data source config:", error);
+      } finally {
+        setIsLoadingConfig(false);
+      }
+    };
+
+    if (user) {
+      loadConfig();
+    }
+  }, [user, getDataSourceConfig]);
 
   const handleSaveDataSource = async () => {
     setIsSaving(true);
     setSaveSuccess(false);
+    setErrorMessage("");
 
-    // Simulate API call - replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Validate Tushare token if Tushare is selected
+      if (selectedSource === "tushare" && !tushareToken && !tokenPreview) {
+        setErrorMessage("Tushare API token is required");
+        setIsSaving(false);
+        return;
+      }
 
-    // TODO: Call API to save data source preference
-    // await api.saveDataSourcePreference(selectedSource);
+      const response = await updateDataSourceConfig({
+        data_source: selectedSource,
+        tushare_token: tushareToken || undefined,
+      });
 
-    setIsSaving(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
+      if (response.success) {
+        setSaveSuccess(true);
+        setTokenPreview(tushareToken ? `${tushareToken.slice(0, 8)}...` : "");
+        setTushareToken("");
+        setTimeout(() => setSaveSuccess(false), 2000);
+      } else {
+        setErrorMessage(response.message || "Failed to save configuration");
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to save configuration");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -149,6 +193,12 @@ export default function SettingsPage() {
                       <div>
                         <h3 className="font-medium text-white">{source.name}</h3>
                         <p className="text-sm text-slate-400">{source.description}</p>
+                        {source.requiresToken && (
+                          <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
+                            <Key className="h-3 w-3" />
+                            Requires API token
+                          </p>
+                        )}
                       </div>
                     </div>
                     <input
@@ -163,16 +213,48 @@ export default function SettingsPage() {
                 ))}
               </div>
 
+              {/* Tushare Token Input */}
+              {selectedSource === "tushare" && (
+                <div className="mt-6 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                  <label htmlFor="tushare-token" className="block text-sm font-medium text-slate-300 mb-2">
+                    Tushare API Token
+                    {tokenPreview && (
+                      <span className="ml-2 text-xs text-green-400">
+                        (Currently set: {tokenPreview})
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    id="tushare-token"
+                    type="password"
+                    value={tushareToken}
+                    onChange={(e) => setTushareToken(e.target.value)}
+                    placeholder={tokenPreview ? "Leave empty to keep current token" : "Enter your Tushare API token"}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-slate-500 mt-2">
+                    Get your token at <a href="https://tushare.pro" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">tushare.pro</a>
+                  </p>
+                </div>
+              )}
+
+              {/* Error message */}
+              {errorMessage && (
+                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <p className="text-sm text-red-400">{errorMessage}</p>
+                </div>
+              )}
+
               <div className="mt-6 flex items-center justify-between">
                 <p className="text-sm text-slate-400">
                   {t('dataSource.note')}
                 </p>
                 <button
                   onClick={handleSaveDataSource}
-                  disabled={isSaving}
+                  disabled={isSaving || isLoadingConfig}
                   className={`
                     flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
-                    ${isSaving
+                    ${isSaving || isLoadingConfig
                       ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
                       : 'bg-sky-500 hover:bg-sky-600 text-white'
                     }

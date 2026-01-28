@@ -40,6 +40,7 @@ export default function DocsPage() {
     { title: 'C_P - 典型价格', slug: 'rules-cp', desc: 'C_P(period)' },
     { title: 'Q - 分位数计算', slug: 'rules-q', desc: 'Q(series, q, period)' },
     { title: 'SQRT - 开方', slug: 'rules-sqrt', desc: 'SQRT(x, n)' },
+    { title: 'RANK - 横截面排名', slug: 'rules-rank', desc: 'RANK(field)' },
   ]
 
   return (

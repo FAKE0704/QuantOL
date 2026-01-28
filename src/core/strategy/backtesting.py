@@ -80,6 +80,10 @@ class BacktestConfig:
     default_custom_rules: Optional[Dict[str, str]] = None
     strategy_inheritance: Optional[Dict[str, Any]] = None
 
+    # 横截面排名配置相关字段
+    enable_cross_sectional: bool = False
+    ranking_config: Optional[Dict[str, Any]] = None
+
     def __post_init__(self):
         """参数验证和兼容性处理"""
         self.commission_rate = self.commission_rate
@@ -401,6 +405,38 @@ class BacktestEngine:
         
         # 注册FillEvent处理器
         self.register_handler(FillEvent, self._handle_fill_event)
+
+        # 初始化横截面排名支持
+        self.ranking_service = None
+        self.ranking_strategy = None
+        if config.enable_cross_sectional and config.ranking_config:
+            if not self.multi_symbol_mode:
+                raise ValueError("横截面排名需要多标模式")
+            from src.core.strategy.cross_sectional.ranking_config import RankingConfig
+            from src.core.strategy.cross_sectional.ranking_service import CrossSectionalRankingService
+            from src.core.strategy.cross_sectional.ranking_strategy import RankingBasedStrategy
+
+            # 创建排名配置
+            ranking_config = RankingConfig(**config.ranking_config)
+
+            # 创建排名服务
+            self.ranking_service = CrossSectionalRankingService(
+                indicator_service=self.indicator_service,
+                ranking_config=ranking_config
+            )
+
+            # 创建排名策略
+            self.ranking_strategy = RankingBasedStrategy(
+                data_dict=self.data_dict,
+                name="cross_sectional_ranking",
+                ranking_service=self.ranking_service,
+                portfolio_manager=self.portfolio_manager,
+                indicator_service=self.indicator_service
+            )
+
+            # 注册排名策略
+            self.register_strategy(self.ranking_strategy)
+            logger.info(f"横截面排名功能已启用: {ranking_config.factor_expression}")
 
     @property
     def db(self):
@@ -1467,7 +1503,203 @@ class BacktestEngine:
             # 添加更详细的错误信息
             import traceback
             self.log_error(f"详细错误信息: {traceback.format_exc()}")
-            
+
+    async def _run_cross_sectional(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
+        """执行横截面排名回测（异步版本）
+
+        使用统一的投资组合和资金池，在再平衡时点计算横截面因子并调仓。
+        """
+        if not self.ranking_strategy:
+            raise ValueError("横截面排名策略未初始化")
+
+        logger.info("开始横截面排名回测")
+
+        # 统一时间轴 - 取所有标的交易日交集
+        common_dates = self._get_common_trading_dates()
+
+        if common_dates.empty:
+            logger.error("未找到共同的交易日期")
+            return {"error": "未找到共同的交易日期"}
+
+        logger.info(f"共同交易日期数量: {len(common_dates)}")
+
+        # 准备所有标的数据的时间列
+        for symbol, data in self.data_dict.items():
+            if 'date' in data.columns:
+                data['combined_time'] = pd.to_datetime(data['date'], format='%Y-%m-%d')
+            data['signal'] = 0
+
+        # 遍历共同交易日期
+        for i, trading_date in enumerate(common_dates):
+            try:
+                timestamp = pd.Timestamp(trading_date)
+                self.current_time = timestamp
+                self.current_index = i
+
+                # 进度更新
+                if i % 10 == 0 or i == len(common_dates) - 1:
+                    logger.debug(f"横截面回测进度: {i}/{len(common_dates)}")
+                    if self.progress_callback:
+                        self.progress_callback(i, timestamp, len(common_dates))
+
+                # 系统初始化（首个交易日）
+                if i == 0:
+                    self._initialize_backtest_system()
+
+                # 获取当前所有标的的价格
+                current_prices = self._get_current_prices(timestamp)
+
+                # 检查是否需要再平衡
+                if self.ranking_strategy.should_rebalance(timestamp):
+                    logger.info(f"触发再平衡: {timestamp}")
+
+                    # 计算横截面排名并生成信号
+                    signals = self.ranking_strategy.calculate_signals(timestamp, current_prices)
+
+                    # 处理所有信号
+                    for signal in signals:
+                        self._handle_cross_sectional_signal(signal, timestamp)
+
+                # 更新净值记录
+                self._update_equity({'datetime': timestamp})
+
+            except Exception as e:
+                logger.error(f"处理交易日 {trading_date} 时出错: {str(e)}")
+                self.errors.append({
+                    'timestamp': trading_date,
+                    'error': str(e)
+                })
+
+        # 生成回测结果
+        return self._get_cross_sectional_results()
+
+    def _get_common_trading_dates(self) -> pd.DatetimeIndex:
+        """获取所有标的共同的交易日期"""
+        common_dates = None
+
+        for symbol, data in self.data_dict.items():
+            if 'date' in data.columns:
+                dates = pd.to_datetime(data['date'], format='%Y-%m-%d')
+            elif 'combined_time' in data.columns:
+                dates = data['combined_time']
+            else:
+                logger.warning(f"标的 {symbol} 缺少日期列")
+                continue
+
+            if common_dates is None:
+                common_dates = set(dates)
+            else:
+                common_dates &= set(dates)
+
+        if common_dates:
+            return pd.DatetimeIndex(sorted(common_dates))
+        return pd.DatetimeIndex([])
+
+    def _get_current_prices(self, timestamp: pd.Timestamp) -> Dict[str, float]:
+        """获取指定时间点所有标的的当前价格"""
+        prices = {}
+
+        for symbol, data in self.data_dict.items():
+            # 查找该时间点的价格
+            if timestamp in data.index:
+                price = data.loc[timestamp, 'close']
+            elif 'combined_time' in data.columns:
+                mask = data['combined_time'] == timestamp
+                if mask.any():
+                    idx = mask.idxmax()
+                    price = data.loc[idx, 'close']
+                else:
+                    continue
+            else:
+                continue
+
+            if not pd.isna(price) and price > 0:
+                prices[symbol] = float(price)
+
+        return prices
+
+    def _handle_cross_sectional_signal(self, signal: StrategySignalEvent, timestamp: pd.Timestamp):
+        """处理横截面排名策略信号"""
+        try:
+            # 创建订单事件
+            if signal.signal_type == SignalType.CLOSE:
+                # 清仓信号
+                quantity = signal.quantity
+                if quantity > 0:
+                    order_event = OrderEvent(
+                        timestamp=timestamp,
+                        strategy_id=signal.strategy_id,
+                        symbol=signal.symbol,
+                        direction="SELL",
+                        price=signal.price,
+                        quantity=quantity,
+                        order_type="LIMIT"
+                    )
+                    self._process_order_through_trade_manager(order_event)
+                    logger.info(f"执行卖出: {signal.symbol} 数量={quantity} 价格={signal.price}")
+
+            elif signal.signal_type == SignalType.REBALANCE:
+                # 再平衡信号（买入）
+                target_percent = signal.position_percent or 0.1
+                portfolio_value = self.portfolio_manager.get_portfolio_value()
+                target_value = portfolio_value * target_percent
+
+                if signal.price > 0:
+                    target_quantity = int(target_value / signal.price)
+
+                    if target_quantity > 0:
+                        order_event = OrderEvent(
+                            timestamp=timestamp,
+                            strategy_id=signal.strategy_id,
+                            symbol=signal.symbol,
+                            direction="BUY",
+                            price=signal.price,
+                            quantity=target_quantity,
+                            order_type="LIMIT"
+                        )
+                        self._process_order_through_trade_manager(order_event)
+                        logger.info(f"执行买入: {signal.symbol} 数量={target_quantity} 价格={signal.price}")
+
+        except Exception as e:
+            logger.error(f"处理横截面信号失败: {str(e)}")
+            self.errors.append({
+                'timestamp': timestamp,
+                'signal': signal.symbol,
+                'error': str(e)
+            })
+
+    def _get_cross_sectional_results(self) -> Dict[str, Any]:
+        """获取横截面排名回测结果"""
+        results = {
+            "trades": self.trades,
+            "errors": self.errors,
+            "equity_records": self.equity_records.to_dict('records') if not self.equity_records.empty else []
+        }
+
+        # 添加排名策略的调试信息
+        if self.ranking_strategy:
+            results["ranking_config"] = self.config.ranking_config
+            last_ranking = self.ranking_strategy.get_last_ranking()
+            if last_ranking is not None:
+                results["last_ranking"] = last_ranking.to_dict('records')
+
+        # 计算回测指标
+        if not self.equity_records.empty:
+            final_value = self.equity_records['total_value'].iloc[-1]
+            initial_value = self.config.initial_capital
+            total_return = (final_value - initial_value) / initial_value
+
+            results["summary"] = {
+                "initial_capital": initial_value,
+                "final_value": final_value,
+                "total_return": total_return,
+                "total_trades": len(self.trades),
+                "total_errors": len(self.errors)
+            }
+
+        self.results = results
+        return results
+
     # 保留其他原有方法不变...
     # (get_results, create_order等)
 
@@ -1475,11 +1707,16 @@ class BacktestEngine:
         """执行多符号回测（异步版本）
 
         对于每个符号，运行单独的回测，然后组合结果
+        如果启用横截面排名，则使用统一的回测流程
         """
         if not self.multi_symbol_mode:
             # 单符号模式，直接运行普通回测
             await self.run(start_date, end_date)
             return self.get_results()
+
+        # 检查是否启用横截面排名
+        if self.config.enable_cross_sectional and self.ranking_service:
+            return await self._run_cross_sectional(start_date, end_date)
 
         # 多符号模式
         all_results = {}

@@ -2,7 +2,7 @@ import ast
 import operator as op
 import sys  # 添加sys导入
 import logging
-from typing import Any, Dict, Callable, Union, List, Tuple
+from typing import Any, Dict, Callable, Union, List, Tuple, Optional
 from dataclasses import dataclass
 import pandas as pd
 import astunparse
@@ -61,16 +61,25 @@ class RuleParser:
         ast.Pow: op.pow
     }
     
-    def __init__(self, data_provider: pd.DataFrame, indicator_service: IndicatorService, portfolio_manager: Any = None):
+    def __init__(self, data_provider: pd.DataFrame, indicator_service: IndicatorService, portfolio_manager: Any = None,
+                 cross_sectional_context: Optional[Dict[str, Any]] = None):
         """初始化解析器
         Args:
             data_provider: 提供OHLCV等市场数据的DataFrame
             indicator_service: 指标计算服务
             portfolio_manager: 投资组合管理器，用于获取COST、POSITION等变量
+            cross_sectional_context: 横截面上下文，包含data_dict、current_symbol、current_timestamp
         """
         self.data = data_provider
         self.indicator_service = indicator_service
         self.portfolio_manager = portfolio_manager
+
+        # 横截面上下文
+        self.cross_sectional_context = cross_sectional_context or {}
+        self.data_dict = self.cross_sectional_context.get('data_dict', {})
+        self.current_symbol = self.cross_sectional_context.get('current_symbol')
+        self.current_timestamp = self.cross_sectional_context.get('current_timestamp')
+
         # 注册支持的指标函数
         self._indicators = {
             'REF': IndicatorFunction(
@@ -84,6 +93,12 @@ class RuleParser:
                 func=lambda series, period: self.indicator_service.calculate_indicator('rsi', series, self.current_index, period),
                 params={'series': pd.Series, 'period': int},
                 description='相对强弱指数: RSI(series, period)'
+            ),
+            'RANK': IndicatorFunction(
+                name='RANK',
+                func=self._rank,
+                params={'field': str},
+                description='横截面排名: RANK(field) - 返回当前股票的field值在所有股票中的排名'
             )
         }
         self.series_cache = {}  # 序列缓存字典
@@ -680,7 +695,17 @@ class RuleParser:
             except Exception as e:
                 logger.error(f"SQRT计算失败: {str(e)}")
                 return 0.0
-        
+
+        # 特殊处理RANK函数：横截面排名
+        if func_name.upper() == 'RANK':
+            if len(node.args) != 1:
+                raise ValueError("RANK需要1个参数 (RANK(field))")
+
+            field = self._node_to_expr(node.args[0]).strip('\"\'')
+            result = self._rank(field)
+            self._store_expression_result(node, result, bool_only=False)
+            return result
+
         # 其他指标函数委托给IndicatorService
         # 从第一个参数获取数据列名
         data_column = self._node_to_expr(node.args[0]).strip()
@@ -968,3 +993,52 @@ class RuleParser:
             # 恢复原始位置
             self.current_index = original_index
             self.recursion_counter -= 1  # 减少递归计数器
+
+    def _rank(self, field: str) -> int:
+        """计算横截面排名
+
+        Args:
+            field: 字段名，如 'close', 'volume', 'high' 等
+
+        Returns:
+            排名（1=最高值，2=第二高，...），无数据时返回0
+        """
+        if not self.data_dict or not self.current_symbol:
+            return 0  # 无横截面数据时返回0
+
+        # 获取当前时间点所有股票的field值
+        values = {}
+        for symbol, data in self.data_dict.items():
+            value = self._get_field_value_at_current_time(symbol, field)
+            if value is not None and not pd.isna(value):
+                values[symbol] = value
+
+        if not values:
+            return 0
+
+        # 排名（降序：值越大排名越前）
+        sorted_values = sorted(values.items(), key=lambda x: x[1], reverse=True)
+        for rank, (symbol, _) in enumerate(sorted_values, 1):
+            if symbol == self.current_symbol:
+                return rank
+
+        return 0
+
+    def _get_field_value_at_current_time(self, symbol: str, field: str) -> Optional[float]:
+        """获取指定股票在当前时间点的字段值
+
+        Args:
+            symbol: 股票代码
+            field: 字段名
+
+        Returns:
+            字段值，不存在或无数据时返回None
+        """
+        data = self.data_dict.get(symbol)
+        if data is None:
+            return None
+
+        # 通过 current_index 获取当前行
+        if 0 <= self.current_index < len(data):
+            return data.at[data.index[self.current_index], field]
+        return None

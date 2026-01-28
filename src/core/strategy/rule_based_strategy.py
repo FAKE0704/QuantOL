@@ -4,7 +4,7 @@ from src.core.strategy.strategy import BaseStrategy
 from src.event_bus.event_types import StrategySignalEvent
 from src.core.strategy.indicators import IndicatorService
 from src.core.strategy.signal_types import SignalType
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 import pandas as pd
 from src.support.log.logger import logger
 
@@ -15,7 +15,8 @@ class RuleBasedStrategy(BaseStrategy):
                  indicator_service: IndicatorService,
                  buy_rule_expr: str = "", sell_rule_expr: str = "",
                  open_rule_expr: str = "", close_rule_expr: str = "",
-                 portfolio_manager: Any = None):
+                 portfolio_manager: Any = None,
+                 cross_sectional_context: Optional[Dict[str, Any]] = None):
         """
         Args:
             Data: 市场数据DataFrame
@@ -25,6 +26,8 @@ class RuleBasedStrategy(BaseStrategy):
             sell_rule_expr: 平仓规则表达式字符串
             open_rule_expr: 开仓规则表达式字符串
             close_rule_expr: 清仓规则表达式字符串
+            portfolio_manager: 投资组合管理器
+            cross_sectional_context: 横截面上下文（用于RANK函数）
         """
         super().__init__(Data, name)
         self.buy_rule_expr = buy_rule_expr
@@ -32,7 +35,7 @@ class RuleBasedStrategy(BaseStrategy):
         self.open_rule_expr = open_rule_expr
         self.close_rule_expr = close_rule_expr
         self.portfolio_manager = portfolio_manager
-        self.parser = RuleParser(Data, indicator_service, portfolio_manager)
+        self.parser = RuleParser(Data, indicator_service, portfolio_manager, cross_sectional_context)
         self.debug_data = Data.copy()  # 初始化时保存原始数据
 
         # 在初始化时完整评估所有规则以生成规则列

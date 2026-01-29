@@ -9,7 +9,7 @@ export default function StrategiesPage() {
 
       <div className="prose prose-invert max-w-none">
         <h2 className="text-2xl font-semibold mb-4">策略类型</h2>
-        <p className="text-slate-300 mb-6">
+        <p className="text-muted-foreground mb-6">
           QuantOL 支持多种类型的量化交易策略：
         </p>
 
@@ -37,7 +37,7 @@ export default function StrategiesPage() {
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">仓位管理策略</h2>
-        <ul className="list-disc list-inside text-slate-300 space-y-2">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2">
           <li>固定比例 (FixedPercentPositionStrategy)</li>
           <li>凯利公式 (KellyPositionStrategy)</li>
           <li>马丁格尔 (MartingalePositionStrategy)</li>

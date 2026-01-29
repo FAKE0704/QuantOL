@@ -23,6 +23,7 @@ from src.services.backtest_config_service import BacktestConfigService
 from src.core.auth.jwt_service import JWTService
 from src.services.backtest_task_manager import backtest_task_manager
 from src.services.backtest_state_service import backtest_state_service
+from src.services.backtest_task_service import backtest_task_service
 from fastapi import BackgroundTasks
 
 # Router
@@ -153,6 +154,44 @@ class BacktestConfigListResponse(BaseModel):
     data: Optional[list[dict]] = None
 
 
+# Custom Strategy Models
+class CustomStrategyCreate(BaseModel):
+    """Custom strategy creation model."""
+
+    strategy_key: str
+    label: str
+    open_rule: str
+    close_rule: str
+    buy_rule: str
+    sell_rule: str
+
+
+class CustomStrategyUpdate(BaseModel):
+    """Custom strategy update model."""
+
+    label: Optional[str] = None
+    open_rule: Optional[str] = None
+    close_rule: Optional[str] = None
+    buy_rule: Optional[str] = None
+    sell_rule: Optional[str] = None
+
+
+class CustomStrategyResponse(BaseModel):
+    """Custom strategy response model."""
+
+    success: bool
+    message: str
+    data: Optional[dict] = None
+
+
+class CustomStrategyListResponse(BaseModel):
+    """Custom strategy list response model."""
+
+    success: bool
+    message: str
+    data: Optional[list[dict]] = None
+
+
 # In-memory storage for backtests (replace with database in production)
 _backtests: dict[str, dict] = {}
 
@@ -273,6 +312,331 @@ async def list_backtests(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list backtests: {str(e)}",
+        )
+
+
+@router.get("/{backtest_id}/status", response_model=BacktestResponse)
+async def get_backtest_status(backtest_id: str):
+    """Get backtest status from Redis and database for state recovery.
+
+    This endpoint is used by the frontend to recover state after page refresh.
+    It checks both Redis (for active backtests) and database (for completed ones).
+
+    Args:
+        backtest_id: Backtest ID
+
+    Returns:
+        Backtest status response with current progress and results
+    """
+    try:
+        # First try Redis (for active/recent backtests)
+        backtest = backtest_state_service.get_backtest(backtest_id)
+
+        if not backtest:
+            # If not in Redis, try database (for completed backtests)
+            task = await backtest_task_service.get_backtest_task(backtest_id)
+
+            if not task:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Backtest {backtest_id} not found",
+                )
+
+            # Convert database task to response format
+            backtest = {
+                "id": task["backtest_id"],
+                "status": task["status"],
+                "progress": task["progress"],
+                "current_time": task["current_time"],
+                "config": task["config"],
+                "created_at": task["created_at"],
+                "started_at": task["started_at"],
+                "completed_at": task["completed_at"],
+                "result": task.get("result_summary"),
+                "error": task.get("error_message"),
+            }
+
+        return BacktestResponse(
+            success=True,
+            message="Backtest status retrieved",
+            data=backtest,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch backtest status: {str(e)}",
+        )
+
+
+@router.get("/history", response_model=BacktestListResponse)
+async def get_backtest_history(
+    limit: int = 5,
+    status_filter: Optional[str] = None,
+    current_user: dict = Depends(get_current_user_from_token),
+):
+    """Get current user's backtest history from database.
+
+    This endpoint returns the user's historical backtests (max 5 completed),
+    stored persistently in the database.
+
+    Args:
+        limit: Maximum number of results (default 5)
+        status_filter: Optional status filter (pending/running/completed/failed)
+        current_user: Current authenticated user
+
+    Returns:
+        Backtest history response
+    """
+    try:
+        user_id = current_user.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user token",
+            )
+
+        # Get backtests from database
+        tasks = await backtest_task_service.list_user_backtests(
+            user_id=user_id,
+            status=status_filter,
+            limit=min(limit, 10),  # Cap at 10
+        )
+
+        # Convert to response format
+        results = []
+        for task in tasks:
+            summary = task.get("result_summary", {})
+            results.append(
+                BacktestResult(
+                    backtest_id=task["backtest_id"],
+                    status=task["status"],
+                    created_at=task["created_at"],
+                    completed_at=task["completed_at"],
+                    total_return=summary.get("summary", {}).get("total_return"),
+                    sharpe_ratio=summary.get("performance_metrics", {}).get("sharpe_ratio"),
+                    max_drawdown=summary.get("performance_metrics", {}).get("max_drawdown_pct"),
+                    win_rate=summary.get("summary", {}).get("win_rate"),
+                )
+            )
+
+        return BacktestListResponse(
+            success=True,
+            message=f"Found {len(results)} historical backtests",
+            data=results,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch backtest history: {str(e)}",
+        )
+
+
+@router.get("/{backtest_id}", response_model=BacktestResponse)
+async def get_backtest_detail(
+    backtest_id: str,
+    current_user: dict = Depends(get_current_user_from_token),
+):
+    """Get detailed backtest results from database.
+
+    Args:
+        backtest_id: Backtest ID
+        current_user: Current authenticated user
+
+    Returns:
+        Full backtest details response
+    """
+    try:
+        user_id = current_user.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user token",
+            )
+
+        # Get from database first (for completed backtests)
+        task = await backtest_task_service.get_backtest_task(backtest_id)
+
+        if not task:
+            # If not in database, try Redis (for active backtests)
+            backtest = backtest_state_service.get_backtest(backtest_id)
+
+            if not backtest:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Backtest {backtest_id} not found",
+                )
+
+            return BacktestResponse(
+                success=True,
+                message="Backtest details retrieved",
+                data=backtest,
+            )
+
+        # Verify ownership
+        if task["user_id"] != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to access this backtest",
+            )
+
+        return BacktestResponse(
+            success=True,
+            message="Backtest details retrieved",
+            data=task,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch backtest details: {str(e)}",
+        )
+
+
+@router.delete("/{backtest_id}", response_model=BacktestResponse)
+async def delete_backtest(
+    backtest_id: str,
+    current_user: dict = Depends(get_current_user_from_token),
+):
+    """Delete a backtest from database.
+
+    Args:
+        backtest_id: Backtest ID
+        current_user: Current authenticated user
+
+    Returns:
+        Deletion response
+    """
+    try:
+        user_id = current_user.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user token",
+            )
+
+        # Delete from database
+        deleted = await backtest_task_service.delete_backtest_task(backtest_id, user_id)
+
+        # Also delete from Redis if exists
+        backtest_state_service.delete_backtest(backtest_id)
+
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Backtest {backtest_id} not found or access denied",
+            )
+
+        return BacktestResponse(
+            success=True,
+            message="Backtest deleted successfully",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete backtest: {str(e)}",
+        )
+
+
+@router.get("/{backtest_id}/logs", response_model=BacktestResponse)
+async def get_backtest_logs(
+    backtest_id: str,
+    line_start: int = 0,
+    line_end: int = 1000,
+    current_user: dict = Depends(get_current_user_from_token),
+):
+    """Get backtest log file content with pagination.
+
+    Args:
+        backtest_id: Backtest ID
+        line_start: Start line number (0-indexed)
+        line_end: End line number (exclusive)
+        current_user: Current authenticated user
+
+    Returns:
+        Log content response
+    """
+    try:
+        user_id = current_user.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user token",
+            )
+
+        # Get backtest task to find log file path
+        task = await backtest_task_service.get_backtest_task(backtest_id)
+
+        if not task:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Backtest {backtest_id} not found",
+            )
+
+        # Verify ownership
+        if task["user_id"] != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to access this backtest",
+            )
+
+        # Read log file
+        log_file_path = task.get("log_file_path")
+        if not log_file_path:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Log file not found for this backtest",
+            )
+
+        import os
+        if not os.path.exists(log_file_path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Log file does not exist",
+            )
+
+        # Read log file with pagination
+        try:
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+
+            # Apply pagination
+            total_lines = len(lines)
+            paginated_lines = lines[line_start:line_end]
+
+            return BacktestResponse(
+                success=True,
+                message="Log content retrieved",
+                data={
+                    "backtest_id": backtest_id,
+                    "total_lines": total_lines,
+                    "line_start": line_start,
+                    "line_end": min(line_end, total_lines),
+                    "lines": paginated_lines,
+                },
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to read log file: {str(e)}",
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch backtest logs: {str(e)}",
         )
 
 
@@ -671,4 +1035,212 @@ async def validate_rule(request: RuleValidationRequest):
         return RuleValidationResponse(
             valid=False,
             error=f"验证失败: {str(e)}"
+        )
+
+
+# Custom Strategy API Endpoints
+@router.post("/custom-strategies", response_model=CustomStrategyResponse, status_code=status.HTTP_201_CREATED)
+async def create_custom_strategy(
+    request: CustomStrategyCreate,
+    current_user: dict = Depends(get_current_user_from_token),
+    config_service: BacktestConfigService = Depends(get_config_service),
+):
+    """Create a custom trading strategy.
+
+    Args:
+        request: Custom strategy creation request
+        current_user: Authenticated user
+        config_service: Backtest config service instance
+
+    Returns:
+        Created custom strategy
+    """
+    try:
+        result = await config_service.create_custom_strategy(
+            user_id=current_user["user_id"],
+            strategy_key=request.strategy_key,
+            label=request.label,
+            open_rule=request.open_rule,
+            close_rule=request.close_rule,
+            buy_rule=request.buy_rule,
+            sell_rule=request.sell_rule,
+        )
+
+        if result is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create custom strategy",
+            )
+
+        return CustomStrategyResponse(
+            success=True,
+            message="Custom strategy created successfully",
+            data=result,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create custom strategy: {str(e)}",
+        )
+
+
+@router.get("/custom-strategies", response_model=CustomStrategyListResponse)
+async def list_custom_strategies(
+    current_user: dict = Depends(get_current_user_from_token),
+    config_service: BacktestConfigService = Depends(get_config_service),
+):
+    """List all custom strategies for the current user.
+
+    Args:
+        current_user: Authenticated user
+        config_service: Backtest config service instance
+
+    Returns:
+        List of custom strategies
+    """
+    try:
+        strategies = await config_service.list_custom_strategies(current_user["user_id"])
+
+        return CustomStrategyListResponse(
+            success=True,
+            message="Custom strategies retrieved successfully",
+            data=strategies,
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list custom strategies: {str(e)}",
+        )
+
+
+@router.get("/custom-strategies/{strategy_key}", response_model=CustomStrategyResponse)
+async def get_custom_strategy(
+    strategy_key: str,
+    current_user: dict = Depends(get_current_user_from_token),
+    config_service: BacktestConfigService = Depends(get_config_service),
+):
+    """Get a custom strategy by key.
+
+    Args:
+        strategy_key: Strategy key
+        current_user: Authenticated user
+        config_service: Backtest config service instance
+
+    Returns:
+        Custom strategy data
+    """
+    try:
+        strategy = await config_service.get_custom_strategy(current_user["user_id"], strategy_key)
+
+        if strategy is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Custom strategy not found",
+            )
+
+        return CustomStrategyResponse(
+            success=True,
+            message="Custom strategy retrieved successfully",
+            data=strategy,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get custom strategy: {str(e)}",
+        )
+
+
+@router.put("/custom-strategies/{strategy_key}", response_model=CustomStrategyResponse)
+async def update_custom_strategy(
+    strategy_key: str,
+    request: CustomStrategyUpdate,
+    current_user: dict = Depends(get_current_user_from_token),
+    config_service: BacktestConfigService = Depends(get_config_service),
+):
+    """Update a custom strategy.
+
+    Args:
+        strategy_key: Strategy key
+        request: Update request
+        current_user: Authenticated user
+        config_service: Backtest config service instance
+
+    Returns:
+        Updated custom strategy
+    """
+    try:
+        result = await config_service.update_custom_strategy(
+            user_id=current_user["user_id"],
+            strategy_key=strategy_key,
+            label=request.label,
+            open_rule=request.open_rule,
+            close_rule=request.close_rule,
+            buy_rule=request.buy_rule,
+            sell_rule=request.sell_rule,
+        )
+
+        if result is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Custom strategy not found",
+            )
+
+        return CustomStrategyResponse(
+            success=True,
+            message="Custom strategy updated successfully",
+            data=result,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update custom strategy: {str(e)}",
+        )
+
+
+@router.delete("/custom-strategies/{strategy_key}", response_model=CustomStrategyResponse)
+async def delete_custom_strategy(
+    strategy_key: str,
+    current_user: dict = Depends(get_current_user_from_token),
+    config_service: BacktestConfigService = Depends(get_config_service),
+):
+    """Delete a custom strategy.
+
+    Args:
+        strategy_key: Strategy key
+        current_user: Authenticated user
+        config_service: Backtest config service instance
+
+    Returns:
+        Success response
+    """
+    try:
+        success = await config_service.delete_custom_strategy(current_user["user_id"], strategy_key)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Custom strategy not found",
+            )
+
+        return CustomStrategyResponse(
+            success=True,
+            message="Custom strategy deleted successfully",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete custom strategy: {str(e)}",
         )

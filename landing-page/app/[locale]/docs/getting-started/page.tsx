@@ -9,7 +9,7 @@ export default function GettingStartedPage() {
 
       <div className="prose prose-invert max-w-none">
         <h2 className="text-2xl font-semibold mb-4">系统要求</h2>
-        <ul className="list-disc list-inside text-slate-300 space-y-2 mb-6">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2 mb-6">
           <li>Python 3.10+</li>
           <li>Node.js 18+</li>
           <li>SQLite 或 PostgreSQL</li>
@@ -32,10 +32,10 @@ python -m uvicorn src.main:app --reload`}
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">配置数据源</h2>
-        <p className="text-slate-300 mb-4">
+        <p className="text-muted-foreground mb-4">
           QuantOL 支持多种数据源，您可以在配置文件中选择使用：
         </p>
-        <ul className="list-disc list-inside text-slate-300 space-y-2">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2">
           <li>Tushare - 需要申请 API Token</li>
           <li>Baostock - 免费注册使用</li>
           <li>AkShare - 开源免费数据接口</li>

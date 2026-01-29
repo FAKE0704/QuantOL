@@ -128,7 +128,21 @@
     "rulesSma": "SMA",
     "rulesRef": "REF",
     "rules-sma": "SMA",
-    "rules-ref": "REF"
+    "rules-ref": "REF",
+    "rulesEma": "EMA",
+    "rules-ema": "EMA",
+    "rulesDif": "DIF",
+    "rules-dif": "DIF",
+    "rulesDea": "DEA",
+    "rules-dea": "DEA",
+    "rulesMacd": "MACD",
+    "rules-macd": "MACD",
+    "rulesStd": "STD",
+    "rules-std": "STD",
+    "rulesZScore": "Z_SCORE",
+    "rules-z-score": "Z_SCORE",
+    "rulesRank": "RANK",
+    "rules-rank": "RANK"
   },
   "backtest": {
     "title": "Backtesting",

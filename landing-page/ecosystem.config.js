@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'quantol-nextjs',
       script: 'npm',
-      args: 'start',
+      args: 'run dev',
       cwd: '/home/user0704/QuantOL/landing-page',
       instances: 1,
       exec_mode: 'fork',

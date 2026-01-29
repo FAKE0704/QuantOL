@@ -37,7 +37,7 @@ export default function RulesRsiPage() {
         </table>
 
         <h2 className="text-2xl font-semibold mb-4">描述</h2>
-        <p className="text-slate-300 mb-6">
+        <p className="text-muted-foreground mb-6">
           相对强弱指数（Relative Strength Index），用于衡量价格变动的速度和变化。
           返回值范围 0-100：RSI &gt; 70 为超买，RSI &lt; 30 为超卖。
         </p>
@@ -60,7 +60,7 @@ close < REF(close, 5) & RSI(close, 14) > REF(RSI(close, 14), 5)`}
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">典型应用</h2>
-        <ul className="list-disc list-inside text-slate-300 space-y-2">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2">
           <li>超买超卖判断：RSI 超过 70 或低于 30</li>
           <li>背离分析：价格创新高但 RSI 未创新高</li>
           <li>趋势确认：RSI 站上 50 视为多头趋势</li>
@@ -68,7 +68,7 @@ close < REF(close, 5) & RSI(close, 14) > REF(RSI(close, 14), 5)`}
 
         <h2 className="text-2xl font-semibold mb-4">注意事项</h2>
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
+          <ul className="list-disc list-inside text-muted-foreground space-y-1">
             <li>在强趋势中，RSI 可能长期处于超买/超卖区域</li>
             <li>数据不足时返回 50（中性值）</li>
             <li>建议结合价格形态和成交量综合判断</li>

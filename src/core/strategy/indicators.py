@@ -41,6 +41,16 @@ class IndicatorService:
             result = self._rsi(series, current_index, *args)
         elif func_name == 'macd':
             result = self._macd(series, current_index, *args)
+        elif func_name == 'std':
+            result = self._std(series, current_index, *args)
+        elif func_name == 'zscore' or func_name == 'z_score':
+            result = self._zscore(series, current_index, *args)
+        elif func_name == 'ema':
+            result = self._ema(series, current_index, *args)
+        elif func_name == 'dif':
+            result = self._dif(series, current_index, *args)
+        elif func_name == 'dea':
+            result = self._dea(series, current_index, *args)
         else:
             raise ValueError(f"Unsupported indicator: {func_name}")
         
@@ -86,21 +96,122 @@ class IndicatorService:
         rs = avg_gain / avg_loss
         return 100 - (100 / (1 + rs))
 
-    def _macd(self, series: pd.Series, current_index: int, 
-             fast: int = 12, slow: int = 26, signal: int = 9) -> float:
-        """计算MACD（当前索引值）"""
-        if current_index < max(fast, slow, signal):
-            return 0.0  # 数据不足时返回安全值
-            
-        sub_series = series.iloc[:current_index+1].astype(float)
-        ema_fast = sub_series.ewm(span=fast).mean().iloc[-1]
-        ema_slow = sub_series.ewm(span=slow).mean().iloc[-1]
-        macd_line = ema_fast - ema_slow
-        
-        # 计算信号线需要更多数据
-        if current_index < max(fast, slow) + signal - 1:
-            return macd_line
-            
-        macd_series = sub_series.ewm(span=fast).mean() - sub_series.ewm(span=slow).mean()
-        signal_line = macd_series.ewm(span=signal).mean().iloc[-1]
-        return macd_line - signal_line
+    def _macd(self, series: pd.Series, current_index: int,
+             signal: int = 9, short: int = 12, long: int = 26) -> float:
+        """计算MACD柱状图（当前索引值）
+        MACD = 2 * (DIF - DEA)
+        """
+        current_index = int(current_index)
+        signal = int(signal)
+        short = int(short)
+        long = int(long)
+
+        # 计算DIF和DEA
+        dif = self._dif(series, current_index, short, long)
+        dea = self._dea(series, current_index, signal, short, long)
+
+        # 如果DIF或DEA为0（数据不足），返回0
+        if dif == 0.0 or dea == 0.0:
+            return 0.0
+
+        # MACD柱状图 = 2 * (DIF - DEA)
+        return 2 * (dif - dea)
+
+    def _dif(self, series: pd.Series, current_index: int, short: int, long: int) -> float:
+        """计算DIF（快线移动平均 - 慢线移动平均）
+        DIF = EMA(short) - EMA(long)
+        """
+        current_index = int(current_index)
+        short = int(short)
+        long = int(long)
+
+        # 数据不足时返回安全值
+        if current_index < long:
+            return 0.0
+
+        # 计算短期和长期EMA
+        ema_short = self._ema(series, current_index, short)
+        ema_long = self._ema(series, current_index, long)
+
+        return ema_short - ema_long
+
+    def _dea(self, series: pd.Series, current_index: int, signal: int, short: int, long: int) -> float:
+        """计算DEA（DIF的移动平均）
+        DEA = EMA(DIF, signal)
+        """
+        current_index = int(current_index)
+        signal = int(signal)
+        short = int(short)
+        long = int(long)
+
+        # 需要足够的数据来计算DIF，然后再对DIF计算EMA
+        if current_index < long + signal:
+            return 0.0
+
+        # 计算DIF序列
+        dif_series = []
+        for i in range(long, current_index + 1):
+            dif = self._dif(series, i, short, long)
+            dif_series.append(dif)
+
+        # 对DIF序列计算EMA
+        dif_series_pd = pd.Series(dif_series)
+        return dif_series_pd.ewm(span=signal, adjust=False).mean().iloc[-1]
+
+    def _std(self, series: pd.Series, current_index: int, window: int) -> float:
+        """计算标准差（当前索引值）"""
+        current_index = int(current_index)
+        window = int(window)
+
+        # 数据不足时返回安全值
+        if current_index < window - 1:
+            return 0.0
+
+        # 计算切片索引
+        start = int(current_index - window + 1)
+        end = int(current_index + 1)
+
+        # 执行标准差计算（使用pandas的std方法，ddof=1表示样本标准差）
+        return series.iloc[start:end].std(ddof=1)
+
+    def _zscore(self, series: pd.Series, current_index: int, window: int) -> float:
+        """计算Z分数（当前索引值）
+        Z_SCORE = (current_value - SMA) / STD
+        """
+        current_index = int(current_index)
+        window = int(window)
+
+        # 数据不足时返回安全值
+        if current_index < window:
+            return 0.0
+
+        # 计算SMA和STD
+        sma = self._sma(series, current_index, window)
+        std = self._std(series, current_index, window)
+
+        # 避免除零
+        if std == 0:
+            return 0.0
+
+        # 获取当前值
+        current_value = series.iloc[current_index]
+
+        # 计算Z分数
+        return (current_value - sma) / std
+
+    def _ema(self, series: pd.Series, current_index: int, window: int) -> float:
+        """计算指数移动平均（当前索引值）
+        EMA = (Current Price × Multiplier) + (Previous EMA × (1 - Multiplier))
+        Multiplier = 2 / (window + 1)
+        """
+        current_index = int(current_index)
+        window = int(window)
+
+        # 数据不足时返回安全值
+        if current_index < window - 1:
+            return 0.0
+
+        # 使用pandas的ewm方法计算EMA
+        # span对应pandas中的中心质量衰减参数，alpha = 2/(span+1)
+        sub_series = series.iloc[:current_index + 1].astype(float)
+        return sub_series.ewm(span=window, adjust=False).mean().iloc[-1]

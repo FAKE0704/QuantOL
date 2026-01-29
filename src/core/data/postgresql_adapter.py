@@ -255,6 +255,42 @@ class PostgreSQLAdapter(DatabaseAdapter):
             if row_count == 0:
                 await self._init_default_strategies(conn)
 
+            # 建表BacktestTasks - 回测任务持久化
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS BacktestTasks (
+                    id SERIAL PRIMARY KEY,
+                    backtest_id VARCHAR(50) UNIQUE NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    name VARCHAR(200),
+                    status VARCHAR(20) NOT NULL,
+                    progress DECIMAL(5,2) DEFAULT 0,
+                    current_time TIMESTAMP,
+                    config JSONB NOT NULL,
+                    result_summary JSONB,
+                    error_message TEXT,
+                    log_file_path VARCHAR(500),
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    started_at TIMESTAMP,
+                    completed_at TIMESTAMP
+                );
+            """)
+
+            # 创建索引
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_user_id
+                ON BacktestTasks(user_id);
+            """)
+
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_status
+                ON BacktestTasks(status);
+            """)
+
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_created_at
+                ON BacktestTasks(created_at DESC);
+            """)
+
         logger.debug("数据库表结构初始化完成")
 
     async def save_stock_info(self, code: str, code_name: str, ipo_date: str,
@@ -1184,6 +1220,165 @@ class PostgreSQLAdapter(DatabaseAdapter):
 
         except Exception as e:
             logger.error(f"Failed to set default config {config_id}: {str(e)}")
+            return False
+
+    # Custom trading strategy CRUD operations
+    async def create_custom_strategy(
+        self,
+        user_id: int,
+        strategy_key: str,
+        label: str,
+        open_rule: str,
+        close_rule: str,
+        buy_rule: str,
+        sell_rule: str,
+    ) -> Optional[dict]:
+        """创建自定义策略"""
+        try:
+            async with self.pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    """INSERT INTO CustomStrategies
+                       (user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7)
+                       ON CONFLICT (user_id, strategy_key)
+                       DO UPDATE SET
+                           label = EXCLUDED.label,
+                           open_rule = EXCLUDED.open_rule,
+                           close_rule = EXCLUDED.close_rule,
+                           buy_rule = EXCLUDED.buy_rule,
+                           sell_rule = EXCLUDED.sell_rule,
+                           updated_at = NOW()
+                       RETURNING id, user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule, created_at, updated_at""",
+                    user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule
+                )
+
+                if row:
+                    return dict(row)
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to create custom strategy: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def get_custom_strategy(self, user_id: int, strategy_key: str) -> Optional[dict]:
+        """获取自定义策略"""
+        try:
+            async with self.pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    """SELECT id, user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule, created_at, updated_at
+                       FROM CustomStrategies
+                       WHERE user_id = $1 AND strategy_key = $2""",
+                    user_id, strategy_key
+                )
+
+                if row:
+                    return dict(row)
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to get custom strategy {strategy_key}: {str(e)}")
+            return None
+
+    async def list_custom_strategies(self, user_id: int) -> List[dict]:
+        """列出用户的所有自定义策略"""
+        try:
+            async with self.pool.acquire() as conn:
+                rows = await conn.fetch(
+                    """SELECT id, user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule, created_at, updated_at
+                       FROM CustomStrategies
+                       WHERE user_id = $1
+                       ORDER BY updated_at DESC""",
+                    user_id
+                )
+
+                return [dict(row) for row in rows]
+
+        except Exception as e:
+            logger.error(f"Failed to list custom strategies for user {user_id}: {str(e)}")
+            return []
+
+    async def update_custom_strategy(
+        self,
+        user_id: int,
+        strategy_key: str,
+        label: Optional[str] = None,
+        open_rule: Optional[str] = None,
+        close_rule: Optional[str] = None,
+        buy_rule: Optional[str] = None,
+        sell_rule: Optional[str] = None,
+    ) -> Optional[dict]:
+        """更新自定义策略"""
+        try:
+            async with self.pool.acquire() as conn:
+                # Build update fields dynamically
+                update_fields = []
+                values = []
+                param_count = 3  # Start from $3 ($1=user_id, $2=strategy_key)
+
+                if label is not None:
+                    update_fields.append(f"label = ${param_count}")
+                    values.append(label)
+                    param_count += 1
+
+                if open_rule is not None:
+                    update_fields.append(f"open_rule = ${param_count}")
+                    values.append(open_rule)
+                    param_count += 1
+
+                if close_rule is not None:
+                    update_fields.append(f"close_rule = ${param_count}")
+                    values.append(close_rule)
+                    param_count += 1
+
+                if buy_rule is not None:
+                    update_fields.append(f"buy_rule = ${param_count}")
+                    values.append(buy_rule)
+                    param_count += 1
+
+                if sell_rule is not None:
+                    update_fields.append(f"sell_rule = ${param_count}")
+                    values.append(sell_rule)
+                    param_count += 1
+
+                if not update_fields:
+                    return await self.get_custom_strategy(user_id, strategy_key)
+
+                update_fields.append("updated_at = NOW()")
+
+                query = f"""UPDATE CustomStrategies
+                           SET {', '.join(update_fields)}
+                           WHERE user_id = $1 AND strategy_key = $2
+                           RETURNING id, user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule, created_at, updated_at"""
+
+                row = await conn.fetchrow(query, user_id, strategy_key, *values)
+
+                if row:
+                    return dict(row)
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to update custom strategy {strategy_key}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def delete_custom_strategy(self, user_id: int, strategy_key: str) -> bool:
+        """删除自定义策略"""
+        try:
+            async with self.pool.acquire() as conn:
+                result = await conn.execute(
+                    "DELETE FROM CustomStrategies WHERE user_id = $1 AND strategy_key = $2",
+                    user_id, strategy_key
+                )
+
+                # Check if any rows were deleted (result is like "DELETE 1")
+                rows_deleted = int(result.split()[-1]) if result else 0
+                return rows_deleted > 0
+
+        except Exception as e:
+            logger.error(f"Failed to delete custom strategy {strategy_key}: {str(e)}")
             return False
 
     def _backtest_config_row_to_dict(self, row) -> dict:

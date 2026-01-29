@@ -924,6 +924,21 @@ class RuleParser:
                 return int(float(args[0])) if args else 1
             elif func_name == 'sqrt':
                 return 0  # SQRT函数不需要历史数据
+            elif func_name == 'std':
+                return int(float(args[0])) if args else 2  # 至少需要2个数据点才能计算标准差
+            elif func_name == 'zscore' or func_name == 'z_score':
+                return int(float(args[0])) if args else 2  # 至少需要2个数据点才能计算Z分数
+            elif func_name == 'ema':
+                return int(float(args[0])) if args else 2  # 至少需要window个数据点才能计算EMA
+            elif func_name == 'dif':
+                # DIF = EMA(short) - EMA(long)，需要long个数据点
+                long = int(float(args[1])) if len(args) > 1 else 26
+                return long
+            elif func_name == 'dea':
+                # DEA = EMA(DIF, signal)，需要long + signal个数据点
+                long = int(float(args[2])) if len(args) > 2 else 26
+                signal = int(float(args[0])) if args else 9
+                return long + signal
             return 1  # 默认最小长度
         except (ValueError, TypeError):
             return 1  # 参数转换失败时返回默认值

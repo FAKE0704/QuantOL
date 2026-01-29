@@ -32,7 +32,7 @@ export default function RulesRankPage() {
         </table>
 
         <h2 className="text-2xl font-semibold mb-4">描述</h2>
-        <p className="text-slate-300 mb-6">
+        <p className="text-muted-foreground mb-6">
           计算当前股票的 <code className="text-sky-400">field</code> 值在所有股票中的横截面排名。
           返回整数排名（1=最高值，2=第二高，...），无数据时返回 0。
         </p>
@@ -64,7 +64,7 @@ RANK(close) < REF(RANK(close), 5)
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">典型应用</h2>
-        <ul className="list-disc list-inside text-slate-300 space-y-2">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2">
           <li>因子选股：基于横截面排名选择表现最好的股票</li>
           <li>动量策略：选择排名上升趋势的股票</li>
           <li>相对强弱：买入相对表现强势的股票</li>
@@ -73,7 +73,7 @@ RANK(close) < REF(RANK(close), 5)
 
         <h2 className="text-2xl font-semibold mb-4">注意事项</h2>
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
+          <ul className="list-disc list-inside text-muted-foreground space-y-1">
             <li>RANK函数需要在多标模式下使用</li>
             <li>排名规则：值越大排名越前（降序排列）</li>
             <li>时间维度通过REF函数实现，RANK本身只计算当前时间点的横截面排名</li>

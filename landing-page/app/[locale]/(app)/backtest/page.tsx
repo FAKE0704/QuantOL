@@ -130,9 +130,6 @@ const fallbackDefaultStrategyRules: Record<string, { open_rule: string; close_ru
   },
 };
 
-// Local storage keys
-const STRATEGY_RULES_KEY = "quantol_strategy_rules";
-
 // Debounce hook for search input
 function useDebounce(value: string, delay: number): string {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -205,6 +202,9 @@ export default function BacktestPage() {
     validateRule,
     startOptimization,
     getOptimizationResults,
+    listCustomStrategies,
+    createCustomStrategy,
+    getBacktestStatus,
   } = useApi();
 
   const [config, setConfig] = useState<BacktestConfig>(defaultConfig);
@@ -408,25 +408,82 @@ export default function BacktestPage() {
 
   // Strategy rules management
   const [customStrategies, setCustomStrategies] = useState<Record<string, { label: string; rules: { open_rule: string; close_rule: string; buy_rule: string; sell_rule: string } }>>({});
+  const [isLoadingCustomStrategies, setIsLoadingCustomStrategies] = useState(false);
 
-  // Load custom strategies from localStorage on mount
+  // Load custom strategies from server on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STRATEGY_RULES_KEY);
-      if (saved) {
-        try {
-          setCustomStrategies(JSON.parse(saved));
-        } catch (e) {
-          console.error("Failed to parse saved strategies:", e);
+    const loadCustomStrategies = async () => {
+      setIsLoadingCustomStrategies(true);
+      try {
+        const response = await listCustomStrategies();
+        if (response.success && response.data) {
+          const strategies: typeof customStrategies = {};
+          for (const strategy of response.data) {
+            strategies[strategy.strategy_key] = {
+              label: strategy.label,
+              rules: {
+                open_rule: strategy.open_rule || "",
+                close_rule: strategy.close_rule || "",
+                buy_rule: strategy.buy_rule || "",
+                sell_rule: strategy.sell_rule || "",
+              },
+            };
+          }
+          setCustomStrategies(strategies);
         }
+      } catch (error) {
+        console.error("Failed to load custom strategies:", error);
+      } finally {
+        setIsLoadingCustomStrategies(false);
       }
-    }
+    };
+
+    loadCustomStrategies();
   }, []);
 
-  // Save custom strategies to localStorage
-  const saveCustomStrategies = (strategies: typeof customStrategies) => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STRATEGY_RULES_KEY, JSON.stringify(strategies));
+  // Save custom strategy to server
+  const saveCustomStrategy = async (strategyKey: string, label: string, rules: { open_rule: string; close_rule: string; buy_rule: string; sell_rule: string }) => {
+    try {
+      const response = await createCustomStrategy({
+        strategy_key: strategyKey,
+        label,
+        open_rule: rules.open_rule,
+        close_rule: rules.close_rule,
+        buy_rule: rules.buy_rule,
+        sell_rule: rules.sell_rule,
+      });
+
+      if (response.success) {
+        // Update local state
+        setCustomStrategies(prev => ({
+          ...prev,
+          [strategyKey]: { label, rules },
+        }));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Failed to save custom strategy:", error);
+      return false;
+    }
+  };
+
+  // Sync all custom strategies to server (called when needed)
+  const syncCustomStrategies = async () => {
+    const response = await listCustomStrategies();
+    if (response.success && response.data) {
+      const strategies: typeof customStrategies = {};
+      for (const strategy of response.data) {
+        strategies[strategy.strategy_key] = {
+          label: strategy.label,
+          rules: {
+            open_rule: strategy.open_rule || "",
+            close_rule: strategy.close_rule || "",
+            buy_rule: strategy.buy_rule || "",
+            sell_rule: strategy.sell_rule || "",
+          },
+        };
+      }
       setCustomStrategies(strategies);
     }
   };
@@ -470,7 +527,7 @@ export default function BacktestPage() {
   }, [config.tradingStrategy]);
 
   // Handle saving current rules to the selected strategy
-  const handleSaveToStrategy = () => {
+  const handleSaveToStrategy = async () => {
     const currentOption = getAllStrategyOptions().find(o => o.value === config.tradingStrategy);
     if (!currentOption) return;
 
@@ -486,34 +543,33 @@ export default function BacktestPage() {
 
     if (isCustomStrategy) {
       // Update existing custom strategy
-      const newStrategies = { ...customStrategies };
-      newStrategies[config.tradingStrategy] = {
-        label: newStrategies[config.tradingStrategy].label,
-        rules,
-      };
-      saveCustomStrategies(newStrategies);
-      showToast("自定义策略已更新");
+      const label = customStrategies[config.tradingStrategy]?.label || currentOption.label;
+      const success = await saveCustomStrategy(config.tradingStrategy, label, rules);
+      if (success) {
+        showToast("自定义策略已更新");
+      } else {
+        showToast("保存失败", "error");
+      }
     } else {
       // For default strategies, we also save them to custom strategies
       // so users can modify the defaults
       const strategyKey = `custom_${config.tradingStrategy}`;
-      const newStrategies = { ...customStrategies };
-      newStrategies[strategyKey] = {
-        label: currentOption.label,
-        rules,
-      };
-      saveCustomStrategies(newStrategies);
-      // Auto-switch to the custom strategy so the saved rules take effect immediately
-      setConfig({
-        ...config,
-        tradingStrategy: strategyKey,
-      });
-      showToast(`已保存规则到 "${currentOption.label}"`);
+      const success = await saveCustomStrategy(strategyKey, currentOption.label, rules);
+      if (success) {
+        // Auto-switch to the custom strategy so the saved rules take effect immediately
+        setConfig({
+          ...config,
+          tradingStrategy: strategyKey,
+        });
+        showToast(`已保存规则到 "${currentOption.label}"`);
+      } else {
+        showToast("保存失败", "error");
+      }
     }
   };
 
   // Handle saving current rules as a new strategy
-  const handleSaveAsNewStrategy = () => {
+  const handleSaveAsNewStrategy = async () => {
     const newStrategyName = prompt("请输入新策略类型的名称:");
     if (!newStrategyName || !newStrategyName.trim()) {
       return;
@@ -527,22 +583,17 @@ export default function BacktestPage() {
       sell_rule: config.sellRule,
     };
 
-    const newStrategies = {
-      ...customStrategies,
-      [strategyKey]: {
-        label: newStrategyName.trim(),
-        rules,
-      },
-    };
-    saveCustomStrategies(newStrategies);
-
-    // Switch to the new strategy
-    setConfig({
-      ...config,
-      tradingStrategy: strategyKey,
-    });
-
-    alert(`新策略类型 "${newStrategyName.trim()}" 已创建`);
+    const success = await saveCustomStrategy(strategyKey, newStrategyName.trim(), rules);
+    if (success) {
+      // Switch to the new strategy
+      setConfig({
+        ...config,
+        tradingStrategy: strategyKey,
+      });
+      alert(`新策略类型 "${newStrategyName.trim()}" 已创建`);
+    } else {
+      alert("创建失败");
+    }
   };
 
   // Get all strategy options (default + custom)
@@ -588,6 +639,62 @@ export default function BacktestPage() {
     loadSavedConfigs();
   }, []);
 
+  // State recovery: Check localStorage for saved backtest_id and restore state
+  useEffect(() => {
+    const restoreBacktestState = async () => {
+      const savedBacktestId = localStorage.getItem('running_backtest_id');
+      if (!savedBacktestId) {
+        return;
+      }
+
+      try {
+        console.log('[State Recovery] Found saved backtest_id:', savedBacktestId);
+        const response = await getBacktestStatus(savedBacktestId);
+
+        if (response.success && response.data) {
+          const data = response.data as any;
+          console.log('[State Recovery] Backtest status:', data.status);
+
+          // Restore backtest ID
+          setBacktestId(savedBacktestId);
+
+          // Handle different states
+          if (data.status === 'completed') {
+            // Show results immediately
+            setShowResults(true);
+            setShowProgress(false);
+            setIsRunning(false);
+            console.log('[State Recovery] Restored completed backtest');
+          } else if (data.status === 'running') {
+            // Show progress and let WebSocket connect
+            setShowProgress(true);
+            setIsRunning(true);
+            setBacktestProgress({
+              status: 'running',
+              progress: data.progress || 0,
+              current_time: data.current_time,
+            });
+            console.log('[State Recovery] Restored running backtest');
+          } else if (data.status === 'failed') {
+            // Show error
+            setIsRunning(false);
+            setShowProgress(false);
+            console.log('[State Recovery] Backtest failed:', data.error);
+          }
+          // For 'pending' status, just set the ID and wait for WebSocket
+        } else {
+          console.log('[State Recovery] Backtest not found, clearing localStorage');
+          localStorage.removeItem('running_backtest_id');
+        }
+      } catch (error) {
+        console.error('[State Recovery] Failed to restore backtest state:', error);
+        localStorage.removeItem('running_backtest_id');
+      }
+    };
+
+    restoreBacktestState();
+  }, [getBacktestStatus]);
+
   // WebSocket回调函数（使用useCallback避免重复创建导致重连）
   const handleBacktestProgress = useCallback((progress: BacktestProgress) => {
     setBacktestProgress(progress);
@@ -604,6 +711,8 @@ export default function BacktestPage() {
       setShowResults(true);
       setShowProgress(false);
       setIsRunning(false);  // 确保按钮状态恢复
+      // Clear localStorage as backtest is complete
+      localStorage.removeItem('running_backtest_id');
     }, 1000);
   }, []);
 
@@ -612,6 +721,8 @@ export default function BacktestPage() {
     showToast(error, "error");
     setShowProgress(false);
     setIsRunning(false);  // 确保按钮状态恢复
+    // Clear localStorage on error
+    localStorage.removeItem('running_backtest_id');
   }, [showToast]);
 
   // WebSocket连接回测进度
@@ -627,9 +738,7 @@ export default function BacktestPage() {
     setIsLoadingConfigs(true);
     try {
       const response = await listBacktestConfigs();
-      console.log("listBacktestConfigs response:", response);
       if (response.success && response.data) {
-        console.log("Setting saved configs:", response.data);
         setSavedConfigs(response.data);
       } else {
         console.log("Response not successful or no data:", response);
@@ -651,6 +760,9 @@ export default function BacktestPage() {
       console.error("Config not found in savedConfigs");
       return;
     }
+
+    // Sync custom strategies from server before loading config
+    await syncCustomStrategies();
 
     console.log("configToLoad.symbols:", configToLoad.symbols);
 
@@ -934,7 +1046,10 @@ export default function BacktestPage() {
       });
 
       if (response.success && response.data?.backtest_id) {
-        setBacktestId(response.data.backtest_id);
+        const newBacktestId = response.data.backtest_id;
+        setBacktestId(newBacktestId);
+        // Save to localStorage for state recovery
+        localStorage.setItem('running_backtest_id', newBacktestId);
         // WebSocket会自动连接并开始接收进度更新，完成后自动显示结果
         // 注意：不在这里设置 setIsRunning(false)，而是等待WebSocket回调
       } else {

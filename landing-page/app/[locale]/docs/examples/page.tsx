@@ -8,7 +8,7 @@ export default function ExamplesPage() {
       <div className="prose prose-invert max-w-none">
         <h2 className="text-2xl font-semibold mb-4">双均线策略</h2>
         <div className="bg-slate-900 rounded-lg p-4 mb-6">
-          <pre className="text-sm text-slate-300 overflow-x-auto">
+          <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`from src.core.strategy import RuleBasedStrategy
 from src.core.indicators import SMA
 from src.core.events import SignalEvent
@@ -38,7 +38,7 @@ class DualMAStrategy(RuleBasedStrategy):
 
         <h2 className="text-2xl font-semibold mb-4">运行回测</h2>
         <div className="bg-slate-900 rounded-lg p-4">
-          <pre className="text-sm text-slate-300 overflow-x-auto">
+          <pre className="text-sm text-muted-foreground overflow-x-auto">
 {`from src.core.backtesting import BacktestEngine, BacktestConfig
 
 # 配置回测参数

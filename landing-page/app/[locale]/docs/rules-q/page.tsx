@@ -42,7 +42,7 @@ export default function RulesQPage() {
         </table>
 
         <h2 className="text-2xl font-semibold mb-4">描述</h2>
-        <p className="text-slate-300 mb-6">
+        <p className="text-muted-foreground mb-6">
           计算指定周期内序列的分位数值。分位数用于识别价格在历史分布中的位置。
         </p>
 
@@ -67,7 +67,7 @@ SQRT(high*low, 2) < REF(Q(SQRT(high*low, 2)-VWAP(15), 0.8, 10), 1)`}
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">典型应用</h2>
-        <ul className="list-disc list-inside text-slate-300 space-y-2">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2">
           <li>强势股筛选：价格高于 90% 分位数</li>
           <li>弱势股筛选：价格低于 10% 分位数</li>
           <li>动态阈值：使用分位数作为动态买卖点</li>
@@ -76,7 +76,7 @@ SQRT(high*low, 2) < REF(Q(SQRT(high*low, 2)-VWAP(15), 0.8, 10), 1)`}
 
         <h2 className="text-2xl font-semibold mb-4">注意事项</h2>
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
+          <ul className="list-disc list-inside text-muted-foreground space-y-1">
             <li>quantile 必须在 [0, 1] 范围内</li>
             <li>数据不足时返回 NaN</li>
             <li>常用分位数：0.1（下限）、0.5（中位数）、0.9（上限）</li>

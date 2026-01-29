@@ -32,7 +32,7 @@ export default function RulesCpPage() {
         </table>
 
         <h2 className="text-2xl font-semibold mb-4">描述</h2>
-        <p className="text-slate-300 mb-6">
+        <p className="text-muted-foreground mb-6">
           典型价格（Typical Price），计算公式：(最高价 + 最低价) / 2。
           相比收盘价，典型价格更能反映当日价格的核心区域。
         </p>
@@ -58,7 +58,7 @@ close > C_P(0) & close > REF(close, 1)`}
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">典型应用</h2>
-        <ul className="list-disc list-inside text-slate-300 space-y-2">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2">
           <li>价格分析：作为收盘价的补充指标</li>
           <li>均线计算：基于典型价格计算均线更平滑</li>
           <li>VWAP计算：典型价格是VWAP的基础</li>
@@ -66,7 +66,7 @@ close > C_P(0) & close > REF(close, 1)`}
 
         <h2 className="text-2xl font-semibold mb-4">注意事项</h2>
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
+          <ul className="list-disc list-inside text-muted-foreground space-y-1">
             <li>数据不足时返回 0.0</li>
             <li>period 参数超出范围时返回 0.0</li>
             <li>常与其他指标结合使用</li>

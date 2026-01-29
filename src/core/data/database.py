@@ -217,6 +217,59 @@ class DatabaseManager(DatabaseAdapter):
                     UNIQUE (user_id, name)
                 );
             """)
+
+            # 建表CustomStrategies - 用户自定义交易策略
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS CustomStrategies (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    strategy_key VARCHAR(100) NOT NULL,
+                    label VARCHAR(100) NOT NULL,
+                    open_rule TEXT,
+                    close_rule TEXT,
+                    buy_rule TEXT,
+                    sell_rule TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW(),
+                    UNIQUE (user_id, strategy_key)
+                );
+            """)
+
+            # 建表BacktestTasks - 回测任务持久化
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS BacktestTasks (
+                    id SERIAL PRIMARY KEY,
+                    backtest_id VARCHAR(50) UNIQUE NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    name VARCHAR(200),
+                    status VARCHAR(20) NOT NULL,
+                    progress DECIMAL(5,2) DEFAULT 0,
+                    current_time TIMESTAMP,
+                    config JSONB NOT NULL,
+                    result_summary JSONB,
+                    error_message TEXT,
+                    log_file_path VARCHAR(500),
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    started_at TIMESTAMP,
+                    completed_at TIMESTAMP
+                );
+            """)
+
+            # 创建索引
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_user_id
+                ON BacktestTasks(user_id);
+            """)
+
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_status
+                ON BacktestTasks(status);
+            """)
+
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_created_at
+                ON BacktestTasks(created_at DESC);
+            """)
             
         logger.debug("数据库表结构初始化完成",
                 extra={'connection_id': id(conn)}

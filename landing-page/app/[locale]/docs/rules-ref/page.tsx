@@ -37,7 +37,7 @@ export default function RulesRefPage() {
         </table>
 
         <h2 className="text-2xl font-semibold mb-4">描述</h2>
-        <p className="text-slate-300 mb-6">
+        <p className="text-muted-foreground mb-6">
           引用 <code className="text-sky-400">period</code> 个周期前的值。例如，<code className="text-sky-400">REF(close, 1)</code> 获取前一日的收盘价。
         </p>
 
@@ -61,7 +61,7 @@ RSI(close, 14) >= 30`}
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">典型应用</h2>
-        <ul className="list-disc list-inside text-slate-300 space-y-2">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2">
           <li>拐点检测：比较当前值与历史值的变化</li>
           <li>交叉确认：结合REF函数判断信号的有效性</li>
           <li>趋势反转：通过历史数据判断趋势是否改变</li>
@@ -69,7 +69,7 @@ RSI(close, 14) >= 30`}
 
         <h2 className="text-2xl font-semibold mb-4">注意事项</h2>
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
+          <ul className="list-disc list-inside text-muted-foreground space-y-1">
             <li>引用周期不能超过当前可用的历史数据长度</li>
             <li>在数据起始位置，REF可能返回空值</li>
             <li>建议配合其他条件使用，避免在数据不足时产生错误信号</li>

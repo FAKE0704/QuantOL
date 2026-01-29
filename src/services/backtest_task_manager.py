@@ -12,6 +12,7 @@ from src.core.strategy.backtesting import BacktestConfig, BacktestEngine
 from src.core.strategy.indicators import IndicatorService
 from src.database import get_db_adapter
 from src.services.backtest_state_service import backtest_state_service
+from src.services.backtest_task_service import backtest_task_service
 from src.services.websocket_manager import websocket_manager
 from src.support.log.logger import logger
 
@@ -101,15 +102,33 @@ def to_json_string(obj):
 class BacktestTaskManager:
     """回测任务管理器 - 处理后台异步执行并通过WebSocket推送进度"""
 
-    def submit_backtest(self, backtest_id: str, request: Any, background_tasks: BackgroundTasks):
+    def submit_backtest(self, backtest_id: str, request: Any, background_tasks: BackgroundTasks, user_id: int = 1):
         """提交回测任务到后台执行"""
-        # 创建回测记录
+        # 创建回测记录 (Redis)
         backtest_state_service.create_backtest(backtest_id, request.model_dump())
 
-        # 提交后台任务
-        background_tasks.add_task(self._execute_backtest_async, backtest_id, request)
+        # 创建回测任务记录 (数据库) - 异步执行
+        asyncio.create_task(self._create_db_task(backtest_id, user_id, request.model_dump()))
 
-    async def _execute_backtest_async(self, backtest_id: str, request: Any):
+        # 提交后台任务
+        background_tasks.add_task(self._execute_backtest_async, backtest_id, request, user_id)
+
+    async def _create_db_task(self, backtest_id: str, user_id: int, config: dict):
+        """Create database task record"""
+        try:
+            # Generate log file path
+            log_file_path = f"src/logs/backtests/{backtest_id}.log"
+
+            await backtest_task_service.create_backtest_task(
+                backtest_id=backtest_id,
+                user_id=user_id,
+                config=config,
+                log_file_path=log_file_path,
+            )
+        except Exception as e:
+            logger.error(f"Failed to create DB task for {backtest_id}: {e}")
+
+    async def _execute_backtest_async(self, backtest_id: str, request: Any, user_id: int = 1):
         """异步执行回测的核心逻辑"""
         try:
             # 添加调试日志
@@ -118,8 +137,10 @@ class BacktestTaskManager:
             print(f"  end_date: {request.end_date} (type: {type(request.end_date)})")
             print(f"  symbols: {request.symbols}")
 
-            # 更新状态为running
+            # 更新状态为running (Redis + Database)
             backtest_state_service.update_status(backtest_id, "running")
+            await backtest_task_service.update_backtest_task(backtest_id, status="running")
+
             await websocket_manager.broadcast_progress(
                 backtest_id,
                 {"type": "status", "data": {"status": "running", "progress": 0.0}}
@@ -267,6 +288,16 @@ class BacktestTaskManager:
                 progress=1.0,
                 result=results
             )
+
+            # Save results to database and cleanup old backtests
+            await backtest_task_service.update_backtest_task(
+                backtest_id,
+                status="completed",
+                progress=100.0,
+                result_summary=results,
+            )
+            await backtest_task_service.cleanup_old_backtests(user_id)
+
             await websocket_manager.broadcast_progress(
                 backtest_id,
                 {"type": "status", "data": {"status": "completed", "progress": 1.0}}
@@ -279,6 +310,11 @@ class BacktestTaskManager:
                 backtest_id,
                 "failed",
                 error=str(e)
+            )
+            await backtest_task_service.update_backtest_task(
+                backtest_id,
+                status="failed",
+                error_message=str(e),
             )
             await websocket_manager.broadcast_progress(
                 backtest_id,

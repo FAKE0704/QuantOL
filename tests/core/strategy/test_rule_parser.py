@@ -174,5 +174,150 @@ def test_performance():
     duration = time.time() - start
     assert duration < 2.0, f"性能不达标: 1000次评估耗时 {duration:.2f}秒 > 2秒"
 
+def test_std_function():
+    """测试STD函数计算标准差"""
+    data = pd.DataFrame({'close': [10.0, 12.0, 14.0, 16.0, 18.0, 20.0]})
+    indicator_service = IndicatorService()
+    parser = RuleParser(data, indicator_service)
+
+    # 测试标准差计算 - 使用parse with mode='ref' 获取原始数值
+    # [12, 14, 16, 18] 的样本标准差约为 2.58
+    # 对于window=4，需要index>=4才能计算
+    parser.current_index = 4
+    result = parser.parse("STD(close, 4)", mode='ref')
+    # 在Python中，pd.Series([12, 14, 16, 18]).std() = 2.581988897471611
+    assert abs(result - 2.5819) < 0.01, f"STD计算错误: {result}"
+
+    # 测试数据不足时返回0 (index=3, window=4 => 3 < 4, 返回0)
+    parser.current_index = 3
+    result = parser.parse("STD(close, 4)", mode='ref')
+    assert result == 0.0, f"数据不足时应返回0: {result}"
+
+    # 测试不同窗口的结果
+    parser.current_index = 5
+    result = parser.parse("STD(close, 4)", mode='ref')
+    # [14, 16, 18, 20] 的样本标准差约为 2.58
+    assert abs(result - 2.5819) < 0.01, f"STD计算错误: {result}"
+
+    # 测试在规则中使用STD
+    # STD > 0 应该为True（有波动）
+    assert parser.evaluate_at("STD(close, 4) > 0", 4)
+
+    # 测试布林带条件
+    # close > SMA(close, 4) + 2 * STD(close, 4)
+    # SMA([12,14,16,18]) = 15, STD = 2.58, 15 + 2*2.58 = 20.16, 18 < 20.16
+    assert not parser.evaluate_at("close > SMA(close, 4) + 2 * STD(close, 4)", 4)
+
+def test_zscore_function():
+    """测试Z_SCORE函数计算"""
+    data = pd.DataFrame({'close': [10.0, 12.0, 14.0, 16.0, 18.0, 20.0]})
+    indicator_service = IndicatorService()
+    parser = RuleParser(data, indicator_service)
+
+    # 测试Z_SCORE计算
+    # 对于window=4，需要index>=4才能计算
+    parser.current_index = 4
+    result = parser.parse("Z_SCORE(close, 4)", mode='ref')
+    # SMA([12,14,16,18]) = 15, STD = 2.58, current_value = 18
+    # Z_SCORE = (18 - 15) / 2.58 = 3 / 2.58 ≈ 1.16
+    expected = (18 - 15) / 2.581988897471611
+    assert abs(result - expected) < 0.01, f"Z_SCORE计算错误: {result}, 期望: {expected}"
+
+    # 测试数据不足时返回0 (index=3, window=4 => 3 < 4, 返回0)
+    parser.current_index = 3
+    result = parser.parse("Z_SCORE(close, 4)", mode='ref')
+    assert result == 0.0, f"数据不足时应返回0: {result}"
+
+    # 测试在规则中使用Z_SCORE
+    # Z_SCORE > 1 应该为True（价格高于均值1倍标准差以上）
+    assert parser.evaluate_at("Z_SCORE(close, 4) > 1", 4)
+
+    # 测试均值回归条件
+    # Z_SCORE < -1 表示价格低于均值1倍标准差以上
+    # 在index=5时，SMA([14,16,18,20]) = 17, STD ≈ 2.58, current_value = 20
+    # Z_SCORE = (20 - 17) / 2.58 ≈ 1.16 > -1，所以条件不成立
+    assert not parser.evaluate_at("Z_SCORE(close, 4) < -1", 5)
+
+    # 测试Z_SCORE等于0的情况（价格等于均值）
+    # 使用不同的数据来测试，需要创建新的indicator_service避免缓存干扰
+    data_equal = pd.DataFrame({'close': [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]})
+    indicator_service_fresh = IndicatorService()
+    parser_equal = RuleParser(data_equal, indicator_service_fresh)
+    parser_equal.current_index = 4
+    result = parser_equal.parse("Z_SCORE(close, 4)", mode='ref')
+    # 当所有值相同时，STD=0，Z_SCORE应该返回0（避免除零）
+    assert result == 0.0, f"所有值相等时应返回0: {result}"
+
+def test_ema_function():
+    """测试EMA函数计算指数移动平均"""
+    data = pd.DataFrame({'close': [10.0, 12.0, 14.0, 16.0, 18.0, 20.0]})
+    indicator_service = IndicatorService()
+    parser = RuleParser(data, indicator_service)
+
+    # 测试EMA计算
+    # 对于window=4，需要index>=4才能计算（因为min_required=window）
+    parser.current_index = 4
+    result = parser.parse("EMA(close, 4)", mode='ref')
+    # EMA应该有值（具体值取决于计算方法）
+    assert result > 0, f"EMA应该大于0: {result}"
+
+    # 测试数据不足时返回0 (index=3, window=4 => 3 < 4, 返回0)
+    parser.current_index = 3
+    result = parser.parse("EMA(close, 4)", mode='ref')
+    assert result == 0.0, f"数据不足时应返回0: {result}"
+
+    # 测试在规则中使用EMA
+    # EMA > 0 应该为True（有数据时）
+    assert parser.evaluate_at("EMA(close, 4) > 0", 4)
+
+    # 测试EMA交叉
+    # 短期EMA应该大于长期EMA（上涨趋势中）
+    assert parser.evaluate_at("EMA(close, 4) > EMA(close, 6)", 5)
+
+    # 测试EMA与价格的关系
+    # 在上涨趋势中，价格应该大于短期EMA
+    assert parser.evaluate_at("close > EMA(close, 4)", 5)
+
+def test_dif_dea_macd_functions():
+    """测试DIF、DEA、MACD函数"""
+    # 创建更多数据点来支持MACD计算
+    data = pd.DataFrame({'close': [10.0 + i * 0.5 for i in range(50)]})
+    indicator_service = IndicatorService()
+    parser = RuleParser(data, indicator_service)
+
+    # 测试DIF计算
+    # DIF = EMA(12) - EMA(26)，需要至少26个数据点
+    parser.current_index = 26
+    dif_result = parser.parse("DIF(close, 12, 26)", mode='ref')
+    assert dif_result > 0, f"DIF应该大于0（上涨趋势）: {dif_result}"
+
+    # 数据不足时返回0
+    parser.current_index = 25
+    dif_result = parser.parse("DIF(close, 12, 26)", mode='ref')
+    assert dif_result == 0.0, f"数据不足时DIF应返回0: {dif_result}"
+
+    # 测试DEA计算
+    # DEA = EMA(DIF, 9)，需要至少26+9=35个数据点
+    parser.current_index = 35
+    dea_result = parser.parse("DEA(close, 9, 12, 26)", mode='ref')
+    assert dea_result > 0, f"DEA应该大于0: {dea_result}"
+
+    # 测试MACD计算
+    # MACD = 2 * (DIF - DEA)
+    macd_result = parser.parse("MACD(close, 9, 12, 26)", mode='ref')
+    assert isinstance(macd_result, float), f"MACD应该返回float: {macd_result}"
+
+    # 测试在规则中使用DIF
+    # DIF > 0 表示上涨趋势
+    parser.current_index = 30
+    assert parser.evaluate_at("DIF(close, 12, 26) > 0", 30)
+
+    # 测试金叉条件：DIF > DEA
+    # 在上涨趋势中，DIF应该大于DEA（需要足够数据）
+    parser.current_index = 40
+    dif_val = parser.parse("DIF(close, 12, 26)", mode='ref')
+    dea_val = parser.parse("DEA(close, 9, 12, 26)", mode='ref')
+    assert dif_val > 0 and dea_val > 0, "上涨趋势中DIF和DEA应该大于0"
+
 if __name__ == "__main__":
     pytest.main([__file__])

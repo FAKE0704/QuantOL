@@ -34,7 +34,13 @@ export default function DocsPage() {
 
   const indicatorLinks = [
     { title: 'SMA - 简单移动平均', slug: 'rules-sma', desc: 'SMA(close, period)' },
+    { title: 'EMA - 指数移动平均', slug: 'rules-ema', desc: 'EMA(close, n)' },
     { title: 'RSI - 相对强弱指数', slug: 'rules-rsi', desc: 'RSI(close, period)' },
+    { title: 'DIF - 快线', slug: 'rules-dif', desc: 'DIF(close, 12, 26)' },
+    { title: 'DEA - 慢线/信号线', slug: 'rules-dea', desc: 'DEA(close, 9, 12, 26)' },
+    { title: 'MACD - 指标平滑异同移动平均线', slug: 'rules-macd', desc: 'MACD(close, 9, 12, 26)' },
+    { title: 'STD - 标准差', slug: 'rules-std', desc: 'STD(close, n)' },
+    { title: 'Z_SCORE - Z分数', slug: 'rules-z-score', desc: 'Z_SCORE(close, n)' },
     { title: 'REF - 引用历史数据', slug: 'rules-ref', desc: 'REF(expr, period)' },
     { title: 'VWAP - 成交量加权平均价', slug: 'rules-vwap', desc: 'VWAP(period)' },
     { title: 'C_P - 典型价格', slug: 'rules-cp', desc: 'C_P(period)' },

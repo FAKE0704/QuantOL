@@ -37,7 +37,7 @@ export default function RulesSqrtPage() {
         </table>
 
         <h2 className="text-2xl font-semibold mb-4">描述</h2>
-        <p className="text-slate-300 mb-6">
+        <p className="text-muted-foreground mb-6">
           对 x 开 n 次方，计算公式：x^(1/n)。
           <br />
           例如：SQRT(9, 2) = 9^(1/2) = 3（平方根），SQRT(27, 3) = 27^(1/3) = 3（立方根）
@@ -61,7 +61,7 @@ SQRT(volume, 3)`}
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">典型应用</h2>
-        <ul className="list-disc list-inside text-slate-300 space-y-2">
+        <ul className="list-disc list-inside text-muted-foreground space-y-2">
           <li>几何平均：计算多个数值的几何平均</li>
           <li>价格平滑：使用几何平均平滑价格波动</li>
           <li>复合指标：结合其他指标构建复杂策略</li>
@@ -69,7 +69,7 @@ SQRT(volume, 3)`}
 
         <h2 className="text-2xl font-semibold mb-4">注意事项</h2>
         <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-          <ul className="list-disc list-inside text-slate-300 space-y-1">
+          <ul className="list-disc list-inside text-muted-foreground space-y-1">
             <li>开偶数次方时，负数底数会返回 0.0</li>
             <li>n = 0 时返回 1.0（任何数的 0 次方都是 1）</li>
             <li>计算失败时返回 0.0</li>

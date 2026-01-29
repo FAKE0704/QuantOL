@@ -29,7 +29,7 @@ class CustomEventHandler:
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">数据接口 API</h2>
-        <p className="text-slate-300 mb-6">
+        <p className="text-muted-foreground mb-6">
           统一的数据管理器接口，支持多种数据源无缝切换：
         </p>
 
@@ -50,7 +50,7 @@ data = data_manager.get_bar_data(
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">策略基类 API</h2>
-        <p className="text-slate-300">
+        <p className="text-muted-foreground">
           所有策略都继承自基类 Strategy，需实现以下方法：
         </p>
       </div>

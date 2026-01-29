@@ -199,3 +199,116 @@ class BacktestConfigService:
         except Exception as e:
             logger.error(f"Failed to set default config {config_id}: {str(e)}")
             return False
+
+    # Custom trading strategy CRUD operations
+    async def create_custom_strategy(
+        self,
+        user_id: int,
+        strategy_key: str,
+        label: str,
+        open_rule: str,
+        close_rule: str,
+        buy_rule: str,
+        sell_rule: str,
+    ) -> Optional[dict]:
+        """Create a custom strategy."""
+        try:
+            db = await self._get_db()
+
+            if hasattr(db, '_initialized') and not db._initialized:
+                await db.initialize()
+
+            return await db.create_custom_strategy(
+                user_id=user_id,
+                strategy_key=strategy_key,
+                label=label,
+                open_rule=open_rule,
+                close_rule=close_rule,
+                buy_rule=buy_rule,
+                sell_rule=sell_rule,
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to create custom strategy: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def get_custom_strategy(self, user_id: int, strategy_key: str) -> Optional[dict]:
+        """Get a custom strategy by key."""
+        try:
+            db = await self._get_db()
+
+            if hasattr(db, '_initialized') and not db._initialized:
+                await db.initialize()
+
+            return await db.get_custom_strategy(user_id, strategy_key)
+
+        except Exception as e:
+            logger.error(f"Failed to get custom strategy {strategy_key}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def list_custom_strategies(self, user_id: int) -> List[dict]:
+        """List all custom strategies for a user."""
+        try:
+            db = await self._get_db()
+
+            if hasattr(db, '_initialized') and not db._initialized:
+                await db.initialize()
+
+            return await db.list_custom_strategies(user_id)
+
+        except Exception as e:
+            logger.error(f"Failed to list custom strategies for user {user_id}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return []
+
+    async def update_custom_strategy(
+        self,
+        user_id: int,
+        strategy_key: str,
+        label: Optional[str] = None,
+        open_rule: Optional[str] = None,
+        close_rule: Optional[str] = None,
+        buy_rule: Optional[str] = None,
+        sell_rule: Optional[str] = None,
+    ) -> Optional[dict]:
+        """Update a custom strategy."""
+        try:
+            db = await self._get_db()
+
+            if hasattr(db, '_initialized') and not db._initialized:
+                await db.initialize()
+
+            return await db.update_custom_strategy(
+                user_id=user_id,
+                strategy_key=strategy_key,
+                label=label,
+                open_rule=open_rule,
+                close_rule=close_rule,
+                buy_rule=buy_rule,
+                sell_rule=sell_rule,
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to update custom strategy {strategy_key}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def delete_custom_strategy(self, user_id: int, strategy_key: str) -> bool:
+        """Delete a custom strategy."""
+        try:
+            db = await self._get_db()
+
+            if hasattr(db, '_initialized') and not db._initialized:
+                await db.initialize()
+
+            return await db.delete_custom_strategy(user_id, strategy_key)
+
+        except Exception as e:
+            logger.error(f"Failed to delete custom strategy {strategy_key}: {str(e)}")
+            return False

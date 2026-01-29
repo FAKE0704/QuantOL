@@ -155,3 +155,47 @@ class DatabaseAdapter(ABC):
     async def set_default_backtest_config(self, config_id: int, user_id: int) -> bool:
         """设置默认回测配置"""
         pass
+
+    # Custom trading strategy CRUD operations
+    @abstractmethod
+    async def create_custom_strategy(
+        self,
+        user_id: int,
+        strategy_key: str,
+        label: str,
+        open_rule: str,
+        close_rule: str,
+        buy_rule: str,
+        sell_rule: str,
+    ) -> Optional[dict]:
+        """创建自定义策略"""
+        pass
+
+    @abstractmethod
+    async def get_custom_strategy(self, user_id: int, strategy_key: str) -> Optional[dict]:
+        """获取自定义策略"""
+        pass
+
+    @abstractmethod
+    async def list_custom_strategies(self, user_id: int) -> List[dict]:
+        """列出用户的所有自定义策略"""
+        pass
+
+    @abstractmethod
+    async def update_custom_strategy(
+        self,
+        user_id: int,
+        strategy_key: str,
+        label: Optional[str] = None,
+        open_rule: Optional[str] = None,
+        close_rule: Optional[str] = None,
+        buy_rule: Optional[str] = None,
+        sell_rule: Optional[str] = None,
+    ) -> Optional[dict]:
+        """更新自定义策略"""
+        pass
+
+    @abstractmethod
+    async def delete_custom_strategy(self, user_id: int, strategy_key: str) -> bool:
+        """删除自定义策略"""
+        pass

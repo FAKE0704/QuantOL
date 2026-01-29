@@ -460,6 +460,68 @@ class SQLiteAdapter(DatabaseAdapter):
             await conn.execute(sql3)
             logger.info("✅ BacktestConfigs表创建成功")
 
+            # 创建 CustomStrategies 表 - 用户自定义交易策略
+            logger.info("🔨 开始创建CustomStrategies表...")
+            sql_custom_strategies = """
+                CREATE TABLE IF NOT EXISTS CustomStrategies (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    strategy_key TEXT NOT NULL,
+                    label TEXT NOT NULL,
+                    open_rule TEXT,
+                    close_rule TEXT,
+                    buy_rule TEXT,
+                    sell_rule TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (user_id, strategy_key)
+                )
+            """
+
+            await conn.execute(sql_custom_strategies)
+            logger.info("✅ CustomStrategies表创建成功")
+
+            # 创建 BacktestTasks 表 - 回测任务持久化
+            logger.info("🔨 开始创建BacktestTasks表...")
+            sql_backtest_tasks = """
+                CREATE TABLE IF NOT EXISTS BacktestTasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    backtest_id TEXT UNIQUE NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    name TEXT,
+                    status TEXT NOT NULL,
+                    progress REAL DEFAULT 0,
+                    current_time TEXT,
+                    config TEXT NOT NULL,
+                    result_summary TEXT,
+                    error_message TEXT,
+                    log_file_path TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    started_at TEXT,
+                    completed_at TEXT
+                )
+            """
+
+            await conn.execute(sql_backtest_tasks)
+
+            # 创建索引
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_user_id
+                ON BacktestTasks(user_id)
+            """)
+
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_status
+                ON BacktestTasks(status)
+            """)
+
+            await conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_backtest_tasks_created_at
+                ON BacktestTasks(created_at DESC)
+            """)
+
+            logger.info("✅ BacktestTasks表创建成功")
+
             # 创建 StrategyTypes 表
             logger.info("🔨 开始创建StrategyTypes表...")
             sql4 = """
@@ -1536,6 +1598,195 @@ class SQLiteAdapter(DatabaseAdapter):
 
         except Exception as e:
             logger.error(f"Failed to set default config {config_id}: {str(e)}")
+            return False
+
+    # Custom trading strategy CRUD operations
+    async def create_custom_strategy(
+        self,
+        user_id: int,
+        strategy_key: str,
+        label: str,
+        open_rule: str,
+        close_rule: str,
+        buy_rule: str,
+        sell_rule: str,
+    ) -> Optional[dict]:
+        """创建自定义策略"""
+        try:
+            async with self.pool as conn:
+                # Use INSERT OR REPLACE to handle conflicts
+                await conn.execute(
+                    """INSERT OR REPLACE INTO CustomStrategies
+                       (user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))""",
+                    user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule
+                )
+
+                # Get the inserted/updated row
+                cursor = await conn.execute(
+                    """SELECT id, user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule, created_at, updated_at
+                       FROM CustomStrategies
+                       WHERE user_id = ? AND strategy_key = ?""",
+                    user_id, strategy_key
+                )
+                row = await cursor.fetchone()
+
+                if row:
+                    return {
+                        "id": row[0],
+                        "user_id": row[1],
+                        "strategy_key": row[2],
+                        "label": row[3],
+                        "open_rule": row[4],
+                        "close_rule": row[5],
+                        "buy_rule": row[6],
+                        "sell_rule": row[7],
+                        "created_at": row[8],
+                        "updated_at": row[9],
+                    }
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to create custom strategy: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def get_custom_strategy(self, user_id: int, strategy_key: str) -> Optional[dict]:
+        """获取自定义策略"""
+        try:
+            async with self.pool as conn:
+                cursor = await conn.execute(
+                    """SELECT id, user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule, created_at, updated_at
+                       FROM CustomStrategies
+                       WHERE user_id = ? AND strategy_key = ?""",
+                    user_id, strategy_key
+                )
+                row = await cursor.fetchone()
+
+                if row:
+                    return {
+                        "id": row[0],
+                        "user_id": row[1],
+                        "strategy_key": row[2],
+                        "label": row[3],
+                        "open_rule": row[4],
+                        "close_rule": row[5],
+                        "buy_rule": row[6],
+                        "sell_rule": row[7],
+                        "created_at": row[8],
+                        "updated_at": row[9],
+                    }
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to get custom strategy {strategy_key}: {str(e)}")
+            return None
+
+    async def list_custom_strategies(self, user_id: int) -> List[dict]:
+        """列出用户的所有自定义策略"""
+        try:
+            async with self.pool as conn:
+                cursor = await conn.execute(
+                    """SELECT id, user_id, strategy_key, label, open_rule, close_rule, buy_rule, sell_rule, created_at, updated_at
+                       FROM CustomStrategies
+                       WHERE user_id = ?
+                       ORDER BY updated_at DESC""",
+                    user_id
+                )
+                rows = await cursor.fetchall()
+
+                return [
+                    {
+                        "id": row[0],
+                        "user_id": row[1],
+                        "strategy_key": row[2],
+                        "label": row[3],
+                        "open_rule": row[4],
+                        "close_rule": row[5],
+                        "buy_rule": row[6],
+                        "sell_rule": row[7],
+                        "created_at": row[8],
+                        "updated_at": row[9],
+                    }
+                    for row in rows
+                ]
+
+        except Exception as e:
+            logger.error(f"Failed to list custom strategies for user {user_id}: {str(e)}")
+            return []
+
+    async def update_custom_strategy(
+        self,
+        user_id: int,
+        strategy_key: str,
+        label: Optional[str] = None,
+        open_rule: Optional[str] = None,
+        close_rule: Optional[str] = None,
+        buy_rule: Optional[str] = None,
+        sell_rule: Optional[str] = None,
+    ) -> Optional[dict]:
+        """更新自定义策略"""
+        try:
+            async with self.pool as conn:
+                # Build update fields dynamically
+                update_fields = []
+                values = []
+
+                if label is not None:
+                    update_fields.append("label = ?")
+                    values.append(label)
+
+                if open_rule is not None:
+                    update_fields.append("open_rule = ?")
+                    values.append(open_rule)
+
+                if close_rule is not None:
+                    update_fields.append("close_rule = ?")
+                    values.append(close_rule)
+
+                if buy_rule is not None:
+                    update_fields.append("buy_rule = ?")
+                    values.append(buy_rule)
+
+                if sell_rule is not None:
+                    update_fields.append("sell_rule = ?")
+                    values.append(sell_rule)
+
+                if not update_fields:
+                    return await self.get_custom_strategy(user_id, strategy_key)
+
+                update_fields.append("updated_at = datetime('now')")
+
+                query = f"""UPDATE CustomStrategies
+                           SET {', '.join(update_fields)}
+                           WHERE user_id = ? AND strategy_key = ?"""
+
+                await conn.execute(query, *values, user_id, strategy_key)
+
+                return await self.get_custom_strategy(user_id, strategy_key)
+
+        except Exception as e:
+            logger.error(f"Failed to update custom strategy {strategy_key}: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
+
+    async def delete_custom_strategy(self, user_id: int, strategy_key: str) -> bool:
+        """删除自定义策略"""
+        try:
+            async with self.pool as conn:
+                await conn.execute(
+                    "DELETE FROM CustomStrategies WHERE user_id = ? AND strategy_key = ?",
+                    user_id, strategy_key
+                )
+
+                # Check if deleted by trying to get it
+                result = await self.get_custom_strategy(user_id, strategy_key)
+                return result is None
+
+        except Exception as e:
+            logger.error(f"Failed to delete custom strategy {strategy_key}: {str(e)}")
             return False
 
     def _backtest_config_row_to_dict(self, row) -> dict:

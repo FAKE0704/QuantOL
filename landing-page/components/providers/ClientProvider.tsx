@@ -9,11 +9,14 @@
 import { ReactNode } from "react";
 import { AuthProvider } from "@/lib/store";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ErrorMonitorProvider } from "@/components/providers/ErrorMonitorProvider";
 
 export function ClientProvider({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider defaultTheme="light">
-      <AuthProvider>{children}</AuthProvider>
-    </ThemeProvider>
+    <ErrorMonitorProvider>
+      <ThemeProvider defaultTheme="light">
+        <AuthProvider>{children}</AuthProvider>
+      </ThemeProvider>
+    </ErrorMonitorProvider>
   );
 }

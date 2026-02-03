@@ -248,9 +248,18 @@ export default function BacktestPage() {
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  // Rebalance period state
+  const [rebalancePeriod, setRebalancePeriod] = useState<{
+    mode: 'disabled' | 'trading_days' | 'calendar_rule';
+    tradingDaysInterval?: number;
+    calendarFrequency?: 'weekly' | 'monthly';
+    calendarDay?: number;
+    minIntervalDays?: number;
+    allowFirstRebalance: boolean;
+  }>({ mode: 'disabled', allowFirstRebalance: true });
+
   // Show toast message
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    console.log('Showing toast:', message, type);
     setToast({ message, type });
     setTimeout(() => setToast(null), 2000);
   };
@@ -614,7 +623,7 @@ export default function BacktestPage() {
   };
 
   // Card order for collapse logic
-  const cardOrder = ["stocks", "date-frequency", "basic-config", "position-strategy", "trading-strategy"];
+  const cardOrder = ["stocks", "date-frequency", "rebalance-period", "basic-config", "position-strategy", "trading-strategy"];
 
   // Check if a card should be collapsed
   const shouldCollapseCard = (cardId: string) => {
@@ -648,12 +657,10 @@ export default function BacktestPage() {
       }
 
       try {
-        console.log('[State Recovery] Found saved backtest_id:', savedBacktestId);
         const response = await getBacktestStatus(savedBacktestId);
 
         if (response.success && response.data) {
           const data = response.data as any;
-          console.log('[State Recovery] Backtest status:', data.status);
 
           // Restore backtest ID
           setBacktestId(savedBacktestId);
@@ -664,7 +671,6 @@ export default function BacktestPage() {
             setShowResults(true);
             setShowProgress(false);
             setIsRunning(false);
-            console.log('[State Recovery] Restored completed backtest');
           } else if (data.status === 'running') {
             // Show progress and let WebSocket connect
             setShowProgress(true);
@@ -674,16 +680,13 @@ export default function BacktestPage() {
               progress: data.progress || 0,
               current_time: data.current_time,
             });
-            console.log('[State Recovery] Restored running backtest');
           } else if (data.status === 'failed') {
             // Show error
             setIsRunning(false);
             setShowProgress(false);
-            console.log('[State Recovery] Backtest failed:', data.error);
           }
           // For 'pending' status, just set the ID and wait for WebSocket
         } else {
-          console.log('[State Recovery] Backtest not found, clearing localStorage');
           localStorage.removeItem('running_backtest_id');
         }
       } catch (error) {
@@ -752,10 +755,7 @@ export default function BacktestPage() {
 
   // Load a config and populate the form
   const handleLoadConfig = async (configId: number) => {
-    console.log("handleLoadConfig called with configId:", configId);
-    console.log("Current savedConfigs:", savedConfigs);
     const configToLoad = savedConfigs.find(c => c.id === configId);
-    console.log("Found configToLoad:", configToLoad);
     if (!configToLoad) {
       console.error("Config not found in savedConfigs");
       return;
@@ -763,8 +763,6 @@ export default function BacktestPage() {
 
     // Sync custom strategies from server before loading config
     await syncCustomStrategies();
-
-    console.log("configToLoad.symbols:", configToLoad.symbols);
 
     // Convert backend format to frontend format
     const formatDate = (dateStr: string) => {
@@ -809,24 +807,19 @@ export default function BacktestPage() {
     // Validate all rules in parallel
     for (const [key, rule] of rulesToValidate) {
       try {
-        console.log(`[VALIDATE] Validating ${key}:`, rule);
         const response = await validateRule(rule);
-        console.log(`[VALIDATE] Response for ${key}:`, response);
         // Handle both wrapped and unwrapped response formats
         const validationData = response.data || response;
         if (validationData && typeof validationData.valid === 'boolean') {
-          console.log(`[VALIDATE] Setting validation state for ${key}:`, validationData);
           setRuleValidation(prev => ({ ...prev, [key]: { valid: validationData.valid, error: validationData.error } }));
         }
       } catch (error) {
-        console.log(`[VALIDATE] Error validating ${key}:`, error);
         // Silently fail on validation errors
       }
     }
 
     // Update selected stocks
     const newSelectedStocks = new Set(configToLoad.symbols);
-    console.log("Setting selectedStocks to:", newSelectedStocks);
     setSelectedStocks(newSelectedStocks);
     setSelectedConfigId(configId);
 
@@ -834,7 +827,6 @@ export default function BacktestPage() {
     // This will populate the stocks array so they can be displayed
     const symbols = configToLoad.symbols;
     if (symbols && symbols.length > 0) {
-      console.log("Searching for stocks:", symbols);
       // Search for each symbol to populate the stocks list
       for (const symbol of symbols) {
         await searchStocks(symbol);
@@ -842,8 +834,6 @@ export default function BacktestPage() {
       // Clear the search input after loading
       setStockSearch("");
     }
-
-    console.log("Config loaded successfully");
   };
 
   // Save current config as new
@@ -1042,6 +1032,14 @@ export default function BacktestPage() {
           close_rule: config.closeRule,
           buy_rule: config.buyRule,
           sell_rule: config.sellRule,
+        },
+        rebalance_period: rebalancePeriod.mode === 'disabled' ? undefined : {
+          mode: rebalancePeriod.mode,
+          trading_days_interval: rebalancePeriod.tradingDaysInterval,
+          calendar_frequency: rebalancePeriod.calendarFrequency,
+          calendar_day: rebalancePeriod.calendarDay,
+          min_interval_days: rebalancePeriod.minIntervalDays,
+          allow_first_rebalance: rebalancePeriod.allowFirstRebalance,
         },
       });
 
@@ -1350,6 +1348,16 @@ export default function BacktestPage() {
               </Button>
             </div>
 
+            {/* View History Button */}
+            <Link href="/backtest-history" className="block">
+              <Button
+                variant="outline"
+                className="w-full bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
+              >
+                📜 查看历史记录
+              </Button>
+            </Link>
+
             {/* Stock Selection */}
             <CollapsibleCard id="stocks" title="选择交易标的" activeCard={activeCard} onCardClick={handleCardClick}>
               <div className="space-y-4">
@@ -1453,6 +1461,108 @@ export default function BacktestPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+            </CollapsibleCard>
+
+            {/* Rebalance Period */}
+            <CollapsibleCard id="rebalance-period" title="调仓周期" activeCard={activeCard} onCardClick={handleCardClick}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="rebalance-mode" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
+                    调仓模式
+                  </label>
+                  <select
+                    id="rebalance-mode"
+                    value={rebalancePeriod.mode}
+                    onChange={(e) => setRebalancePeriod({
+                      ...rebalancePeriod,
+                      mode: e.target.value as 'disabled' | 'trading_days' | 'calendar_rule'
+                    })}
+                    className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
+                  >
+                    <option value="disabled">不限制（每个数据点检查）</option>
+                    <option value="trading_days">按交易日数</option>
+                    <option value="calendar_rule">按固定日期</option>
+                  </select>
+                </div>
+
+                {rebalancePeriod.mode === 'trading_days' && (
+                  <div>
+                    <label htmlFor="trading-days-interval" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
+                      每隔N个交易日调仓
+                    </label>
+                    <input
+                      id="trading-days-interval"
+                      type="number"
+                      value={rebalancePeriod.tradingDaysInterval || 5}
+                      onChange={(e) => setRebalancePeriod({
+                        ...rebalancePeriod,
+                        tradingDaysInterval: Number(e.target.value)
+                      })}
+                      min="1"
+                      step="1"
+                      className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
+                    />
+                  </div>
+                )}
+
+                {rebalancePeriod.mode === 'calendar_rule' && (
+                  <>
+                    <div>
+                      <label htmlFor="calendar-frequency" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
+                        频率
+                      </label>
+                      <select
+                        id="calendar-frequency"
+                        value={rebalancePeriod.calendarFrequency || 'weekly'}
+                        onChange={(e) => setRebalancePeriod({
+                          ...rebalancePeriod,
+                          calendarFrequency: e.target.value as 'weekly' | 'monthly'
+                        })}
+                        className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
+                      >
+                        <option value="weekly">每周</option>
+                        <option value="monthly">每月</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="calendar-day" className="block text-sm text-muted-foreground mb-2 cursor-pointer hover:text-foreground">
+                        {rebalancePeriod.calendarFrequency === 'weekly' ? '星期几 (1-7, 1=周一)' : '日期 (1-31)'}
+                      </label>
+                      <input
+                        id="calendar-day"
+                        type="number"
+                        value={rebalancePeriod.calendarDay || 1}
+                        onChange={(e) => setRebalancePeriod({
+                          ...rebalancePeriod,
+                          calendarDay: Number(e.target.value)
+                        })}
+                        min="1"
+                        max={rebalancePeriod.calendarFrequency === 'weekly' ? 7 : 31}
+                        step="1"
+                        className="w-full px-3 py-2 bg-input border border-border rounded text-foreground"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {rebalancePeriod.mode !== 'disabled' && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="allow-first-rebalance"
+                      checked={rebalancePeriod.allowFirstRebalance}
+                      onChange={(e) => setRebalancePeriod({
+                        ...rebalancePeriod,
+                        allowFirstRebalance: e.target.checked
+                      })}
+                      className="w-4 h-4 rounded border-border"
+                    />
+                    <label htmlFor="allow-first-rebalance" className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+                      首次交易日强制调仓
+                    </label>
+                  </div>
+                )}
               </div>
             </CollapsibleCard>
 

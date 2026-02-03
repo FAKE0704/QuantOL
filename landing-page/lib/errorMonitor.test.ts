@@ -84,13 +84,5 @@ export function exposeTestUtils() {
       promiseRejection: testPromiseRejection,
       highFrequency: testHighFrequencyErrors,
     };
-    console.log('[ErrorMonitor] Test utilities exposed to window.testErrorMonitor');
-    console.log('[ErrorMonitor] Available tests:');
-    console.log('  - window.testErrorMonitor.logError()');
-    console.log('  - window.testErrorMonitor.logWarning()');
-    console.log('  - window.testErrorMonitor.logInfo()');
-    console.log('  - window.testErrorMonitor.syncError()');
-    console.log('  - window.testErrorMonitor.promiseRejection()');
-    console.log('  - window.testErrorMonitor.highFrequency()');
   }
 }

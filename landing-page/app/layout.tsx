@@ -1,6 +1,16 @@
 import type { Metadata } from 'next'
-import { routing } from '@/lib/routing'
-import { notFound } from 'next/navigation'
+import { Inter, JetBrains_Mono } from 'next/font/google'
+import './globals.css'
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: '--font-mono',
+  subsets: ['latin'],
+})
 
 export const metadata: Metadata = {
   title: 'QuantOL - 专业级量化交易平台',
@@ -19,8 +29,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html>
-      <body>{children}</body>
+    <html lang="zh-CN" suppressHydrationWarning>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+        {children}
+      </body>
     </html>
   )
 }

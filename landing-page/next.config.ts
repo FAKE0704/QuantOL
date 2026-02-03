@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  experimental: {
+    allowedDevOrigins: ['113.45.40.20', 'http://auto-world-lab.cn'],
+  },
 };
 
 export default withNextIntl(nextConfig);

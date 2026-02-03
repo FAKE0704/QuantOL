@@ -5,6 +5,19 @@
  */
 
 /**
+ * Rebalance period configuration (调仓周期配置)
+ */
+export interface RebalancePeriodConfig {
+  mode: 'trading_days' | 'calendar_rule' | 'disabled';
+  trading_days_interval?: number;
+  calendar_frequency?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  calendar_day?: number;
+  calendar_month?: number;
+  min_interval_days?: number;
+  allow_first_rebalance?: boolean;
+}
+
+/**
  * DataFrame serialization format (from Python pandas)
  * When pandas DataFrames are serialized via CustomEncoder in backtest_state_service.py
  */

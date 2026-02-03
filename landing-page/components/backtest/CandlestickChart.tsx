@@ -157,22 +157,17 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
   }, [isFullscreen, handleChartResize]);
 
   useEffect(() => {
-    console.log("Chart init useEffect: chartContainerRef.current =", chartContainerRef.current);
     if (!chartContainerRef.current) {
-      console.log("Chart container is null, skipping init");
       return;
     }
 
     let mounted = true;
-    console.log("Starting lightweight-charts import...");
 
     // 动态导入 lightweight-charts v5
     import("lightweight-charts").then((module) => {
       if (!mounted || !chartContainerRef.current) return;
 
       const { createChart, CandlestickSeries } = module;
-
-      console.log("Creating chart with CandlestickSeries...");
 
       const chart = createChart(chartContainerRef.current, {
         width: chartContainerRef.current.clientWidth,
@@ -214,7 +209,6 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
 
       // v5 新API: 使用 addSeries 而不是 addCandlestickSeries
       try {
-        console.log("About to call chart.addSeries...");
         const candlestickSeries = chart.addSeries(CandlestickSeries, {
           upColor: "#22c55e",
           downColor: "#ef4444",
@@ -223,13 +217,11 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
           wickUpColor: "#22c55e",
           wickDownColor: "#ef4444",
         });
-        console.log("Series created successfully:", candlestickSeries);
 
         seriesRef.current = candlestickSeries;
         setIsReady(true);
       } catch (error) {
         console.error("Error creating series:", error);
-        console.error("Error details:", error instanceof Error ? error.message : error);
       }
 
       // 响应式调整大小
@@ -256,7 +248,6 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
   // 更新K线数据 - 只有当图表准备好后才执行
   useEffect(() => {
     if (!isReady || !seriesRef.current || !priceData.length) {
-      console.log("Skip setData: isReady =", isReady, ", seriesRef.current =", seriesRef.current, ", priceData.length =", priceData.length);
       return;
     }
 
@@ -264,10 +255,6 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
       // 使用 Unix 时间戳（秒）以保留精确时间
       const dateObj = new Date(item.time);
       const time = Math.floor(dateObj.getTime() / 1000);
-
-      if (index === 0) {
-        console.log("Sample time conversion:", item.time, "->", time, "(", dateObj.toISOString(), ")");
-      }
 
       // 验证数据
       if (!item.open || !item.high || !item.low || !item.close) {
@@ -283,22 +270,12 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
       };
     });
 
-    console.log("Setting candlestick data:", candlestickData.length, "points");
-    console.log("First data point:", candlestickData[0]);
-    console.log("Last data point:", candlestickData[candlestickData.length - 1]);
-    console.log("Checking time order...");
-    for (let i = 1; i < Math.min(5, candlestickData.length); i++) {
-      console.log(`  [${i}] time=${candlestickData[i].time}, prev=${candlestickData[i-1].time}, ordered=${candlestickData[i].time >= candlestickData[i-1].time}`);
-    }
-
     try {
       seriesRef.current.setData(candlestickData);
-      console.log("Data set successfully");
 
       // 使用 chartRef 调用 timeScale().fitContent()
       if (chartRef.current) {
         chartRef.current.timeScale().fitContent();
-        console.log("Called fitContent()");
       }
     } catch (error) {
       console.error("Error setting data:", error);
@@ -350,8 +327,6 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
           console.warn("Could not set series visibility:", e);
         }
       });
-
-      console.log(`Updated ${indicators.length} indicator lines`);
     }).catch(err => {
       console.error("Failed to load LineSeries:", err);
     });
@@ -468,10 +443,7 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
 
   // 添加买卖点标记 - 启用并优化
   useEffect(() => {
-    console.log("Markers useEffect: isReady =", isReady, ", trades.length =", trades?.length);
-
     if (!isReady || !seriesRef.current || !trades.length) {
-      console.log("Skipping markers");
       return;
     }
 
@@ -551,15 +523,9 @@ export function CandlestickChart({ priceData, trades, height = 400, parserData }
         };
       });
 
-      console.log("Setting markers:", markers.length, "markers, size:", markerSize);
-      if (markers.length > 0) {
-        console.log("Sample marker:", markers[0]);
-      }
-
       try {
         // 创建标记插件
         const seriesMarkers = createSeriesMarkers(seriesRef.current, markers);
-        console.log("Markers created successfully");
 
         // 监听时间轴可见范围变化，动态更新标记大小
         const handleVisibleRangeChange = () => {

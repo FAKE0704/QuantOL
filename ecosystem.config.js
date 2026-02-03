@@ -11,7 +11,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '1G',
-      env: {
+      env_development: {
         NODE_ENV: 'development',
       },
       env_production: {
@@ -28,22 +28,24 @@ module.exports = {
     },
     {
       name: 'quantol-nextjs',
-      script: 'npm',
-      args: 'start',
+      script: 'npx',
+      args: 'next dev',
       cwd: '/home/user0704/QuantOL/landing-page',
       interpreter: 'none',
       instances: 1,
       exec_mode: 'fork',
       autorestart: true,
-      watch: false,
+      watch: ['next.config.ts'],
+      ignore_watch: ['node_modules', '.next', 'logs'],
       max_memory_restart: '500M',
-      env: {
+      env_development: {
         NODE_ENV: 'development',
         PORT: 3000,
       },
       env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
+        args: '-c "npx next start"',
       },
       error_file: './logs/pm2-nextjs-error.log',
       out_file: './logs/pm2-nextjs-out.log',
@@ -64,7 +66,7 @@ module.exports = {
       autorestart: true,
       watch: false,
       max_memory_restart: '2G',
-      env: {
+      env_development: {
         NODE_ENV: 'development',
       },
       env_production: {
@@ -86,7 +88,7 @@ module.exports = {
       exec_mode: 'fork',
       autorestart: true,
       watch: false,
-      env: {
+      env_development: {
         NODE_ENV: 'development',
       },
       env_production: {

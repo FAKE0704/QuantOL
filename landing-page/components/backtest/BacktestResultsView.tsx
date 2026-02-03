@@ -105,12 +105,14 @@ export function BacktestResultsView({ backtestId }: BacktestResultsViewProps) {
       try {
         const response = await getBacktestResults(backtestId);
         if (response.success && response.data) {
-          // 后端返回的数据结构：data.result 包含实际的回测结果
-          const data = response.data as { result?: BacktestResults };
-          if (data.result) {
+          // 后端返回的数据结构：data.result_summary 包含实际的回测结果
+          const data = response.data as { result_summary?: BacktestResults; result?: BacktestResults };
+          if (data.result_summary) {
+            setResults(data.result_summary);
+          } else if (data.result) {
             setResults(data.result);
           } else {
-            // 兼容：如果没有 result 字段，直接使用 data
+            // 兼容：直接使用 data
             setResults(response.data as unknown as BacktestResults);
           }
         } else {
@@ -209,10 +211,6 @@ export function BacktestResultsView({ backtestId }: BacktestResultsViewProps) {
         volume: item.volume ? Number(item.volume) : undefined,
       }))
     : []) || [];
-
-  // Debug: 检查 price_data 解析结果
-  console.log("BacktestResultsView: priceData.length =", priceData.length);
-  console.log("BacktestResultsView: First 3 priceData:", priceData.slice(0, 3));
 
   const combinedEquity = (results.combined_equity && isSerializedDataFrame(results.combined_equity)
     ? (results.combined_equity.__data__ as unknown as EquityRecord[])

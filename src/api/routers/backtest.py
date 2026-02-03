@@ -12,10 +12,12 @@ Provides RESTful API endpoints for backtesting:
 - POST /api/backtest/configs/{id}/set-default - Set default configuration
 """
 
-from typing import Optional, List
+from typing import Optional, List, AsyncGenerator
 from datetime import datetime
+import json
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from src.database import get_db_adapter
@@ -32,7 +34,64 @@ router = APIRouter()
 # Security
 security = HTTPBearer()
 
+
+def _filter_result_summary(result_summary: Optional[dict]) -> dict:
+    """Filter result summary to only include summary information.
+
+    This is used for the /status endpoint to avoid returning large result sets.
+    Full results can be obtained from the /results/{backtest_id} endpoint.
+
+    Handles both single-symbol and multi-symbol modes:
+    - Single-symbol: result_summary has 'summary' and 'performance_metrics' at top level
+    - Multi-symbol: result_summary has 'individual' dict with per-symbol results
+    """
+    if not result_summary or not isinstance(result_summary, dict):
+        return {}
+
+    # Check if this is multi-symbol mode (has 'individual' key)
+    if "individual" in result_summary:
+        # Multi-symbol mode: extract combined equity and individual summaries
+        filtered = {
+            "individual": {},
+            "combined_equity": result_summary.get("combined_equity"),
+        }
+
+        # Extract summary from each individual symbol result
+        individual_results = result_summary.get("individual", {})
+        if isinstance(individual_results, dict):
+            for symbol, symbol_result in individual_results.items():
+                if isinstance(symbol_result, dict):
+                    filtered["individual"][symbol] = {
+                        "summary": symbol_result.get("summary", {}),
+                        "performance_metrics": symbol_result.get("performance_metrics", {}),
+                    }
+
+        # Add strategy mapping if present
+        if "strategy_mapping" in result_summary:
+            filtered["strategy_mapping"] = result_summary["strategy_mapping"]
+        if "default_strategy" in result_summary:
+            filtered["default_strategy"] = result_summary["default_strategy"]
+
+        return filtered
+
+    # Single-symbol mode: only return summary and performance_metrics
+    return {
+        "summary": result_summary.get("summary", {}),
+        "performance_metrics": result_summary.get("performance_metrics", {}),
+    }
+
 # Pydantic models
+
+
+class RebalancePeriodConfig(BaseModel):
+    """Rebalance period configuration."""
+    mode: str = "disabled"  # "trading_days", "calendar_rule", "disabled"
+    trading_days_interval: Optional[int] = None
+    calendar_frequency: Optional[str] = None  # "weekly", "monthly", "quarterly", "yearly"
+    calendar_day: Optional[int] = None
+    calendar_month: Optional[int] = None
+    min_interval_days: Optional[int] = 0
+    allow_first_rebalance: bool = True
 
 
 class BacktestRequest(BaseModel):
@@ -58,6 +117,9 @@ class BacktestRequest(BaseModel):
 
     # Strategy config (rules, signals, etc.)
     strategy_config: Optional[dict] = None
+
+    # Rebalance period config
+    rebalance_period: Optional[RebalancePeriodConfig] = None
 
 
 class BacktestResponse(BaseModel):
@@ -196,6 +258,57 @@ class CustomStrategyListResponse(BaseModel):
 _backtests: dict[str, dict] = {}
 
 
+# Auth dependency for getting current user
+async def get_current_user_from_token(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
+        HTTPBearer(auto_error=False)
+    ),
+) -> dict:
+    """Get current authenticated user from JWT token.
+
+    Args:
+        credentials: HTTP Bearer token credentials (optional)
+
+    Returns:
+        User info from token payload
+
+    Raises:
+        HTTPException: If token is invalid or expired
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    if not credentials or not credentials.credentials:
+        logger.warning("No authorization credentials provided")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated - No authorization credentials provided",
+        )
+
+    token = credentials.credentials
+    logger.info(f"Token received: {token[:20]}..." if len(token) > 20 else f"Token received: {token}")
+    jwt_service = JWTService()
+
+    try:
+        payload = jwt_service.verify_token(token)
+        if payload is None:
+            logger.warning("Token verification returned None")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+            )
+        logger.info(f"User authenticated: user_id={payload.get('user_id')}")
+        return payload
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Token verification error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token verification failed: {str(e)}",
+        )
+
+
 # Endpoints
 
 
@@ -230,29 +343,89 @@ async def run_backtest(request: BacktestRequest, background_tasks: BackgroundTas
         )
 
 
-@router.get("/results/{backtest_id}", response_model=BacktestResponse)
+async def _stream_json_response(data: dict) -> AsyncGenerator[bytes, None]:
+    """Stream JSON response in chunks to avoid memory issues with large responses.
+
+    Args:
+        data: Data dictionary to serialize
+
+    Yields:
+        JSON bytes in chunks
+    """
+    # 使用 json.dumps 生成完整 JSON，但分块发送
+    json_str = json.dumps(data, ensure_ascii=False, default=str)
+    # 分块发送，每块 8KB
+    chunk_size = 8192
+    for i in range(0, len(json_str), chunk_size):
+        yield json_str[i:i + chunk_size].encode('utf-8')
+
+
+@router.get("/results/{backtest_id}")
 async def get_backtest_results(backtest_id: str):
-    """Get results and progress for a specific backtest from Redis.
+    """Get results and progress for a specific backtest.
+
+    Uses streaming response for large result sets to avoid ERR_CONTENT_LENGTH_MISMATCH errors.
 
     Args:
         backtest_id: Backtest ID
 
     Returns:
-        Backtest results response
+        Streaming JSON response with backtest results
     """
     try:
+        # First try Redis (for active/recent backtests)
         backtest = backtest_state_service.get_backtest(backtest_id)
 
-        if not backtest:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Backtest {backtest_id} not found",
-            )
+        # Map 'result' field to 'result_summary' for frontend compatibility
+        if backtest and "result" in backtest:
+            backtest["result_summary"] = backtest.pop("result")
 
-        return BacktestResponse(
-            success=True,
-            message="Backtest status retrieved",
-            data=backtest,
+        # If not in Redis, try database (for completed backtests)
+        if not backtest:
+            task = await backtest_task_service.get_backtest_task(backtest_id)
+
+            if not task:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Backtest {backtest_id} not found",
+                )
+
+            # Convert database task to response format
+            # Parse result_summary if it exists as JSON string
+            result_summary = task.get("result_summary")
+            if result_summary and isinstance(result_summary, str):
+                try:
+                    result_summary = json.loads(result_summary)
+                except:
+                    result_summary = None
+
+            backtest = {
+                "id": task["backtest_id"],
+                "status": task["status"],
+                "progress": task["progress"],
+                "current_time": task.get("current_time"),
+                "config": task.get("config"),
+                "result_summary": result_summary,
+                "error": task.get("error_message"),
+                "created_at": task["created_at"],
+                "started_at": task.get("started_at"),
+                "completed_at": task.get("completed_at"),
+            }
+
+        response_data = {
+            "success": True,
+            "message": "Backtest results retrieved",
+            "data": backtest,
+        }
+
+        # 使用流式响应
+        return StreamingResponse(
+            _stream_json_response(response_data),
+            media_type="application/json",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",  # 禁用 Nginx 缓冲
+            }
         )
 
     except HTTPException:
@@ -260,7 +433,7 @@ async def get_backtest_results(backtest_id: str):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch backtest status: {str(e)}",
+            detail=f"Failed to fetch backtest results: {str(e)}",
         )
 
 
@@ -322,6 +495,9 @@ async def get_backtest_status(backtest_id: str):
     This endpoint is used by the frontend to recover state after page refresh.
     It checks both Redis (for active backtests) and database (for completed ones).
 
+    Note: For completed backtests with large results, only a summary is returned.
+      Full results can be obtained from the /results/{backtest_id} endpoint.
+
     Args:
         backtest_id: Backtest ID
 
@@ -343,18 +519,33 @@ async def get_backtest_status(backtest_id: str):
                 )
 
             # Convert database task to response format
+            # Ensure result_summary is a dict (safe_json_loads already handles this)
+            result_summary = task.get("result_summary")
+            if result_summary is None:
+                result_summary = {}
+
             backtest = {
                 "id": task["backtest_id"],
                 "status": task["status"],
                 "progress": task["progress"],
                 "current_time": task["current_time"],
-                "config": task["config"],
+                "config": task.get("config") or {},
                 "created_at": task["created_at"],
                 "started_at": task["started_at"],
                 "completed_at": task["completed_at"],
-                "result": task.get("result_summary"),
+                "result": _filter_result_summary(result_summary),
                 "error": task.get("error_message"),
             }
+        else:
+            # For Redis data, strip out large fields to avoid response size issues
+            # The full result is available via /results/{backtest_id}
+            result = backtest.get("result", {})
+            if isinstance(result, dict):
+                # Only keep summary info, remove large data arrays
+                filtered_result = {
+                    "summary": result.get("summary", {}),
+                }
+                backtest["result"] = filtered_result
 
         return BacktestResponse(
             success=True,
@@ -435,245 +626,7 @@ async def get_backtest_history(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch backtest history: {str(e)}",
         )
-
-
-@router.get("/{backtest_id}", response_model=BacktestResponse)
-async def get_backtest_detail(
-    backtest_id: str,
-    current_user: dict = Depends(get_current_user_from_token),
-):
-    """Get detailed backtest results from database.
-
-    Args:
-        backtest_id: Backtest ID
-        current_user: Current authenticated user
-
-    Returns:
-        Full backtest details response
-    """
-    try:
-        user_id = current_user.get("user_id")
-        if user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid user token",
-            )
-
-        # Get from database first (for completed backtests)
-        task = await backtest_task_service.get_backtest_task(backtest_id)
-
-        if not task:
-            # If not in database, try Redis (for active backtests)
-            backtest = backtest_state_service.get_backtest(backtest_id)
-
-            if not backtest:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Backtest {backtest_id} not found",
-                )
-
-            return BacktestResponse(
-                success=True,
-                message="Backtest details retrieved",
-                data=backtest,
-            )
-
-        # Verify ownership
-        if task["user_id"] != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to access this backtest",
-            )
-
-        return BacktestResponse(
-            success=True,
-            message="Backtest details retrieved",
-            data=task,
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch backtest details: {str(e)}",
-        )
-
-
-@router.delete("/{backtest_id}", response_model=BacktestResponse)
-async def delete_backtest(
-    backtest_id: str,
-    current_user: dict = Depends(get_current_user_from_token),
-):
-    """Delete a backtest from database.
-
-    Args:
-        backtest_id: Backtest ID
-        current_user: Current authenticated user
-
-    Returns:
-        Deletion response
-    """
-    try:
-        user_id = current_user.get("user_id")
-        if user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid user token",
-            )
-
-        # Delete from database
-        deleted = await backtest_task_service.delete_backtest_task(backtest_id, user_id)
-
-        # Also delete from Redis if exists
-        backtest_state_service.delete_backtest(backtest_id)
-
-        if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Backtest {backtest_id} not found or access denied",
-            )
-
-        return BacktestResponse(
-            success=True,
-            message="Backtest deleted successfully",
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete backtest: {str(e)}",
-        )
-
-
-@router.get("/{backtest_id}/logs", response_model=BacktestResponse)
-async def get_backtest_logs(
-    backtest_id: str,
-    line_start: int = 0,
-    line_end: int = 1000,
-    current_user: dict = Depends(get_current_user_from_token),
-):
-    """Get backtest log file content with pagination.
-
-    Args:
-        backtest_id: Backtest ID
-        line_start: Start line number (0-indexed)
-        line_end: End line number (exclusive)
-        current_user: Current authenticated user
-
-    Returns:
-        Log content response
-    """
-    try:
-        user_id = current_user.get("user_id")
-        if user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid user token",
-            )
-
-        # Get backtest task to find log file path
-        task = await backtest_task_service.get_backtest_task(backtest_id)
-
-        if not task:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Backtest {backtest_id} not found",
-            )
-
-        # Verify ownership
-        if task["user_id"] != user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have permission to access this backtest",
-            )
-
-        # Read log file
-        log_file_path = task.get("log_file_path")
-        if not log_file_path:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Log file not found for this backtest",
-            )
-
-        import os
-        if not os.path.exists(log_file_path):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Log file does not exist",
-            )
-
-        # Read log file with pagination
-        try:
-            with open(log_file_path, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-
-            # Apply pagination
-            total_lines = len(lines)
-            paginated_lines = lines[line_start:line_end]
-
-            return BacktestResponse(
-                success=True,
-                message="Log content retrieved",
-                data={
-                    "backtest_id": backtest_id,
-                    "total_lines": total_lines,
-                    "line_start": line_start,
-                    "line_end": min(line_end, total_lines),
-                    "lines": paginated_lines,
-                },
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to read log file: {str(e)}",
-            )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to fetch backtest logs: {str(e)}",
-        )
-
-
 # Backtest config management endpoints
-
-
-# Auth dependency for getting current user
-async def get_current_user_from_token(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
-    """Get current authenticated user from JWT token.
-
-    Args:
-        credentials: HTTP Bearer token credentials
-
-    Returns:
-        User info from token payload
-
-    Raises:
-        HTTPException: If token is invalid or expired
-    """
-    token = credentials.credentials
-    jwt_service = JWTService()
-
-    try:
-        payload = jwt_service.verify_token(token)
-        if payload is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token",
-            )
-        return payload
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Token verification failed: {str(e)}",
-        )
 
 
 async def get_config_service() -> BacktestConfigService:
@@ -1101,6 +1054,9 @@ async def list_custom_strategies(
     Returns:
         List of custom strategies
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"list_custom_strategies called for user_id: {current_user.get('user_id')}")
     try:
         strategies = await config_service.list_custom_strategies(current_user["user_id"])
 
@@ -1243,4 +1199,210 @@ async def delete_custom_strategy(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete custom strategy: {str(e)}",
+        )
+
+
+# Generic backtest detail endpoints (must be AFTER specific routes like /configs and /custom-strategies)
+
+
+@router.get("/{backtest_id}", response_model=BacktestResponse)
+async def get_backtest_detail(
+    backtest_id: str,
+    current_user: dict = Depends(get_current_user_from_token),
+):
+    """Get detailed backtest results from database.
+
+    Args:
+        backtest_id: Backtest ID
+        current_user: Current authenticated user
+
+    Returns:
+        Full backtest details response
+    """
+    try:
+        user_id = current_user.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user token",
+            )
+
+        # Get from database first (for completed backtests)
+        task = await backtest_task_service.get_backtest_task(backtest_id)
+
+        if not task:
+            # If not in database, try Redis (for active backtests)
+            backtest = backtest_state_service.get_backtest(backtest_id)
+
+            if not backtest:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Backtest {backtest_id} not found",
+                )
+
+            return BacktestResponse(
+                success=True,
+                message="Backtest details retrieved",
+                data=backtest,
+            )
+
+        # Verify ownership
+        if task["user_id"] != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to access this backtest",
+            )
+
+        return BacktestResponse(
+            success=True,
+            message="Backtest details retrieved",
+            data=task,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch backtest details: {str(e)}",
+        )
+
+
+@router.delete("/{backtest_id}", response_model=BacktestResponse)
+async def delete_backtest(
+    backtest_id: str,
+    current_user: dict = Depends(get_current_user_from_token),
+):
+    """Delete a backtest from database.
+
+    Args:
+        backtest_id: Backtest ID
+        current_user: Current authenticated user
+
+    Returns:
+        Deletion response
+    """
+    try:
+        user_id = current_user.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user token",
+            )
+
+        # Delete from database
+        deleted = await backtest_task_service.delete_backtest_task(backtest_id, user_id)
+
+        # Also delete from Redis if exists
+        backtest_state_service.delete_backtest(backtest_id)
+
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Backtest {backtest_id} not found or access denied",
+            )
+
+        return BacktestResponse(
+            success=True,
+            message="Backtest deleted successfully",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete backtest: {str(e)}",
+        )
+
+
+@router.get("/{backtest_id}/logs", response_model=BacktestResponse)
+async def get_backtest_logs(
+    backtest_id: str,
+    line_start: int = 0,
+    line_end: int = 1000,
+    current_user: dict = Depends(get_current_user_from_token),
+):
+    """Get backtest log file content with pagination.
+
+    Args:
+        backtest_id: Backtest ID
+        line_start: Start line number (0-indexed)
+        line_end: End line number (exclusive)
+        current_user: Current authenticated user
+
+    Returns:
+        Log content response
+    """
+    try:
+        user_id = current_user.get("user_id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user token",
+            )
+
+        # Get backtest task to find log file path
+        task = await backtest_task_service.get_backtest_task(backtest_id)
+
+        if not task:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Backtest {backtest_id} not found",
+            )
+
+        # Verify ownership
+        if task["user_id"] != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to access this backtest",
+            )
+
+        # Read log file
+        log_file_path = task.get("log_file_path")
+        if not log_file_path:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Log file not found for this backtest",
+            )
+
+        import os
+        if not os.path.exists(log_file_path):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Log file does not exist",
+            )
+
+        # Read log file with pagination
+        try:
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+
+            # Apply pagination
+            total_lines = len(lines)
+            paginated_lines = lines[line_start:line_end]
+
+            return BacktestResponse(
+                success=True,
+                message="Log content retrieved",
+                data={
+                    "backtest_id": backtest_id,
+                    "total_lines": total_lines,
+                    "line_start": line_start,
+                    "line_end": min(line_end, total_lines),
+                    "lines": paginated_lines,
+                },
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to read log file: {str(e)}",
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch backtest logs: {str(e)}",
         )

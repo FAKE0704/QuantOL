@@ -32,7 +32,8 @@ mock_session_state = MockSessionState()
 import streamlit as st
 st.session_state = mock_session_state
 
-from src.core.strategy.backtesting import BacktestEngine, BacktestConfig
+from src.core.strategy.backtesting import BacktestConfig
+from src.core.backtest import BacktestEngine
 from src.core.strategy.rule_based_strategy import RuleBasedStrategy
 from src.core.strategy.indicators import IndicatorService
 

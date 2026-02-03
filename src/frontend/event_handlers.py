@@ -1,6 +1,6 @@
 import streamlit as st
 from typing import Any, Dict
-from src.core.strategy.backtesting import BacktestEngine
+from src.core.backtest import BacktestEngine
 from src.event_bus.event_types import StrategySignalEvent, StrategyScheduleEvent
 from src.core.strategy.event_handlers import handle_signal, handle_schedule
 from src.core.strategy.signal_types import SignalType

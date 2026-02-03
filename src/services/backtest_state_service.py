@@ -2,48 +2,11 @@
 
 import json
 from datetime import datetime
-import pandas as pd
-import numpy as np
 from typing import Optional, Dict, Any
 import redis
+import pandas as pd
 from src.support.log.logger import logger
-
-
-class CustomEncoder(json.JSONEncoder):
-    """自定义JSON编码器，处理pandas和numpy类型"""
-    def default(self, o):
-        if isinstance(o, pd.Timestamp):
-            return o.isoformat()
-        elif isinstance(o, datetime):
-            return o.isoformat()
-        elif isinstance(o, np.integer):
-            return int(o)
-        elif isinstance(o, np.floating):
-            return float(o)
-        elif isinstance(o, np.ndarray):
-            return o.tolist()
-        elif isinstance(o, pd.DataFrame):
-            # 保存 DataFrame 的 attrs 属性，避免规则映射信息丢失
-            result = {
-                "__type__": "DataFrame",
-                "__attrs__": getattr(o, 'attrs', {}),
-                "__data__": o.to_dict('records')
-            }
-            return result
-        elif isinstance(o, pd.Series):
-            return o.tolist()
-        elif hasattr(o, '__dataclass_fields__'):
-            # 处理 dataclass 对象（如 Position）
-            from dataclasses import asdict
-            try:
-                return asdict(o)
-            except Exception:
-                # 如果序列化失败，返回字典表示
-                return {k: v for k, v in o.__dict__.items() if not k.startswith('_')}
-        elif o.__class__.__name__ == 'SimpleStock':
-            # 处理 SimpleStock 对象
-            return {'symbol': o.symbol, 'last_price': o.last_price}
-        return super().default(o)
+from src.utils.encoders import QuantOLEncoder
 
 
 class BacktestStateService:
@@ -101,7 +64,8 @@ class BacktestStateService:
             if current_time is not None:
                 updates["current_time"] = current_time
             if result is not None:
-                updates["result"] = json.dumps(result, cls=CustomEncoder)
+                # 使用QuantOLEncoder处理特殊类型
+                updates["result"] = json.dumps(result, cls=QuantOLEncoder)
             if error is not None:
                 updates["error"] = error
 

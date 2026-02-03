@@ -274,18 +274,44 @@ uv run streamlit run main.py --server.address 0.0.0.0
 QuantOL/
 ├── src/                     # 后端核心
 │   ├── api/                 # FastAPI 路由
+│   │   ├── models/          # Pydantic 请求/响应模型
+│   │   │   ├── common.py           # 通用模型
+│   │   │   ├── backtest_requests.py
+│   │   │   └── backtest_responses.py
 │   │   ├── routers/         # API 端点
-│   │   │   ├── backtest.py  # 回测 API
+│   │   │   ├── backtest/    # 回测路由子包 (模块化)
+│   │   │   │   ├── execution.py      # 执行端点
+│   │   │   │   ├── results.py        # 结果端点
+│   │   │   │   ├── configs.py        # 配置端点
+│   │   │   │   ├── custom_strategies.py # 策略端点
+│   │   │   │   └── logs.py           # 日志端点
+│   │   │   ├── auth.py      # 认证 API
+│   │   │   ├── stocks.py    # 股票 API
 │   │   │   └── websocket.py # WebSocket API
+│   │   ├── deps.py          # 通用依赖注入
+│   │   ├── utils.py         # 共享工具函数
 │   │   └── server.py        # FastAPI 应用
 │   ├── core/                # 核心业务逻辑
 │   │   ├── data/            # 数据管理
 │   │   │   ├── database.py  # 数据库管理
 │   │   │   └── data_source.py
 │   │   ├── strategy/        # 策略管理
-│   │   │   ├── backtesting.py  # 回测引擎
-│   │   │   ├── rule_parser.py  # 规则解析
-│   │   │   └── position_strategy.py
+│   │   │   ├── backtesting.py      # 回测引擎
+│   │   │   ├── rule_parser/        # 规则解析器包 (模块化)
+│   │   │   │   ├── expression_context.py    # 评估上下文
+│   │   │   │   ├── ast_node_handler.py      # AST操作工具
+│   │   │   │   ├── cache_manager.py          # LRU缓存管理
+│   │   │   │   ├── result_storage.py         # 结果存储管理
+│   │   │   │   ├── cross_sectional_ranker.py # 横截面排名
+│   │   │   │   ├── rule_evaluator.py         # 表达式评估
+│   │   │   │   └── rule_parser.py            # 门面类 (向后兼容)
+│   │   │   ├── rule_based_strategy.py # 规则策略
+│   │   │   └── position_strategy.py   # 仓位策略
+│   │   ├── backtest/        # 回测引擎 (模块化)
+│   │   │   ├── protocols/    # 协议接口
+│   │   │   ├── services/     # 服务层
+│   │   │   ├── coordinators/ # 协调器
+│   │   │   └── engine.py     # 重构引擎
 │   │   ├── execution/       # 交易执行
 │   │   ├── risk/            # 风险控制
 │   │   └── portfolio/       # 投资组合
@@ -293,11 +319,19 @@ QuantOL/
 │   │   ├── backtesting.py
 │   │   └── backtest_config_ui.py
 │   ├── services/            # 服务层
+│   │   ├── interfaces/      # 服务接口定义
 │   │   ├── backtest_state_service.py    # Redis 状态存储
 │   │   ├── backtest_task_manager.py     # 异步任务管理
+│   │   ├── backtest_task_service.py     # 任务服务
 │   │   ├── websocket_manager.py         # WebSocket 连接管理
 │   │   └── chart_service.py             # 图表服务
-│   └── event_bus/           # 事件总线
+│   ├── event_bus/          # 事件总线
+│   │   ├── service_events.py            # 服务事件定义
+│   │   └── local_service_bus.py         # 本地服务总线
+│   └── utils/              # 工具模块
+│       ├── encoders.py      # JSON 编码器
+│       ├── async_helpers.py # 异步辅助工具
+│       └── strategy_registry.py # 策略注册表
 ├── landing-page/            # React/Next.js 前端
 │   ├── app/                 # Next.js App Router
 │   │   └── (app)/
@@ -313,6 +347,25 @@ QuantOL/
 ├── start.sh                 # 启动脚本
 └── stop.sh                  # 停止脚本
 ```
+
+### 架构改进 (2025年2月重构)
+
+#### RuleParser 模块化 (1061行 → 7个组件)
+- **ExpressionContext** - 不可变的评估上下文数据类
+- **ASTNodeHandler** - 无状态AST节点操作工具
+- **RuleCacheManager** - LRU缓存管理器 (时间相关/无关分离)
+- **ResultStorageManager** - DataFrame列存储管理
+- **CrossSectionalRanker** - 横截面排名逻辑
+- **RuleEvaluator** - 表达式评估核心逻辑
+- **RuleParser (门面)** - 向后兼容的统一入口
+
+#### API Router 模块化 (1408行 → 5个子模块)
+- **execution.py** - 回测执行端点
+- **results.py** - 结果查询端点 (6个)
+- **configs.py** - 配置管理端点 (6个)
+- **custom_strategies.py** - 自定义策略端点 (6个)
+- **logs.py** - 日志查询端点
+- **models/** - 统一的Pydantic模型组织
 
 ### 事件驱动架构
 

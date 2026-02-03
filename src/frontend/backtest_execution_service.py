@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from typing import Dict, Any, List
-from src.core.strategy.backtesting import BacktestEngine
+from src.core.backtest import BacktestEngine
 from src.core.strategy.rule_based_strategy import RuleBasedStrategy
 from src.core.strategy.strategy import FixedInvestmentStrategy
 from src.event_bus.event_types import StrategySignalEvent
@@ -16,12 +16,18 @@ class BacktestExecutionService:
 
     def initialize_engine(self, backtest_config: Any, data: Any, backtest_id: str = None) -> BacktestEngine:
         """初始化回测引擎"""
+        print(f"[DEBUG] BacktestExecutionService.initialize_engine:")
+        print(f"[DEBUG]   self.session_state.db = {self.session_state.db}")
+        print(f"[DEBUG]   type(self.session_state.db) = {type(self.session_state.db)}")
+
         engine = BacktestEngine(
             config=backtest_config,
             data=data,
             db_adapter=self.session_state.db,
             backtest_id=backtest_id
         )
+
+        print(f"[DEBUG]   engine.db_adapter = {engine.db_adapter}")
 
         # 注册信号处理器
         engine.register_handler(StrategySignalEvent, self._create_signal_handler(engine))
@@ -70,9 +76,18 @@ class BacktestExecutionService:
         for symbol, symbol_data in data.items():
             print(f"[DEBUG] 处理符号: {symbol}")
             symbol_strategy_config = backtest_config.get_strategy_for_symbol(symbol)
-            strategy_type = symbol_strategy_config.get('type', '使用默认策略')
 
-            print(f"[DEBUG] 符号 {symbol} 策略类型: '{strategy_type}'")
+            # 优先使用 symbol_strategy_config 中的 type，如果没有则使用全局 strategy_type
+            if 'type' in symbol_strategy_config:
+                strategy_type = symbol_strategy_config['type']
+                print(f"[DEBUG] 符号 {symbol} 使用单独配置的策略类型: '{strategy_type}'")
+            else:
+                # 没有单独配置时，使用全局 strategy_type
+                strategy_type = backtest_config.strategy_type
+                print(f"[DEBUG] 符号 {symbol} 使用全局策略类型: '{strategy_type}'")
+                # 对于全局策略类型，需要合并 default_strategy 中的规则
+                symbol_strategy_config = {**backtest_config.default_strategy, **symbol_strategy_config}
+
             print(f"[DEBUG] 符号 {symbol} 策略配置: {symbol_strategy_config}")
 
             if strategy_type == "月定投":
@@ -95,8 +110,23 @@ class BacktestExecutionService:
                 )
             elif strategy_type.startswith("规则组:"):
                 strategy = self._create_rule_group_strategy(engine, symbol, symbol_data, strategy_type)
+            elif strategy_type.startswith("custom_"):
+                # 自定义策略ID，使用自定义规则模式
+                strategy = RuleBasedStrategy(
+                    Data=symbol_data,
+                    name=f"自定义规则策略_{symbol}",
+                    indicator_service=self.session_state.indicator_service,
+                    buy_rule_expr=symbol_strategy_config.get('buy_rule', ''),
+                    sell_rule_expr=symbol_strategy_config.get('sell_rule', ''),
+                    open_rule_expr=symbol_strategy_config.get('open_rule', ''),
+                    close_rule_expr=symbol_strategy_config.get('close_rule', ''),
+                    portfolio_manager=engine.portfolio_manager
+                )
             else:
-                continue
+                raise ValueError(
+                    f"符号 '{symbol}' 的策略类型 '{strategy_type}' 不支持。"
+                    f"支持的策略类型: '月定投', '自定义规则', '规则组:XXX', 'custom_XXX'"
+                )
 
             engine.register_strategy(strategy)
 
@@ -296,7 +326,10 @@ class BacktestExecutionService:
                     portfolio_manager=engine.portfolio_manager
                 )
         else:
-            print(f"[DEBUG] 单符号模式未知策略类型: {strategy_type}，跳过注册")
+            raise ValueError(
+                f"不支持的策略类型: '{strategy_type}'。"
+                f"支持的策略类型: '月定投', '自定义规则', '规则组:XXX'"
+            )
 
         # 统一注册策略（如果已创建）
         if strategy is not None:

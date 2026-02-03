@@ -5,10 +5,13 @@ providing persistent storage separate from Redis state management.
 """
 
 import json
+import pandas as pd
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from src.support.log.logger import logger
 from src.database import get_db_adapter
+from src.utils.async_helpers import retry_on_locked
+from src.utils.encoders import QuantOLEncoder, to_json_string
 
 
 class BacktestTaskService:
@@ -43,7 +46,7 @@ class BacktestTaskService:
             # Convert config to JSON string
             config_json = json.dumps(config)
 
-            async with db.pool.acquire() as conn:
+            async with db.pool as conn:
                 await conn.execute("""
                     INSERT INTO BacktestTasks
                     (backtest_id, user_id, name, status, config, log_file_path, created_at)
@@ -93,10 +96,11 @@ class BacktestTaskService:
                 param_count += 1
 
                 # Update timestamps based on status
+                # Use CURRENT_TIMESTAMP (works in both SQLite and PostgreSQL)
                 if status == "running":
-                    updates.append(f"started_at = NOW()")
+                    updates.append(f"started_at = CURRENT_TIMESTAMP")
                 elif status in ("completed", "failed"):
-                    updates.append(f"completed_at = NOW()")
+                    updates.append(f"completed_at = CURRENT_TIMESTAMP")
 
             if progress is not None:
                 updates.append(f"progress = ${param_count}")
@@ -110,7 +114,8 @@ class BacktestTaskService:
 
             if result_summary is not None:
                 updates.append(f"result_summary = ${param_count}")
-                params.append(json.dumps(result_summary))
+                # Use QuantOLEncoder to handle Timestamp, DataFrame, Series, numpy types
+                params.append(json.dumps(result_summary, cls=QuantOLEncoder))
                 param_count += 1
 
             if error_message is not None:
@@ -130,14 +135,23 @@ class BacktestTaskService:
                 WHERE backtest_id = ${param_count}
             """
 
-            async with db.pool.acquire() as conn:
-                await conn.execute(query, *params)
+            # Execute with retry on database lock
+            async def execute_update():
+                async with db.pool as conn:
+                    await conn.execute(query, *params)
+
+            await retry_on_locked(execute_update, max_retries=3, delay=0.1)
 
             logger.debug(f"Updated backtest task {backtest_id}")
             return True
 
         except Exception as e:
-            logger.error(f"Failed to update backtest task: {e}")
+            error_str = str(e).lower()
+            # Only log as error if it's not a lock issue (retries already handled)
+            if 'locked' not in error_str and 'database is locked' not in error_str:
+                logger.error(f"Failed to update backtest task: {e}")
+            else:
+                logger.warning(f"Failed to update backtest task after retries: {e}")
             return False
 
     async def get_backtest_task(self, backtest_id: str) -> Optional[Dict[str, Any]]:
@@ -152,7 +166,7 @@ class BacktestTaskService:
         try:
             db = get_db_adapter()
 
-            async with db.pool.acquire() as conn:
+            async with db.pool as conn:
                 row = await conn.fetchrow("""
                     SELECT id, backtest_id, user_id, name, status, progress,
                            current_time, config, result_summary, error_message,
@@ -205,7 +219,7 @@ class BacktestTaskService:
             query += " ORDER BY created_at DESC LIMIT $3"
             params.append(limit)
 
-            async with db.pool.acquire() as conn:
+            async with db.pool as conn:
                 rows = await conn.fetch(query, *params)
 
                 return [self._row_to_dict(row) for row in rows]
@@ -227,7 +241,7 @@ class BacktestTaskService:
         try:
             db = get_db_adapter()
 
-            async with db.pool.acquire() as conn:
+            async with db.pool as conn:
                 result = await conn.execute(
                     "DELETE FROM BacktestTasks WHERE backtest_id = $1 AND user_id = $2",
                     backtest_id, user_id
@@ -253,7 +267,7 @@ class BacktestTaskService:
         try:
             db = get_db_adapter()
 
-            async with db.pool.acquire() as conn:
+            async with db.pool as conn:
                 # Count completed backtests
                 count = await conn.fetchval("""
                     SELECT COUNT(*) FROM BacktestTasks

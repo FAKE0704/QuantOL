@@ -17,7 +17,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import routers
-from .routers import auth, stocks, backtest, websocket, strategies, dashboard, settings
+from .routers import auth, stocks, websocket, strategies, dashboard, settings
+from .routers.backtest import router as backtest
 
 
 @asynccontextmanager
@@ -69,7 +70,7 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
     app.include_router(stocks.router, prefix="/api", tags=["stocks"])
-    app.include_router(backtest.router, prefix="/api/backtest", tags=["backtest"])
+    app.include_router(backtest, prefix="/api/backtest", tags=["backtest"])
     app.include_router(websocket.router, prefix="/api", tags=["websocket"])
     app.include_router(strategies.router, prefix="/api/strategies", tags=["strategies"])
     app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])

@@ -130,7 +130,6 @@ class RuleBasedStrategy(BaseStrategy):
         注意：使用初始化时保存的规则列值，确保展示和交易逻辑一致
         """
         if not rule_expr:
-            logger.debug(f"{rule_type}规则为空，跳过")
             return None
 
         try:
@@ -142,28 +141,14 @@ class RuleBasedStrategy(BaseStrategy):
 
             if has_dynamic_vars:
                 # 实时解析包含动态变量的规则
-                logger.debug(f"{rule_type}规则包含动态变量，使用实时解析")
                 should_trade = self.parser.parse(rule_expr, mode='rule')
-                logger.debug(f"{rule_type}实时解析结果: {should_trade}, 当前索引: {self.parser.current_index}")
             elif clean_rule in self.parser.data.columns:
                 # 使用初始化时保存的规则列值（不重新解析，确保一致性）
-                logger.debug(f"{rule_type}原始表达式: '{rule_expr}'")
-                logger.debug(f"{rule_type}清理后列名: '{clean_rule}'")
-                # 检查索引3附近的值
-                if self.parser.current_index >= 2 and self.parser.current_index <= 4:
-                    logger.warning(f"{rule_type}当前索引={self.parser.current_index}, 显示周围索引的规则列值:")
-                    for i in range(max(0, self.parser.current_index-2), min(len(self.parser.data), self.parser.current_index+3)):
-                        parser_val = self.parser.data.at[i, clean_rule]
-                        debug_val = self.debug_data.at[i, clean_rule] if clean_rule in self.debug_data.columns else "N/A"
-                        logger.warning(f"  索引{i}: parser.data={parser_val}, debug_data={debug_val}")
-
                 should_trade = bool(self.parser.data.at[self.parser.current_index, clean_rule])
-                logger.debug(f"{rule_type}使用规则列[{clean_rule}]值: {should_trade}, 当前索引: {self.parser.current_index}")
             else:
                 # 规则列不存在的fallback情况（不应该发生）
                 logger.warning(f"{rule_type}规则列[{clean_rule}]不存在于parser.data")
                 should_trade = self.parser.parse(rule_expr)
-                logger.debug(f"{rule_type}规则解析结果: {should_trade}, 当前索引: {self.parser.current_index}")
 
             if should_trade:
                 logger.info(f"{rule_type}规则触发！生成 {signal_type.value} 信号")
@@ -177,8 +162,6 @@ class RuleBasedStrategy(BaseStrategy):
                     timestamp=self.Data.loc[self.parser.current_index,'combined_time'],
                     parameters={'current_index': self.parser.current_index}
                 )
-            else:
-                logger.debug(f"{rule_type}规则未触发")
         except Exception as e:
             logger.error(f"{rule_type}规则解析失败: {str(e)}")
         return None
@@ -196,7 +179,6 @@ class RuleBasedStrategy(BaseStrategy):
 
             # 更新解析器当前索引
             self.parser.current_index = current_index
-            logger.debug(f"generate_signals被调用，当前索引: {current_index}, 数据长度: {len(self.Data)}")
 
             # 获取当前标的的持仓状态
             current_symbol = self.Data['code'].iloc[-1] if 'code' in self.Data.columns else None
@@ -205,19 +187,15 @@ class RuleBasedStrategy(BaseStrategy):
                 position = self.portfolio_manager.get_position(current_symbol)
                 current_position = position.quantity if position else 0
 
-            logger.debug(f"当前持仓状态: symbol={current_symbol}, position={current_position}")
-
             # 根据持仓状态决定检查哪些规则
             if current_position == 0:
                 # 无持仓：只检查开仓规则
-                logger.debug("无持仓状态，检查开仓规则")
                 signal = self._generate_signal_from_rule(self.open_rule_expr, SignalType.OPEN, '开仓')
                 if signal:
                     logger.info(f"生成开仓信号: {signal}")
                     return signal
             else:
                 # 有持仓：检查清仓、加仓、平仓规则（按优先级）
-                logger.debug(f"有持仓状态(持仓={current_position})，检查清仓/加仓/平仓规则")
 
                 # 优先检查清仓规则（完全退出）
                 signal = self._generate_signal_from_rule(self.close_rule_expr, SignalType.LIQUIDATE, '清仓')

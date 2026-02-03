@@ -21,7 +21,8 @@ from src.services.parameter_scan_service import (
     ParameterCombination,
     create_scan_service_from_config
 )
-from src.core.strategy.backtesting import BacktestEngine, BacktestConfig
+from src.core.strategy.backtesting import BacktestConfig
+from src.core.backtest import BacktestEngine
 
 logger = logging.getLogger(__name__)
 
@@ -317,7 +318,14 @@ class OptimizationService:
             raise ValueError(f"No data available for screening period {screening_start} to {screening_end}")
 
         # Create backtest engine
-        engine = BacktestEngine(config, screening_data)
+        from src.database import get_db_adapter
+        db = get_db_adapter()
+        engine = BacktestEngine(
+            config,
+            screening_data,
+            db_adapter=db,
+            backtest_id=f"opt_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        )
 
         # Run backtest (synchronous for now, can be made async)
         start_date = datetime.strptime(screening_start, "%Y%m%d")

@@ -71,6 +71,11 @@ class BacktestConfig:
     position_strategy_type: str = "fixed_percent"
     position_strategy_params: Dict[str, Any] = field(default_factory=dict)
     min_lot_size: int = 100
+
+    # 调仓周期配置
+    rebalance_period_mode: str = "disabled"
+    rebalance_period_params: Dict[str, Any] = field(default_factory=dict)
+
     strategy_mapping: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     default_strategy: Dict[str, Any] = field(default_factory=dict)
 
@@ -258,6 +263,10 @@ class BacktestConfig:
         if self.strategy_inheritance:
             config_dict["strategy_inheritance"] = self.strategy_inheritance.copy()
 
+        # 添加调仓周期配置
+        config_dict["rebalance_period_mode"] = self.rebalance_period_mode
+        config_dict["rebalance_period_params"] = self.rebalance_period_params.copy()
+
         return config_dict
 
     @classmethod
@@ -434,6 +443,17 @@ class BacktestEngine:
                 indicator_service=self.indicator_service
             )
 
+        # 初始化调仓周期服务
+        self.rebalance_period_service = None
+        if hasattr(config, 'rebalance_period_mode') and config.rebalance_period_mode != 'disabled':
+            from src.services.rebalance_period_service import RebalancePeriodService
+            rebalance_config = {
+                "mode": config.rebalance_period_mode,
+                **config.rebalance_period_params
+            }
+            self.rebalance_period_service = RebalancePeriodService(rebalance_config)
+            logger.info(f"调仓周期服务已启用: mode={config.rebalance_period_mode}, config={rebalance_config}")
+
             # 注册排名策略
             self.register_strategy(self.ranking_strategy)
             logger.info(f"横截面排名功能已启用: {ranking_config.factor_expression}")
@@ -441,6 +461,13 @@ class BacktestEngine:
     @property
     def db(self):
         """获取数据库适配器（支持两种模式）"""
+        import traceback
+        print(f"[DEBUG] db property called:")
+        print(f"[DEBUG]   self.db_adapter = {self.db_adapter}")
+        print(f"[DEBUG]   type(self.db_adapter) = {type(self.db_adapter)}")
+        print(f"[DEBUG]   Traceback:")
+        for line in traceback.format_stack()[-5:]:
+            print(f"[DEBUG]     {line.strip()}")
         if self.db_adapter is not None:
             return self.db_adapter
         # 回退到Streamlit模式（安全检查）
@@ -532,16 +559,31 @@ class BacktestEngine:
                 self.update_rule_parser_data()
                 self.rule_parser.current_index = idx
 
+                # 判断是否是新的一天
+                is_new_day = (idx > 0 and
+                              self.data.iloc[idx]['combined_time'].date() !=
+                              self.data.iloc[idx-1]['combined_time'].date())
 
-                # 触发所有注册策略的定时检查
-                if idx == 0:
-                    logger.debug(f"已注册策略数量: {len(self.strategies)}")
-                    for i, strategy in enumerate(self.strategies):
-                        logger.debug(f"策略 {i}: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
+                # ========== 调仓周期控制 ==========
+                should_execute_strategy = True
+                if self.rebalance_period_service:
+                    should_execute_strategy = self.rebalance_period_service.should_rebalance(
+                        current_time=current_time,
+                        is_new_day=is_new_day
+                    )
 
-                for strategy in self.strategies:
-                    # logger.debug(f"触发策略: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
-                    strategy.on_schedule(self)
+                # 只有在允许调仓时才触发策略
+                if should_execute_strategy:
+                    # 触发所有注册策略的定时检查
+                    if idx == 0:
+                        logger.debug(f"已注册策略数量: {len(self.strategies)}")
+                        for i, strategy in enumerate(self.strategies):
+                            logger.debug(f"策略 {i}: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
+
+                    for strategy in self.strategies:
+                        # logger.debug(f"触发策略: {type(strategy).__name__} - {strategy.name if hasattr(strategy, 'name') else '未命名'}")
+                        strategy.on_schedule(self)
+                # ======================================
 
                 # 处理事件队列（处理非StrategySignalEvent和OrderEvent的其他事件）
                 # logger.debug(f"处理前事件队列长度: {len(self.event_queue) if hasattr(self, 'event_queue') else 0}")
@@ -1738,8 +1780,14 @@ class BacktestEngine:
                 position_strategy_params=self.config.position_strategy_params
             )
 
-            # 创建并运行单独的引擎
-            symbol_engine = BacktestEngine(symbol_config, data)
+            # 创建并运行单独的引擎（传递db_adapter、backtest_id和progress_callback）
+            symbol_engine = BacktestEngine(
+                symbol_config,
+                data,
+                db_adapter=self.db_adapter,
+                backtest_id=self.backtest_id,
+                progress_callback=self.progress_callback
+            )
 
             # 为每个符号创建新的策略实例（根据策略映射）
             for strategy in self.strategies:

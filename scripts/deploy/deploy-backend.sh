@@ -24,7 +24,7 @@ restart_or_start() {
     local app_name=$1
     if pm2 describe "$app_name" >/dev/null 2>&1; then
         echo "🔄 Restarting $app_name..."
-        pm2 restart "$app_name"
+        pm2 restart "$app_name" --update-env
     else
         echo "🚀 Starting $app_name..."
         pm2 start ecosystem.config.js --only "$app_name"

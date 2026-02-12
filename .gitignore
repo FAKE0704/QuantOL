@@ -275,3 +275,6 @@ landing-page/
 .next/
 out/
 node_modules/.next/
+
+# Local deployment scripts
+deploy-to-prod.sh

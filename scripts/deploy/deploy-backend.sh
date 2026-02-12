@@ -1,8 +1,14 @@
 #!/bin/bash
 set -e
 
-# Add uv and npm global binaries to PATH
-export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/.local/share/npm/bin:$PATH"
+# Add uv to PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Load nvm and Node.js
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+    source "$NVM_DIR/nvm.sh"
+fi
 
 echo "🚀 Deploying QuantOL Backend..."
 

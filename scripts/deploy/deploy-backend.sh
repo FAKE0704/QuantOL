@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Add uv to PATH
+export PATH="$HOME/.local/bin:$PATH"
+
 echo "🚀 Deploying QuantOL Backend..."
 
 # Pull latest code

@@ -33,9 +33,10 @@ restart_or_start() {
 
 # Start or restart backend services
 restart_or_start quantol-backend
+restart_or_start quantol-nextjs
 restart_or_start quantol-streamlit
 
-# Nginx
+# Nginx (start last after upstreams are ready)
 restart_or_start quantol-nginx
 
 # Save PM2 process list

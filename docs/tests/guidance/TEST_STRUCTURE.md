@@ -26,7 +26,7 @@ tests/
 ### 策略测试
 - 格式：`test_<策略名>_strategy.py`
 - 示例：
-  - `test_martingale_position_strategy.py` - 马丁格尔仓位策略测试
+  - `test_position_strategy.py` - 仓位策略测试（包含 FixedPercent、Martingale、Kelly）
 
 ### 组件测试
 - 格式：`test_<组件名>.py`

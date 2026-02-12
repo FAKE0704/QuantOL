@@ -15,7 +15,7 @@ from src.api.utils import filter_result_summary, stream_json_response
 router = APIRouter()
 
 
-@router.get("/results/{backtest_id}")
+@router.get("/results/{backtest_id}", response_model=BacktestResponse)
 async def get_backtest_results(backtest_id: str):
     """获取回测结果
 
@@ -25,11 +25,11 @@ async def get_backtest_results(backtest_id: str):
         backtest_id: 回测ID
 
     Returns:
-        包含完整回测结果的流式JSON响应
+        包含完整回测结果的流式JSON响应，包装在BacktestResponse格式中
     """
     try:
         # 从状态服务获取结果
-        result_data = await backtest_state_service.get_result(backtest_id)
+        result_data = backtest_state_service.get_backtest(backtest_id)
 
         if not result_data:
             raise HTTPException(
@@ -37,8 +37,19 @@ async def get_backtest_results(backtest_id: str):
                 detail=f"Backtest {backtest_id} not found"
             )
 
+        # 映射 'result' 字段到 'result_summary' 以保持前端兼容性
+        if "result" in result_data:
+            result_data["result_summary"] = result_data.pop("result")
+
+        # 包装成BacktestResponse格式的字典
+        response_data = {
+            "success": True,
+            "message": "Results retrieved successfully",
+            "data": result_data
+        }
+
         return StreamingResponse(
-            stream_json_response(result_data),
+            stream_json_response(response_data),
             media_type="application/json"
         )
 
@@ -102,7 +113,7 @@ async def get_backtest_status(backtest_id: str):
     """
     try:
         # 从状态服务获取状态
-        status_data = await backtest_state_service.get_status(backtest_id)
+        status_data = backtest_state_service.get_backtest(backtest_id)
 
         if not status_data:
             raise HTTPException(
@@ -130,47 +141,6 @@ async def get_backtest_status(backtest_id: str):
         )
 
 
-@router.get("/history", response_model=BacktestListResponse)
-async def get_backtest_history(
-    limit: int = 20,
-    offset: int = 0
-):
-    """获取回测历史
-
-    Args:
-        limit: 返回数量限制
-        offset: 偏移量
-
-    Returns:
-        回测历史响应
-    """
-    try:
-        # 从任务服务获取历史记录（已完成/失败的回测）
-        history = await backtest_task_service.list_backtests(
-            limit=limit,
-            offset=offset,
-            status_filter=None  # 获取所有状态
-        )
-
-        # 过滤出已完成的回测
-        completed_history = [
-            bt for bt in history
-            if bt.get("status") in ["completed", "failed"]
-        ]
-
-        return BacktestListResponse(
-            success=True,
-            message=f"Retrieved {len(completed_history)} historical backtests",
-            data=completed_history
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve history: {str(e)}",
-        )
-
-
 @router.get("/{backtest_id}", response_model=BacktestResponse)
 async def get_backtest_detail(backtest_id: str):
     """获取回测详情
@@ -183,7 +153,7 @@ async def get_backtest_detail(backtest_id: str):
     """
     try:
         # 从任务服务获取详情
-        detail = await backtest_task_service.get_backtest(backtest_id)
+        detail = await backtest_task_service.get_backtest_task(backtest_id)
 
         if not detail:
             raise HTTPException(

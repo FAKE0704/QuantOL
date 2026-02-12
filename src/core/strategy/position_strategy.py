@@ -1,151 +1,500 @@
-from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any
-import numpy as np
-import pandas as pd
+"""
+固定比例仓位管理策略
 
-class PositionStrategy(ABC):
-    """仓位策略基类
-    职责：
-    - 计算理论仓位大小
-    - 根据策略信号确定仓位比例
-    注意：
-    - 实际仓位限制检查由RiskManager负责
-    """
-    
-    def __init__(self, account_value: float):
-        """初始化策略
-        Args:
-            account_value: 账户当前净值
-        """
-        self.account_value = account_value
-        
-    @abstractmethod
-    def calculate_position(self, signal_strength: float = 1.0) -> float:
-        """计算仓位大小
-        Args:
-            signal_strength: 信号强度(0-1)
-        Returns:
-            仓位金额(绝对数值)
-        """
-        pass
+根据设计文档 docs/strategies/fixed_percent_position_strategy.md 实现
+"""
 
-class FixedPercentStrategy(PositionStrategy):
-    """固定比例仓位策略
-    职责：
-    - 按固定比例计算仓位
-    - 不考虑风险限制(由RiskManager处理)
+import logging
+from typing import Dict, Any, Optional, TYPE_CHECKING
+from src.core.strategy.signal_types import SignalType
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from src.support.log.backtest_debug_logger import BacktestDebugLogger
+
+
+class PositionStrategy:
+    """仓位策略基类"""
+    def calculate_position_size(self, signal_type: SignalType, portfolio_data: Dict[str, float],
+                               current_price: float, current_position: int = 0) -> int:
+        """计算目标仓位大小"""
+        raise NotImplementedError("Subclasses must implement calculate_position_size")
+
+
+class FixedPercentPositionStrategy(PositionStrategy):
     """
-    
-    def __init__(self, account_value: float, percent: float = 0.1):
-        """初始化策略
-        Args:
-            account_value: 账户当前净值
-            percent: 固定仓位比例(0-1)
+    固定比例仓位管理策略
+
+    核心原则：
+    - 基于初始资金或当前可用资金的固定比例进行交易
+    - 开仓信号：按固定比例开仓（仅当无持仓时）
+    - 加仓信号：按固定比例增加仓位
+    - 平仓信号：按固定比例部分卖出（不是完全平仓）
+    - 清仓信号：完全清仓所有仓位
+    """
+
+    def __init__(self, percent: float = 0.1, use_initial_capital: bool = True, min_lot_size: int = 100, debug_logger: Optional['BacktestDebugLogger'] = None):
         """
-        super().__init__(account_value)
-        if not 0 <= percent <= 1:
-            raise ValueError("仓位比例必须在0-1之间")
+        初始化固定比例仓位策略
+
+        Args:
+            percent: 仓位比例（0-1之间）
+            use_initial_capital: 是否基于初始资金计算（True）或当前权益（False）
+            min_lot_size: 最小交易手数
+            debug_logger: 可选的调试日志记录器
+        """
+        if not 0 < percent <= 1:
+            raise ValueError("仓位比例必须在0到1之间")
+
         self.percent = percent
-        
-    def calculate_position(self, signal_strength: float = 1.0) -> float:
-        """计算固定比例仓位
-        Args:
-            signal_strength: 信号强度(0-1)
-        Returns:
-            仓位金额 = 账户净值 * 固定比例 * 信号强度
-        """
-        if not 0 <= signal_strength <= 1:
-            raise ValueError("信号强度必须在0-1之间")
-        return self.account_value * self.percent * signal_strength
+        self.use_initial_capital = use_initial_capital
+        self.min_lot_size = min_lot_size
+        self.debug_logger = debug_logger  # 调试日志记录器
 
-class KellyStrategy(PositionStrategy):
-    """凯利公式仓位策略
-    职责：
-    - 根据凯利公式计算最优仓位
-    - 最大仓位限制仅为公式计算上限
-    - 实际执行需通过RiskManager验证
-    """
-    
-    def __init__(self, 
-                 account_value: float,
-                 win_rate: float,
-                 win_loss_ratio: float,
-                 max_percent: float = 0.25):
-        """初始化策略
-        Args:
-            account_value: 账户当前净值
-            win_rate: 策略胜率(0-1)
-            win_loss_ratio: 平均盈亏比(正数)
-            max_percent: 最大仓位限制(0-1)
+    def calculate_position_size(self, signal_type: SignalType, portfolio_data: Dict[str, float],
+                             current_price: float, current_position: int = 0) -> int:
         """
-        super().__init__(account_value)
-        if not 0 <= win_rate <= 1:
-            raise ValueError("胜率必须在0-1之间")
+        计算目标仓位大小
+
+        Args:
+            signal_type: 信号类型（OPEN, BUY, SELL, CLOSE, LIQUIDATE）
+            portfolio_data: 投资组合数据
+                - initial_capital: 初始资金
+                - available_cash: 可用现金
+                - total_equity: 总权益
+            current_price: 当前价格
+            current_position: 当前持仓数量
+
+        Returns:
+            int: 目标交易数量（正数买入，负数卖出，0表示无操作）
+
+        Raises:
+            AttributeError: 当使用的 SignalType 不存在时
+            ValueError: 当参数无效时
+        """
+
+        if signal_type == SignalType.LIQUIDATE:
+            return -self._calculate_liquidate_position_size(current_position)
+
+        if signal_type == SignalType.CLOSE:
+            return -self._calculate_close_position_size(current_position)
+
+        # 计算可用资金
+        available_capital = self._get_available_capital(portfolio_data)
+
+        if signal_type == SignalType.OPEN:
+            return self._calculate_open_position_size(
+                portfolio_data['available_cash'], current_price, current_position
+            )
+        elif signal_type in [SignalType.BUY, SignalType.SELL]:
+            # 对于通用买卖信号，根据当前持仓状态决定操作
+            if current_position > 0:
+                # 有持仓时，BUY信号作为加仓处理
+                if signal_type == SignalType.BUY:
+                    return self._calculate_add_position_size(
+                        portfolio_data['available_cash'], current_price
+                    )
+                else:  # SELL
+                    return -self._calculate_close_position_size(current_position)
+            else:
+                # 无持仓时，只有BUY信号可以开仓
+                if signal_type == SignalType.BUY:
+                    return self._calculate_open_position_size(
+                        portfolio_data['available_cash'], current_price, current_position
+                    )
+                else:
+                    return 0
+
+        return 0
+
+    def _get_available_capital(self, portfolio_data: Dict[str, float]) -> float:
+        """获取可用资金"""
+        if self.use_initial_capital:
+            return portfolio_data.get('initial_capital', portfolio_data.get('available_cash', 0))
+        else:
+            return portfolio_data.get('available_cash', 0)
+
+    def _calculate_open_position_size(self, available_cash: float, current_price: float,
+                                   current_position: int) -> int:
+        """计算开仓数量（方案C：基于可用资金和持仓状态）"""
+        # 已有持仓时不开新仓，避免重复开仓
+        if current_position > 0:
+            return 0
+
+        # 基于可用现金计算可买数量
+        position_value = available_cash * self.percent
+        quantity = int(position_value / current_price / self.min_lot_size) * self.min_lot_size
+
+        # 检查资金是否足够
+        required_cash = quantity * current_price
+        if required_cash > available_cash:
+            # 资金不足时减少数量
+            quantity = int(available_cash / current_price / self.min_lot_size) * self.min_lot_size
+
+        if quantity > 0:
+            logger.debug(f"开仓计算: 可用资金={available_cash}, 价格={current_price}, 数量={quantity}")
+
+        return quantity
+
+    def _calculate_add_position_size(self, available_cash: float, current_price: float) -> int:
+        """计算加仓数量"""
+        # 加仓时按固定比例计算
+        position_value = available_cash * self.percent
+        raw_quantity = position_value / current_price / self.min_lot_size
+        additional_quantity = int(raw_quantity) * self.min_lot_size
+
+        # 使用调试日志记录计算过程
+        self.debug_logger.log_info(
+            f"_calculate_add_position_size: available_cash={available_cash:.2f}, price={current_price:.2f}, "
+            f"percent={self.percent}, min_lot={self.min_lot_size}, "
+            f"position_value={position_value:.2f}, raw_quantity={raw_quantity:.2f}, result={additional_quantity}"
+        )
+
+        # 检查资金是否足够
+        required_cash = additional_quantity * current_price
+        if required_cash > available_cash:
+            additional_quantity = int(available_cash / current_price / self.min_lot_size) * self.min_lot_size
+            self.debug_logger.log_info(f"_calculate_add_position_size资金不足调整后: {additional_quantity}")
+
+        return additional_quantity
+
+    def _calculate_close_position_size(self, current_position: int) -> int:
+        """计算平仓数量（按固定比例部分卖出）"""
+        if current_position <= 0:
+            return 0
+
+        # 计算要卖出的数量（按比例）
+        sell_quantity = int(current_position * self.percent / self.min_lot_size) * self.min_lot_size
+
+        # 确保不超过当前持仓
+        sell_quantity = min(sell_quantity, current_position)
+
+        if sell_quantity > 0:
+            logger.debug(f"平仓计算: 当前持仓={current_position}, 卖出数量={sell_quantity}")
+
+        return sell_quantity
+
+    def _calculate_liquidate_position_size(self, current_position: int) -> int:
+        """计算清仓数量（完全清仓）"""
+        liquidate_quantity = current_position if current_position > 0 else 0
+
+        if liquidate_quantity > 0:
+            logger.debug(f"清仓计算: 当前持仓={current_position}, 清仓数量={liquidate_quantity}")
+
+        return liquidate_quantity
+
+    def get_strategy_info(self) -> Dict[str, Any]:
+        """获取策略信息"""
+        return {
+            "strategy_type": "fixed_percent",
+            "percent": self.percent,
+            "use_initial_capital": self.use_initial_capital,
+            "min_lot_size": self.min_lot_size
+        }
+
+    def update_parameters(self, **kwargs):
+        """更新策略参数"""
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                if key == "percent":
+                    if not 0 < value <= 1:
+                        raise ValueError("仓位比例必须在0到1之间")
+                elif key == "min_lot_size":
+                    if value <= 0:
+                        raise ValueError("最小交易手数必须大于0")
+                setattr(self, key, value)
+                logger.info(f"更新策略参数 {key}: {value}")
+            else:
+                logger.warning(f"未知参数: {key}")
+
+
+class MartingalePositionStrategy(FixedPercentPositionStrategy):
+    """
+    马丁格尔仓位管理策略
+
+    核心原则：
+    - 开仓：按基础比例开仓
+    - 加仓：亏损时按倍数递增仓位（multiplier^level）
+    - 清仓：完全清仓所有持仓
+    - 限制：最大加倍次数限制
+    """
+
+    def __init__(self, base_percent: float, multiplier: float = 2.0,
+                 max_doubles: int = 5, min_lot_size: int = 100):
+        """
+        初始化马丁格尔仓位策略
+
+        Args:
+            base_percent: 基础仓位比例（0-1之间）
+            multiplier: 加倍系数（默认2.0）
+            max_doubles: 最大加倍次数（默认5）
+            min_lot_size: 最小交易手数
+        """
+        super().__init__(percent=base_percent, min_lot_size=min_lot_size)
+        self.base_percent = base_percent
+        self.multiplier = multiplier
+        self.max_doubles = max_doubles
+
+        # Martingale状态（按symbol管理）
+        # {symbol: {'level': int, 'entry_price': float}}
+        self._martingale_states: Dict[str, Dict[str, Any]] = {}
+
+    def _get_or_init_martingale_state(self, symbol: str) -> Dict[str, Any]:
+        """获取或初始化symbol的martingale状态"""
+        if symbol not in self._martingale_states:
+            self._martingale_states[symbol] = {
+                'level': 0,
+                'entry_price': None
+            }
+        return self._martingale_states[symbol]
+
+    def _reset_martingale_state(self, symbol: str):
+        """重置symbol的martingale状态"""
+        if symbol in self._martingale_states:
+            self._martingale_states[symbol] = {
+                'level': 0,
+                'entry_price': None
+            }
+            logger.info(f"Martingale状态已重置: {symbol}")
+
+    def calculate_position_size(self, signal_type: SignalType, portfolio_data: Dict[str, float],
+                             current_price: float, current_position: int = 0, symbol: str = None) -> int:
+        """
+        计算目标仓位大小（Martingale版本）
+
+        Args:
+            signal_type: 信号类型（OPEN, BUY, SELL, CLOSE, LIQUIDATE）
+            portfolio_data: 投资组合数据
+            current_price: 当前价格
+            current_position: 当前持仓数量
+            symbol: 交易标的（必需，用于管理martingale状态）
+
+        Returns:
+            int: 目标交易数量（正数买入，负数卖出，0表示无操作）
+
+        Raises:
+            ValueError: 当 symbol 参数为 None 时
+        """
+        if symbol is None:
+            raise ValueError("Martingale策略需要symbol参数")
+
+        # 获取或初始化martingale状态
+        state = self._get_or_init_martingale_state(symbol)
+
+        # 检查持仓状态，如果清仓则重置martingale状态
+        if current_position == 0 and state['level'] > 0:
+            self._reset_martingale_state(symbol)
+            state = self._get_or_init_martingale_state(symbol)
+
+        # 处理清仓信号
+        if signal_type == SignalType.LIQUIDATE:
+            self._reset_martingale_state(symbol)
+            return -self._calculate_liquidate_position_size(current_position)
+
+        if signal_type == SignalType.CLOSE or signal_type == SignalType.SELL:
+            # 完全清仓
+            self._reset_martingale_state(symbol)
+            return -current_position
+
+        # 计算可用资金
+        available_capital = self._get_available_capital(portfolio_data)
+
+        # 开仓或加仓
+        if signal_type in [SignalType.OPEN, SignalType.BUY]:
+            if current_position == 0:
+                # 开仓 - 使用基础仓位
+                quantity = self._calculate_open_position_size(
+                    portfolio_data['available_cash'], current_price, current_position
+                )
+                if quantity > 0:
+                    # 记录入场价格
+                    state['entry_price'] = current_price
+                    state['level'] = 0
+                    logger.info(f"Martingale开仓: {symbol}, 价格={current_price}, 数量={quantity}, level=0")
+                return quantity
+            else:
+                # 加仓 - 使用martingale倍数
+                return self._calculate_martingale_add_position_size(
+                    symbol, portfolio_data['available_cash'], current_price, state
+                )
+
+        return 0
+
+    def _calculate_martingale_add_position_size(self, symbol: str, available_cash: float,
+                                               current_price: float, state: Dict[str, Any]) -> int:
+        """
+        计算Martingale加仓数量
+
+        Args:
+            symbol: 交易标的
+            available_cash: 可用现金
+            current_price: 当前价格
+            state: martingale状态
+
+        Returns:
+            int: 加仓数量
+        """
+        # 检查是否达到最大加倍次数
+        if state['level'] >= self.max_doubles:
+            logger.warning(f"Martingale已达到最大加倍次数: {symbol}, level={state['level']}")
+            return 0
+
+        # 计算当前层级
+        current_level = state['level']
+
+        # 计算倍数（第1次加仓level=0, 倍数=1；第2次加仓level=1, 倍数=2；以此类推）
+        multiplier = self.multiplier ** current_level
+
+        # 计算基础仓位
+        base_position_value = available_cash * self.base_percent
+        base_quantity = int(base_position_value / current_price / self.min_lot_size) * self.min_lot_size
+
+        # 应用martingale倍数
+        martingale_quantity = int(base_quantity * multiplier / self.min_lot_size) * self.min_lot_size
+
+        # 检查资金是否足够
+        required_cash = martingale_quantity * current_price
+        if required_cash > available_cash:
+            # 资金不足时减少数量
+            martingale_quantity = int(available_cash / current_price / self.min_lot_size) * self.min_lot_size
+
+        # 更新martingale状态
+        state['level'] += 1
+
+        if martingale_quantity > 0:
+            logger.info(
+                f"Martingale加仓: {symbol}, 价格={current_price}, 数量={martingale_quantity}, "
+                f"level={current_level}->{state['level']}, 倍数={multiplier:.2f}"
+            )
+
+        return martingale_quantity
+
+    def get_strategy_info(self) -> Dict[str, Any]:
+        """获取策略信息"""
+        return {
+            "strategy_type": "martingale",
+            "base_percent": self.base_percent,
+            "multiplier": self.multiplier,
+            "max_doubles": self.max_doubles,
+            "min_lot_size": self.min_lot_size,
+            "martingale_states": self._martingale_states.copy()
+        }
+
+    def get_martingale_level(self, symbol: str) -> int:
+        """获取指定symbol的当前martingale层级"""
+        state = self._get_or_init_martingale_state(symbol)
+        return state['level']
+
+
+class KellyPositionStrategy(FixedPercentPositionStrategy):
+    """
+    凯利公式仓位管理策略
+
+    核心原则：
+    - 根据凯利公式计算最优仓位比例
+    - 考虑胜率和盈亏比来确定仓位大小
+    - 设置最大仓位限制以控制风险
+    """
+
+    def __init__(self, win_rate: float, win_loss_ratio: float, max_percent: float = 0.25,
+                 min_lot_size: int = 100, debug_logger: Optional['BacktestDebugLogger'] = None):
+        """
+        初始化凯利公式仓位策略
+
+        Args:
+            win_rate: 策略胜率（0-1之间）
+            win_loss_ratio: 平均盈亏比（正数）
+            max_percent: 最大仓位限制（0-1之间，默认0.25）
+            min_lot_size: 最小交易手数
+            debug_logger: 可选的调试日志记录器
+        """
+        if not 0 < win_rate <= 1:
+            raise ValueError("胜率必须在0到1之间")
         if win_loss_ratio <= 0:
             raise ValueError("盈亏比必须为正数")
-        if not 0 <= max_percent <= 1:
-            raise ValueError("最大仓位限制必须在0-1之间")
-            
+        if not 0 < max_percent <= 1:
+            raise ValueError("最大仓位限制必须在0到1之间")
+
+        # 计算凯利公式比例
+        kelly_fraction = (win_rate * (win_loss_ratio + 1) - 1) / win_loss_ratio
+        kelly_fraction = max(0, min(kelly_fraction, max_percent))
+
+        # 使用计算出的凯利比例初始化基类
+        super().__init__(percent=kelly_fraction, min_lot_size=min_lot_size, debug_logger=debug_logger)
+
         self.win_rate = win_rate
         self.win_loss_ratio = win_loss_ratio
         self.max_percent = max_percent
-        
-    def calculate_position(self, signal_strength: float = 1.0) -> float:
-        """计算凯利公式仓位
-        Args:
-            signal_strength: 信号强度(0-1)
-        Returns:
-            仓位金额 = 账户净值 * 凯利比例 * 信号强度
-        """
-        if not 0 <= signal_strength <= 1:
-            raise ValueError("信号强度必须在0-1之间")
-            
-        # 凯利公式计算
-        kelly_fraction = (self.win_rate * (self.win_loss_ratio + 1) - 1) / self.win_loss_ratio
-        kelly_fraction = max(0, min(kelly_fraction, self.max_percent))  # 限制范围
-        
-        return self.account_value * kelly_fraction * signal_strength
+        self.kelly_fraction = kelly_fraction
 
+        logger.info(
+            f"凯利公式策略初始化: win_rate={win_rate}, win_loss_ratio={win_loss_ratio}, "
+            f"kelly_fraction={kelly_fraction:.4f}"
+        )
 
-class PositionStrategyFactory:
-    """仓位策略工厂类
-    职责：
-    - 根据配置创建相应的仓位策略实例
-    - 提供统一的策略创建接口
-    """
-    
-    @staticmethod
-    def create_strategy(strategy_type: str, account_value: float, params: Dict[str, Any]) -> PositionStrategy:
-        """创建仓位策略实例
-        
-        Args:
-            strategy_type: 策略类型名称
-            account_value: 账户当前净值
-            params: 策略参数字典
-            
-        Returns:
-            PositionStrategy: 仓位策略实例
-            
-        Raises:
-            ValueError: 当策略类型未知或参数无效时抛出
+    def calculate_position_size(self, signal_type: SignalType, portfolio_data: Dict[str, float],
+                             current_price: float, current_position: int = 0) -> int:
         """
-        if strategy_type == "fixed_percent":
-            percent = params.get("percent", 0.1)
-            if not (0 < percent <= 1):
-                raise ValueError("fixed_percent策略的percent参数必须在0到1之间")
-            return FixedPercentStrategy(account_value, percent)
-        elif strategy_type == "kelly":
-            win_rate = params.get("win_rate", 0.5)
-            win_loss_ratio = params.get("win_loss_ratio", 2.0)
-            max_percent = params.get("max_percent", 0.25)
-            
-            if not (0 < win_rate <= 1):
-                raise ValueError("kelly策略的win_rate参数必须在0到1之间")
-            if win_loss_ratio <= 0:
-                raise ValueError("kelly策略的win_loss_ratio参数必须大于0")
-            if not (0 < max_percent <= 1):
-                raise ValueError("kelly策略的max_percent参数必须在0到1之间")
-                
-            return KellyStrategy(account_value, win_rate, win_loss_ratio, max_percent)
-        else:
-            raise ValueError(f"未知的仓位策略类型: {strategy_type}")
+        计算目标仓位大小（凯利公式版本）
+
+        凯利公式根据历史胜率和盈亏比计算最优仓位。
+        对于加仓信号，我们使用相同的凯利比例。
+
+        Args:
+            signal_type: 信号类型（OPEN, BUY, SELL, CLOSE, LIQUIDATE）
+            portfolio_data: 投资组合数据
+                - initial_capital: 初始资金
+                - available_cash: 可用现金
+                - total_equity: 总权益
+            current_price: 当前价格
+            current_position: 当前持仓数量
+
+        Returns:
+            int: 目标交易数量（正数买入，负数卖出，0表示无操作）
+        """
+        # 凯利公式主要用于开仓决策，其他信号使用基类逻辑
+        if signal_type == SignalType.LIQUIDATE:
+            return -self._calculate_liquidate_position_size(current_position)
+
+        if signal_type == SignalType.CLOSE:
+            return -self._calculate_close_position_size(current_position)
+
+        # 计算可用资金（凯利公式基于总权益）
+        available_capital = portfolio_data.get('total_equity', portfolio_data.get('initial_capital', 0))
+
+        if signal_type == SignalType.OPEN:
+            return self._calculate_open_position_size(
+                portfolio_data['available_cash'], current_price, current_position
+            )
+        elif signal_type in [SignalType.BUY, SignalType.SELL]:
+            # 对于通用买卖信号，根据当前持仓状态决定操作
+            if current_position > 0:
+                # 有持仓时，BUY信号作为加仓处理
+                if signal_type == SignalType.BUY:
+                    return self._calculate_add_position_size(
+                        portfolio_data['available_cash'], current_price
+                    )
+                else:  # SELL
+                    return -self._calculate_close_position_size(current_position)
+            else:
+                # 无持仓时，只有BUY信号可以开仓
+                if signal_type == SignalType.BUY:
+                    return self._calculate_open_position_size(
+                        portfolio_data['available_cash'], current_price, current_position
+                    )
+                else:
+                    return 0
+
+        return 0
+
+    def get_strategy_info(self) -> Dict[str, Any]:
+        """获取策略信息"""
+        return {
+            "strategy_type": "kelly",
+            "win_rate": self.win_rate,
+            "win_loss_ratio": self.win_loss_ratio,
+            "max_percent": self.max_percent,
+            "kelly_fraction": self.kelly_fraction,
+            "min_lot_size": self.min_lot_size
+        }

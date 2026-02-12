@@ -94,7 +94,7 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500" />
       </div>
     );
@@ -105,9 +105,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
+      <header className="border-b border-border bg-card/50 backdrop-blur">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="text-2xl font-bold text-sky-500">
@@ -116,19 +116,19 @@ export default function SettingsPage() {
             <nav className="hidden md:flex items-center gap-4">
               <Link
                 href="/dashboard"
-                className="text-slate-400 hover:text-sky-400 transition-colors"
+                className="text-muted-foreground hover:text-primary transition-colors"
               >
                 {t('dashboard')}
               </Link>
               <Link
                 href="/backtest"
-                className="text-slate-400 hover:text-sky-400 transition-colors"
+                className="text-muted-foreground hover:text-primary transition-colors"
               >
                 {t('backtesting')}
               </Link>
               <Link
                 href="/trading"
-                className="text-slate-400 hover:text-sky-400 transition-colors"
+                className="text-muted-foreground hover:text-primary transition-colors"
               >
                 {t('trading')}
               </Link>
@@ -151,7 +151,7 @@ export default function SettingsPage() {
             <SettingsIcon className="h-8 w-8 text-sky-500" />
             <h1 className="text-3xl font-bold">{t('title')}</h1>
           </div>
-          <p className="text-slate-400">
+          <p className="text-muted-foreground">
             {t('description')}
           </p>
         </div>
@@ -159,13 +159,13 @@ export default function SettingsPage() {
         {/* Settings Sections */}
         <div className="space-y-6">
           {/* Data Source Selection */}
-          <section className="bg-slate-900/50 border border-slate-800 rounded-lg overflow-hidden">
-            <div className="p-6 border-b border-slate-800">
+          <section className="bg-card/50 border border-border rounded-lg overflow-hidden">
+            <div className="p-6 border-b border-border">
               <div className="flex items-center gap-3">
                 <Database className="h-5 w-5 text-sky-500" />
                 <h2 className="text-xl font-semibold">{t('dataSource.title')}</h2>
               </div>
-              <p className="text-sm text-slate-400 mt-1">{t('dataSource.description')}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('dataSource.description')}</p>
             </div>
 
             <div className="p-6">
@@ -177,22 +177,22 @@ export default function SettingsPage() {
                       flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all
                       ${selectedSource === source.id
                         ? 'border-sky-500 bg-sky-500/10'
-                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                        : 'border-border bg-muted/50 hover:border-border'
                       }
                     `}
                   >
                     <div className="flex items-center gap-4">
                       <div className={`
                         flex items-center justify-center w-5 h-5 rounded-full border-2
-                        ${selectedSource === source.id ? 'border-sky-500 bg-sky-500' : 'border-slate-500'}
+                        ${selectedSource === source.id ? 'border-sky-500 bg-sky-500' : 'border-muted'}
                       `}>
                         {selectedSource === source.id && (
                           <Check className="h-3 w-3 text-white" />
                         )}
                       </div>
                       <div>
-                        <h3 className="font-medium text-white">{source.name}</h3>
-                        <p className="text-sm text-slate-400">{source.description}</p>
+                        <h3 className="font-medium text-foreground">{source.name}</h3>
+                        <p className="text-sm text-muted-foreground">{source.description}</p>
                         {source.requiresToken && (
                           <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
                             <Key className="h-3 w-3" />
@@ -215,8 +215,8 @@ export default function SettingsPage() {
 
               {/* Tushare Token Input */}
               {selectedSource === "tushare" && (
-                <div className="mt-6 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                  <label htmlFor="tushare-token" className="block text-sm font-medium text-slate-300 mb-2">
+                <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                  <label htmlFor="tushare-token" className="block text-sm font-medium text-foreground mb-2">
                     Tushare API Token
                     {tokenPreview && (
                       <span className="ml-2 text-xs text-green-400">
@@ -230,9 +230,9 @@ export default function SettingsPage() {
                     value={tushareToken}
                     onChange={(e) => setTushareToken(e.target.value)}
                     placeholder={tokenPreview ? "Leave empty to keep current token" : "Enter your Tushare API token"}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground placeholder-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     Get your token at <a href="https://tushare.pro" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline">tushare.pro</a>
                   </p>
                 </div>
@@ -240,13 +240,13 @@ export default function SettingsPage() {
 
               {/* Error message */}
               {errorMessage && (
-                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <p className="text-sm text-red-400">{errorMessage}</p>
+                <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <p className="text-sm text-destructive">{errorMessage}</p>
                 </div>
               )}
 
               <div className="mt-6 flex items-center justify-between">
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-muted-foreground">
                   {t('dataSource.note')}
                 </p>
                 <button
@@ -255,7 +255,7 @@ export default function SettingsPage() {
                   className={`
                     flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
                     ${isSaving || isLoadingConfig
-                      ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                      ? 'bg-muted text-muted-foreground cursor-not-allowed'
                       : 'bg-sky-500 hover:bg-sky-600 text-white'
                     }
                   `}
@@ -263,15 +263,15 @@ export default function SettingsPage() {
                   {isSaving ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      {t('saving')}
+                      {t('dataSource.saving')}
                     </>
                   ) : saveSuccess ? (
                     <>
                       <Check className="h-4 w-4" />
-                      {t('saved')}
+                      {t('dataSource.saved')}
                     </>
                   ) : (
-                    t('save')
+                    t('dataSource.save')
                   )}
                 </button>
               </div>

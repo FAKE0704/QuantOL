@@ -19,7 +19,7 @@ from src.support.log.logger import logger
 
 # 使用 TYPE_CHECKING 避免循环导入
 if TYPE_CHECKING:
-    from src.api.routers.backtest import BacktestRequest
+    from src.api.models.backtest_requests import BacktestRequest
 
 
 class SimpleSessionState:
@@ -41,13 +41,17 @@ class SimpleSessionState:
 class BacktestTaskManager:
     """回测任务管理器 - 处理后台异步执行并通过WebSocket推送进度"""
 
-    def submit_backtest(self, backtest_id: str, request: Any, background_tasks: BackgroundTasks, user_id: int = 1):
+    async def submit_backtest(self, backtest_id: str, request: Any, background_tasks: BackgroundTasks, user_id: int = 1):
         """提交回测任务到后台执行"""
+        logger.info(f"[submit_backtest] Starting submission for backtest_id={backtest_id}, user_id={user_id}")
+
         # 创建回测记录 (Redis)
         backtest_state_service.create_backtest(backtest_id, request.model_dump())
 
-        # 创建回测任务记录 (数据库) - 异步执行
-        asyncio.create_task(self._create_db_task(backtest_id, user_id, request.model_dump()))
+        # 创建回测任务记录 (数据库) - 等待创建完成，确保历史记录能立即显示
+        logger.info(f"[submit_backtest] Creating DB task for backtest_id={backtest_id}, user_id={user_id}")
+        result = await self._create_db_task(backtest_id, user_id, request.model_dump())
+        logger.info(f"[submit_backtest] DB task creation result={result} for backtest_id={backtest_id}")
 
         # 提交后台任务
         background_tasks.add_task(self._execute_backtest_async, backtest_id, request, user_id)
@@ -55,17 +59,23 @@ class BacktestTaskManager:
     async def _create_db_task(self, backtest_id: str, user_id: int, config: dict):
         """Create database task record"""
         try:
+            logger.info(f"[_create_db_task] Starting for backtest_id={backtest_id}, user_id={user_id}")
             # Generate log file path
             log_file_path = f"src/logs/backtests/{backtest_id}.log"
 
-            await backtest_task_service.create_backtest_task(
+            result = await backtest_task_service.create_backtest_task(
                 backtest_id=backtest_id,
                 user_id=user_id,
                 config=config,
                 log_file_path=log_file_path,
             )
+            logger.info(f"[_create_db_task] Result={result} for backtest_id={backtest_id}")
+            return result
         except Exception as e:
             logger.error(f"Failed to create DB task for {backtest_id}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return False
 
     async def _execute_backtest_async(self, backtest_id: str, request: Any, user_id: int = 1):
         """异步执行回测的核心逻辑"""
@@ -168,7 +178,7 @@ class BacktestTaskManager:
             total_steps = len(data) if not config.is_multi_symbol() else sum(len(d) for d in data.values())
             last_broadcast_progress = -1
 
-            def progress_callback(current_index: int, current_time, total: int = total_steps):
+            async def progress_callback(current_index: int, current_time, total: int = total_steps):
                 nonlocal last_broadcast_progress
                 progress = min(current_index / total, 1.0)
 
@@ -181,8 +191,8 @@ class BacktestTaskManager:
                         progress=progress,
                         current_time=str(current_time)
                     )
-                    # 异步推送进度（在后台任务中安全）
-                    asyncio.create_task(websocket_manager.broadcast_progress(
+                    # 异步推送进度
+                    await websocket_manager.broadcast_progress(
                         backtest_id,
                         {
                             "type": "status",
@@ -192,7 +202,7 @@ class BacktestTaskManager:
                                 "current_time": str(current_time),
                             }
                         }
-                    ))
+                    )
 
             # 使用 BacktestExecutionService 初始化引擎（会自动创建和注册策略）
             from src.frontend.backtest_execution_service import BacktestExecutionService
@@ -212,11 +222,9 @@ class BacktestTaskManager:
             start_date = datetime.strptime(config.start_date, "%Y%m%d")
             end_date = datetime.strptime(config.end_date, "%Y%m%d")
 
-            if config.is_multi_symbol():
-                results = await engine.run_multi_symbol(start_date, end_date)
-            else:
-                await engine.run(start_date, end_date)
-                results = engine.get_results()
+            # 统一使用run方法执行回测（单标的和多标的都支持）
+            await engine.run(start_date, end_date)
+            results = engine.get_results()
 
             # 更新为完成状态
             backtest_state_service.update_status(
@@ -242,7 +250,9 @@ class BacktestTaskManager:
             logger.info(f"回测完成: {backtest_id}")
 
         except Exception as e:
+            import traceback
             logger.error(f"回测执行失败: {backtest_id}, 错误: {e}")
+            logger.error(f"Traceback:\n{traceback.format_exc()}")
             backtest_state_service.update_status(
                 backtest_id,
                 "failed",

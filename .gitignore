@@ -252,13 +252,8 @@ data/tushare/
 # 配置文件中的敏感信息
 src/support/config/user_settings.json
 
-# Node.js / Next.js (landing-page)
-landing-page/.env.local
-landing-page/.env.*.local
-landing-page/.next/
-landing-page/node_modules/
-landing-page/out/
-landing-page/build/
+# Node.js / Next.js (landing-page) - Frontend is now in separate private repo
+landing-page/
 
 # 其他敏感文件
 **/*.key

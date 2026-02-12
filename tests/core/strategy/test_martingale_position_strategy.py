@@ -14,7 +14,7 @@ import asyncio
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, project_root)
 
-from src.core.strategy.fixed_percent_position_strategy import MartingalePositionStrategy
+from src.core.strategy.position_strategy import MartingalePositionStrategy
 from src.core.strategy.signal_types import SignalType
 
 

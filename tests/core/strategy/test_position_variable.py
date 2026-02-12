@@ -15,7 +15,7 @@ from src.core.strategy.rule_parser import RuleParser
 from src.core.strategy.indicators import IndicatorService
 from src.core.portfolio.portfolio import PortfolioManager
 from src.core.portfolio.portfolio_interface import Position
-from src.core.strategy.fixed_percent_position_strategy import FixedPercentPositionStrategy
+from src.core.strategy.position_strategy import FixedPercentPositionStrategy
 from src.core.strategy.rule_based_strategy import RuleBasedStrategy
 from src.core.strategy.signal_types import SignalType
 

@@ -2,13 +2,13 @@
 
 处理自定义策略管理相关的API端点。
 """
-from typing import Optional
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 
 from src.api.models.backtest_requests import CustomStrategyCreate, CustomStrategyUpdate, RuleValidationRequest
 from src.api.models.backtest_responses import CustomStrategyResponse, CustomStrategyListResponse, RuleValidationResponse
 from src.services.backtest_config_service import BacktestConfigService
 from src.api.utils import validate_rule_syntax
+from src.api.deps import get_current_user
 
 router = APIRouter()
 
@@ -45,20 +45,25 @@ async def validate_rule(request: RuleValidationRequest):
     response_model=CustomStrategyResponse,
     status_code=status.HTTP_201_CREATED
 )
-async def create_custom_strategy(strategy: CustomStrategyCreate):
+async def create_custom_strategy(
+    strategy: CustomStrategyCreate,
+    current_user: dict = Depends(get_current_user)
+):
     """创建自定义策略
 
     Args:
         strategy: 策略创建请求
+        current_user: 当前认证用户
 
     Returns:
         创建的策略响应
     """
     try:
         config_service = BacktestConfigService()
+        user_id = current_user["user_id"]
 
         # 检查策略键是否已存在
-        existing = await config_service.get_custom_strategy(strategy.strategy_key)
+        existing = await config_service.get_custom_strategy(user_id, strategy.strategy_key)
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -90,7 +95,15 @@ async def create_custom_strategy(strategy: CustomStrategyCreate):
             )
 
         # 创建策略
-        strategy_id = await config_service.create_custom_strategy(strategy.model_dump())
+        strategy_id = await config_service.create_custom_strategy(
+            user_id=user_id,
+            strategy_key=strategy.strategy_key,
+            label=strategy.label,
+            open_rule=strategy.open_rule,
+            close_rule=strategy.close_rule,
+            buy_rule=strategy.buy_rule,
+            sell_rule=strategy.sell_rule,
+        )
 
         return CustomStrategyResponse(
             success=True,
@@ -109,12 +122,14 @@ async def create_custom_strategy(strategy: CustomStrategyCreate):
 
 @router.get("/custom-strategies", response_model=CustomStrategyListResponse)
 async def list_custom_strategies(
+    current_user: dict = Depends(get_current_user),
     limit: int = 50,
     offset: int = 0
 ):
     """列出所有自定义策略
 
     Args:
+        current_user: 当前认证用户
         limit: 返回数量限制
         offset: 偏移量
 
@@ -124,16 +139,27 @@ async def list_custom_strategies(
     try:
         config_service = BacktestConfigService()
         strategies = await config_service.list_custom_strategies(
-            limit=limit,
-            offset=offset
+            current_user["user_id"]
         )
+
+        # 手动处理分页
+        if offset >= len(strategies):
+            return CustomStrategyListResponse(
+                success=True,
+                message="No custom strategies found",
+                data=[]
+            )
+
+        paginated_strategies = strategies[offset:offset + limit]
 
         return CustomStrategyListResponse(
             success=True,
-            message=f"Retrieved {len(strategies)} custom strategies",
-            data=strategies
+            message=f"Retrieved {len(paginated_strategies)} custom strategies",
+            data=paginated_strategies
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -142,18 +168,23 @@ async def list_custom_strategies(
 
 
 @router.get("/custom-strategies/{strategy_key}", response_model=CustomStrategyResponse)
-async def get_custom_strategy(strategy_key: str):
+async def get_custom_strategy(
+    strategy_key: str,
+    current_user: dict = Depends(get_current_user)
+):
     """获取指定自定义策略
 
     Args:
         strategy_key: 策略键
+        current_user: 当前认证用户
 
     Returns:
         策略响应
     """
     try:
         config_service = BacktestConfigService()
-        strategy = await config_service.get_custom_strategy(strategy_key)
+        user_id = current_user["user_id"]
+        strategy = await config_service.get_custom_strategy(user_id, strategy_key)
 
         if not strategy:
             raise HTTPException(
@@ -179,22 +210,25 @@ async def get_custom_strategy(strategy_key: str):
 @router.put("/custom-strategies/{strategy_key}", response_model=CustomStrategyResponse)
 async def update_custom_strategy(
     strategy_key: str,
-    update: CustomStrategyUpdate
+    update: CustomStrategyUpdate,
+    current_user: dict = Depends(get_current_user)
 ):
     """更新自定义策略
 
     Args:
         strategy_key: 策略键
         update: 更新数据
+        current_user: 当前认证用户
 
     Returns:
         更新后的策略响应
     """
     try:
         config_service = BacktestConfigService()
+        user_id = current_user["user_id"]
 
         # 检查策略是否存在
-        existing = await config_service.get_custom_strategy(strategy_key)
+        existing = await config_service.get_custom_strategy(user_id, strategy_key)
         if not existing:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -234,11 +268,18 @@ async def update_custom_strategy(
                     detail=f"sell_rule validation failed: {message}"
                 )
 
-        # 过滤None值并更新
-        update_data = {k: v for k, v in update.model_dump().items() if v is not None}
-        success = await config_service.update_custom_strategy(strategy_key, update_data)
+        # 调用更新方法
+        result = await config_service.update_custom_strategy(
+            user_id=user_id,
+            strategy_key=strategy_key,
+            label=update.label,
+            open_rule=update.open_rule,
+            close_rule=update.close_rule,
+            buy_rule=update.buy_rule,
+            sell_rule=update.sell_rule,
+        )
 
-        if not success:
+        if not result:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update custom strategy"
@@ -260,27 +301,32 @@ async def update_custom_strategy(
 
 
 @router.delete("/custom-strategies/{strategy_key}", response_model=CustomStrategyResponse)
-async def delete_custom_strategy(strategy_key: str):
+async def delete_custom_strategy(
+    strategy_key: str,
+    current_user: dict = Depends(get_current_user)
+):
     """删除自定义策略
 
     Args:
         strategy_key: 策略键
+        current_user: 当前认证用户
 
     Returns:
         删除结果响应
     """
     try:
         config_service = BacktestConfigService()
+        user_id = current_user["user_id"]
 
         # 检查策略是否存在
-        existing = await config_service.get_custom_strategy(strategy_key)
+        existing = await config_service.get_custom_strategy(user_id, strategy_key)
         if not existing:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Custom strategy '{strategy_key}' not found"
             )
 
-        success = await config_service.delete_custom_strategy(strategy_key)
+        success = await config_service.delete_custom_strategy(user_id, strategy_key)
 
         if not success:
             raise HTTPException(

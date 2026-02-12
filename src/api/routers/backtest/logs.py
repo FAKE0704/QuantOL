@@ -28,7 +28,7 @@ async def get_backtest_logs(
     """
     try:
         # 获取回测状态
-        backtest_data = await backtest_task_service.get_backtest(backtest_id)
+        backtest_data = await backtest_task_service.get_backtest_task(backtest_id)
 
         if not backtest_data:
             raise HTTPException(

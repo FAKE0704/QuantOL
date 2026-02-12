@@ -46,7 +46,7 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500" />
       </div>
     );
@@ -57,9 +57,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur">
+      <header className="border-b border-border bg-card/50 backdrop-blur">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <Link href="/" className="text-2xl font-bold text-sky-500">
@@ -68,19 +68,19 @@ export default function DashboardPage() {
             <nav className="hidden md:flex items-center gap-4">
               <Link
                 href="/dashboard"
-                className="text-white hover:text-sky-400 transition-colors"
+                className="text-foreground hover:text-primary transition-colors"
               >
                 {t('dashboard')}
               </Link>
               <Link
                 href="/backtest"
-                className="text-slate-400 hover:text-sky-400 transition-colors"
+                className="text-muted-foreground hover:text-primary transition-colors"
               >
                 {t('backtesting')}
               </Link>
               <Link
                 href="/trading"
-                className="text-slate-400 hover:text-sky-400 transition-colors"
+                className="text-muted-foreground hover:text-primary transition-colors"
               >
                 {t('trading')}
               </Link>
@@ -105,7 +105,7 @@ export default function DashboardPage() {
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
-          <p className="text-slate-400">
+          <p className="text-muted-foreground">
             {t('description', { name: user.username })}
           </p>
         </div>
@@ -147,7 +147,7 @@ export default function DashboardPage() {
             title={t('portfolioPerformance')}
             description={t('portfolioPerformanceDesc')}
           >
-            <div className="h-[400px] flex items-center justify-center text-slate-500">
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground">
               {t('comingSoon')}
             </div>
           </ChartCard>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
             title={t('returnsDistribution')}
             description={t('returnsDistributionDesc')}
           >
-            <div className="h-[400px] flex items-center justify-center text-slate-500">
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground">
               {t('comingSoon')}
             </div>
           </ChartCard>
@@ -167,7 +167,7 @@ export default function DashboardPage() {
             title={t('drawdownAnalysis')}
             description={t('drawdownAnalysisDesc')}
           >
-            <div className="h-[400px] flex items-center justify-center text-slate-500">
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground">
               {t('comingSoon')}
             </div>
           </ChartCard>
@@ -177,7 +177,7 @@ export default function DashboardPage() {
             title={t('recentTrades')}
             description={t('recentTradesDesc')}
           >
-            <div className="h-[400px] flex items-center justify-center text-slate-500">
+            <div className="h-[400px] flex items-center justify-center text-muted-foreground">
               {t('comingSoon')}
             </div>
           </ChartCard>
@@ -203,17 +203,17 @@ function StatCard({
   tooltip?: string;
 }) {
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6">
-      <p className="text-sm text-slate-400 mb-1">{title}</p>
+    <div className="bg-card/50 border border-border rounded-lg p-6">
+      <p className="text-sm text-muted-foreground mb-1">{title}</p>
       {isLoading ? (
         <div className="animate-pulse">
-          <div className="h-8 bg-slate-700 rounded w-16 mb-2"></div>
-          <div className="h-4 bg-slate-700 rounded w-24"></div>
+          <div className="h-8 bg-muted rounded w-16 mb-2"></div>
+          <div className="h-4 bg-muted rounded w-24"></div>
         </div>
       ) : (
         <>
           <p
-            className="text-2xl font-bold text-white mb-1"
+            className="text-2xl font-bold text-foreground mb-1"
             title={tooltip}
           >
             {value}
@@ -235,10 +235,10 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-slate-900/30 border border-slate-800 rounded-lg overflow-hidden">
-      <div className="p-4 border-b border-slate-800">
-        <h3 className="text-lg font-semibold text-white">{title}</h3>
-        <p className="text-sm text-slate-400">{description}</p>
+    <div className="bg-card/30 border border-border rounded-lg overflow-hidden">
+      <div className="p-4 border-b border-border">
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       <div className="p-4">{children}</div>
     </div>

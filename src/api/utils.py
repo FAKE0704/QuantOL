@@ -2,8 +2,9 @@
 
 提供API路由中使用的共享工具函数。
 """
-from typing import Optional, AsyncGenerator
+from typing import Optional, AsyncGenerator, Any
 import json
+import math
 
 
 def filter_result_summary(result_summary: Optional[dict]) -> dict:
@@ -64,6 +65,50 @@ def validate_rule_syntax(rule: str) -> tuple[bool, str]:
     return RuleParser.validate_syntax(rule)
 
 
+def _clean_special_floats(obj: Any) -> Any:
+    """递归清理数据中的 NaN 和 Inf 值
+
+    将所有 NaN 和 Inf 替换为 None，确保 JSON 序列化安全。
+
+    Args:
+        obj: 要清理的对象
+
+    Returns:
+        清理后的对象
+    """
+    import numpy as np
+
+    # 处理 NumPy 标量类型
+    if isinstance(obj, (np.integer, np.floating)):
+        obj = obj.item()  # 转换为 Python 标量类型
+
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    elif isinstance(obj, dict):
+        return {k: _clean_special_floats(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return type(obj)(_clean_special_floats(item) for item in obj)
+    else:
+        return obj
+
+
+def _json_serializer(obj):
+    """自定义JSON序列化器，处理NaN和Inf等特殊浮点值
+
+    Args:
+        obj: 要序列化的对象
+
+    Returns:
+        可序列化的值
+    """
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None  # 将NaN和Inf转换为null
+    raise TypeError(f'Object of type {type(obj).__name__} is not JSON serializable')
+
+
 async def stream_json_response(data: dict) -> AsyncGenerator[bytes, None]:
     """流式JSON响应
 
@@ -73,7 +118,9 @@ async def stream_json_response(data: dict) -> AsyncGenerator[bytes, None]:
     Yields:
         JSON数据的字节块
     """
-    json_str = json.dumps(data, ensure_ascii=False, default=str)
+    # 先清理 NaN/Inf，再序列化
+    cleaned_data = _clean_special_floats(data)
+    json_str = json.dumps(cleaned_data, ensure_ascii=False)
     chunk_size = 8192
     for i in range(0, len(json_str), chunk_size):
         yield json_str[i:i + chunk_size].encode('utf-8')

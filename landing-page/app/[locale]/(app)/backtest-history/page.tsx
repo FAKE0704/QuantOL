@@ -26,6 +26,8 @@ interface BacktestHistoryItem {
   sharpe_ratio?: number;
   max_drawdown?: number;
   win_rate?: number;
+  progress?: number;
+  current_time?: string;
 }
 
 export default function BacktestHistoryPage() {
@@ -61,6 +63,25 @@ export default function BacktestHistoryPage() {
   useEffect(() => {
     loadHistory();
   }, [statusFilter]);
+
+  // Poll for running tasks every 2 seconds
+  useEffect(() => {
+    const runningTasks = history.filter(item => item.status === 'running' || item.status === 'pending');
+    if (runningTasks.length === 0) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await getBacktestHistory(10, statusFilter || undefined);
+        if (response.success && response.data) {
+          setHistory(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to refresh backtest history:", error);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [history, statusFilter]);
 
   const handleViewResults = async (backtestId: string) => {
     setSelectedBacktestId(backtestId);
@@ -237,7 +258,7 @@ export default function BacktestHistoryPage() {
               <Card
                 key={item.backtest_id}
                 className="p-4 bg-card/50 hover:bg-card/80 transition-all cursor-pointer"
-                onClick={() => item.status === "completed" && handleViewResults(item.backtest_id)}
+                onClick={() => handleViewResults(item.backtest_id)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -283,21 +304,39 @@ export default function BacktestHistoryPage() {
                         </div>
                       </div>
                     )}
+
+                    {(item.status === "running" || item.status === "pending") && (
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                          <span>进度</span>
+                          <span>{item.progress?.toFixed(1) ?? 0}%</span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-blue-500 h-full transition-all duration-300 ease-out"
+                            style={{ width: `${item.progress ?? 0}%` }}
+                          />
+                        </div>
+                        {item.current_time && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            当前时间: {item.current_time}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {item.status === "completed" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewResults(item.backtest_id);
-                        }}
-                      >
-                        查看详情
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewResults(item.backtest_id);
+                      }}
+                    >
+                      {item.status === "completed" ? "查看详情" : "查看进度"}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"

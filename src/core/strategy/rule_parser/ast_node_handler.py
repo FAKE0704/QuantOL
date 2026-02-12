@@ -55,28 +55,60 @@ class ASTNodeHandler:
             表达式字符串
         """
         if isinstance(node, ast.Compare):
-            # 对于比较运算，生成更简洁的表达式
+            # 对于比较运算，保留空格以增强可读性
             left = ASTNodeHandler._node_to_expr_simple(node.left)
             right = ASTNodeHandler._node_to_expr_simple(node.comparators[0])
             op_sym = ASTNodeHandler._get_operator_symbol(node.ops[0])
             return f"{left} {op_sym} {right}"
         elif isinstance(node, ast.BinOp):
-            # 对于二元运算，生成更简洁的表达式
+            # 对于二元运算，不添加空格（紧凑格式），并检查子节点是否需要括号
             left = ASTNodeHandler._node_to_expr_simple(node.left)
             right = ASTNodeHandler._node_to_expr_simple(node.right)
             op_sym = ASTNodeHandler._get_operator_symbol(node.op)
-            return f"{left} {op_sym} {right}"
+
+            # 检查子节点是否需要括号
+            left_needs_parens = ASTNodeHandler._needs_parentheses(node.left, node.op, is_left=True)
+            right_needs_parens = ASTNodeHandler._needs_parentheses(node.right, node.op, is_left=False)
+
+            # 额外检查：如果子表达式是二元运算且内部还包含其他二元运算，加括号以避免歧义
+            # 或者子表达式本身包含减法/除法
+            def _is_complex_bin_op(n):
+                if isinstance(n, ast.BinOp):
+                    # 如果是减法或除法，总是加括号
+                    if isinstance(n.op, (ast.Sub, ast.Div)):
+                        return True
+                    # 如果子节点中有 BinOp，加括号
+                    if isinstance(n.left, ast.BinOp) or isinstance(n.right, ast.BinOp):
+                        return True
+                return False
+
+            if not left_needs_parens and _is_complex_bin_op(node.left):
+                left_needs_parens = True
+            if not right_needs_parens and _is_complex_bin_op(node.right):
+                right_needs_parens = True
+
+            if left_needs_parens:
+                left = f"({left})"
+            if right_needs_parens:
+                right = f"({right})"
+
+            return f"{left}{op_sym}{right}"
         elif isinstance(node, ast.UnaryOp):
             # 对于一元运算
             operand = ASTNodeHandler._node_to_expr_simple(node.operand)
             op_sym = ASTNodeHandler._get_operator_symbol(node.op)
             return f"{op_sym}{operand}"
+        elif isinstance(node, ast.Call):
+            # 函数调用：使用 _node_to_expr_simple 处理参数（处理 ** → ^ 转换）
+            func_name = node.func.id
+            args = [
+                ASTNodeHandler._node_to_expr_simple(arg)
+                for arg in node.args
+            ]
+            return f"{func_name}({','.join(args)})"
         else:
             # 其他情况使用原始方法
             expr = astunparse.unparse(node).strip()
-            # 处理函数调用参数间的多余空格
-            if isinstance(node, ast.Call):
-                expr = expr.replace(', ', ',')
             return expr
 
     @staticmethod
@@ -105,6 +137,20 @@ class ASTNodeHandler:
             right_needs_parens = ASTNodeHandler._needs_parentheses(
                 node.right, node.op, is_left=False
             )
+
+            # 额外检查：如果子表达式是二元运算且内部还包含其他二元运算，加括号以避免歧义
+            def _is_complex_bin_op(n):
+                if isinstance(n, ast.BinOp):
+                    if isinstance(n.op, (ast.Sub, ast.Div)):
+                        return True
+                    if isinstance(n.left, ast.BinOp) or isinstance(n.right, ast.BinOp):
+                        return True
+                return False
+
+            if not left_needs_parens and _is_complex_bin_op(node.left):
+                left_needs_parens = True
+            if not right_needs_parens and _is_complex_bin_op(node.right):
+                right_needs_parens = True
 
             if left_needs_parens:
                 left = f"({left})"
@@ -154,6 +200,11 @@ class ASTNodeHandler:
         if child_op_precedence < parent_op_precedence:
             return True
 
+        # 如果子表达式包含减法或除法（非结合性运算符），总是加括号
+        # 因为 (a-b)*c ≠ a-(b*c)，即使 * 优先级更高
+        if isinstance(child_node.op, (ast.Sub, ast.Div)):
+            return True
+
         # 对于相同优先级的操作符，需要处理结合性
         if child_op_precedence == parent_op_precedence:
             # 对于左结合的运算符，右操作数需要括号
@@ -188,7 +239,7 @@ class ASTNodeHandler:
         elif isinstance(op_node, ast.Mod):
             return "%"
         elif isinstance(op_node, ast.Pow):
-            return "**"
+            return "^"
         elif isinstance(op_node, ast.Gt):
             return ">"
         elif isinstance(op_node, ast.Lt):

@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, date
 from typing import Optional, Dict, Any, List, Type
-from src.core.strategy.position_strategy import FixedPercentStrategy, KellyStrategy, PositionStrategyFactory
 from src.core.strategy.indicators import IndicatorService  # 新增IndicatorService导入
 from src.core.strategy.rule_parser import RuleParser  # 新增RuleParser导入
 from src.core.strategy.rule_based_strategy import RuleBasedStrategy  # 新增RuleBasedStrategy导入
@@ -345,7 +344,7 @@ class BacktestEngine:
         try:
             if config.position_strategy_type == "fixed_percent":
                 # 使用新的固定比例仓位管理策略
-                from src.core.strategy.fixed_percent_position_strategy import FixedPercentPositionStrategy
+                from src.core.strategy.position_strategy import FixedPercentPositionStrategy
 
                 position_params = config.position_strategy_params
                 self.position_strategy = FixedPercentPositionStrategy(
@@ -357,7 +356,7 @@ class BacktestEngine:
                 logger.info(f"固定比例仓位管理策略创建成功: percent={self.position_strategy.percent}")
             elif config.position_strategy_type == "martingale":
                 # 使用马丁格尔仓位管理策略
-                from src.core.strategy.fixed_percent_position_strategy import MartingalePositionStrategy
+                from src.core.strategy.position_strategy import MartingalePositionStrategy
 
                 position_params = config.position_strategy_params
                 self.position_strategy = MartingalePositionStrategy(
@@ -368,18 +367,25 @@ class BacktestEngine:
                     debug_logger=self.debug_logger  # 传递调试日志记录器
                 )
                 logger.info(f"马丁格尔仓位管理策略创建成功: base_percent={self.position_strategy.base_percent}, multiplier={self.position_strategy.multiplier}, max_doubles={self.position_strategy.max_doubles}")
-            else:
-                # 使用旧版本的仓位策略（保持兼容性）
-                self.position_strategy = PositionStrategyFactory.create_strategy(
-                    config.position_strategy_type,
-                    config.initial_capital,
-                    config.position_strategy_params
+            elif config.position_strategy_type == "kelly":
+                # 使用凯利公式仓位管理策略
+                from src.core.strategy.position_strategy import KellyPositionStrategy
+
+                position_params = config.position_strategy_params
+                self.position_strategy = KellyPositionStrategy(
+                    win_rate=position_params.get("win_rate", 0.5),
+                    win_loss_ratio=position_params.get("win_loss_ratio", 2.0),
+                    max_percent=position_params.get("max_percent", 0.25),
+                    min_lot_size=getattr(config, 'min_lot_size', 100),
+                    debug_logger=self.debug_logger
                 )
-                logger.info(f"仓位策略创建成功: {config.position_strategy_type}")
+                logger.info(f"凯利公式仓位管理策略创建成功: win_rate={self.position_strategy.win_rate}, win_loss_ratio={self.position_strategy.win_loss_ratio}, kelly_fraction={self.position_strategy.kelly_fraction:.4f}")
+            else:
+                raise ValueError(f"未知的仓位策略类型: {config.position_strategy_type}。支持的类型: fixed_percent, martingale, kelly")
         except Exception as e:
             logger.error(f"仓位策略创建失败: {str(e)}，使用默认策略")
             # 使用默认策略作为fallback
-            from src.core.strategy.fixed_percent_position_strategy import FixedPercentPositionStrategy
+            from src.core.strategy.position_strategy import FixedPercentPositionStrategy
             self.position_strategy = FixedPercentPositionStrategy(
                 percent=0.1,
                 use_initial_capital=True,
@@ -462,6 +468,16 @@ class BacktestEngine:
     def db(self):
         """获取数据库适配器（支持两种模式）"""
         import traceback
+        # 安全检查：如果 db_adapter 属性不存在，抛出更明确的错误
+        if not hasattr(self, 'db_adapter'):
+            print(f"[ERROR] BacktestEngine.db_adapter attribute not initialized!")
+            print(f"[ERROR] Traceback:")
+            for line in traceback.format_stack()[-10:]:
+                print(f"[ERROR]     {line.strip()}")
+            raise AttributeError(
+                "BacktestEngine.db_adapter 属性未初始化。"
+                "这可能是因为 BacktestEngine 的 __init__ 方法在设置 db_adapter 之前抛出了异常。"
+            )
         print(f"[DEBUG] db property called:")
         print(f"[DEBUG]   self.db_adapter = {self.db_adapter}")
         print(f"[DEBUG]   type(self.db_adapter) = {type(self.db_adapter)}")
@@ -717,13 +733,9 @@ class BacktestEngine:
             self._create_hedge_order(event)
         elif event.signal_type == SignalType.REBALANCE:
             self._create_rebalance_order(event)
-        elif hasattr(self.position_strategy, 'calculate_position_size'):
-            # 使用新的固定比例仓位管理策略
-            self._create_order_with_position_strategy(event)
         else:
-            # 使用旧的订单创建方式（保持兼容性）
-            if event.signal_type in [SignalType.OPEN, SignalType.BUY, SignalType.SELL, SignalType.CLOSE, SignalType.LIQUIDATE]:
-                self._create_order_from_signal(event)
+            # 所有仓位策略都有 calculate_position_size 方法
+            self._create_order_with_position_strategy(event)
 
     def _create_order_with_position_strategy(self, event: StrategySignalEvent):
         """使用仓位管理策略创建订单"""

@@ -1349,14 +1349,13 @@ export default function BacktestPage() {
             </div>
 
             {/* View History Button */}
-            <Link href="/backtest-history" className="block">
-              <Button
-                variant="outline"
-                className="w-full bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
-              >
-                📜 查看历史记录
-              </Button>
-            </Link>
+            <Button
+              asChild
+              variant="outline"
+              className="w-full bg-[#FFEFD5] dark:bg-gradient-to-r dark:from-amber-500 dark:to-orange-500 hover:bg-[#FFE0C0] dark:hover:from-amber-600 dark:hover:to-orange-600 text-foreground dark:text-white rounded-full font-medium transition-all shadow-md hover:shadow-lg"
+            >
+              <Link href="/backtest-history">📜 查看历史记录</Link>
+            </Button>
 
             {/* Stock Selection */}
             <CollapsibleCard id="stocks" title="选择交易标的" activeCard={activeCard} onCardClick={handleCardClick}>

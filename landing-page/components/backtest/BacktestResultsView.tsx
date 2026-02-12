@@ -8,6 +8,31 @@
  */
 
 import { useEffect, useState } from "react";
+
+// 基础列名集合（始终显示）
+const BASE_COLUMNS = new Set([
+  'timestamp', 'open', 'high', 'low', 'close', 'volume',
+  'code', 'date', 'combined_time'
+]);
+
+// 判断是否为关键列的函数
+function isKeyColumn(colName: string, data: import("@/types/backtest").SerializedDataFrame): boolean {
+  // 基础列始终显示
+  if (BASE_COLUMNS.has(colName)) return true;
+
+  // 从 attrs 中获取 is_key 标记
+  const isKey = data.__attrs__?.[`${colName}_is_key`];
+  if (typeof isKey === 'boolean') return isKey;
+
+  // 备用：使用模式匹配
+  const keyPatterns = [
+    /^[A-Z_]+\([^)]+\)$/,        // 函数调用 (如 SMA(close,5), Z_SCORE(...))
+    /.*(>|<|==|>=|<=).+/,        // 比较运算 (如 close > SMA(...))
+    /^(COST|POSITION)$/          // 特殊变量
+  ];
+
+  return keyPatterns.some(pattern => pattern.test(colName));
+}
 import { useApi } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -416,13 +441,17 @@ function TradesTab({
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">交易记录</h3>
+
+      {/* 总是显示价格图表（如果有数据） */}
+      {priceData && priceData.length > 0 && (
+        <CandlestickChart priceData={priceData} trades={trades} parserData={firstStrategyData} />
+      )}
+
+      {/* 交易表格 */}
       {trades.length === 0 ? (
         <div className="text-slate-400 text-sm">无交易记录</div>
       ) : (
         <>
-          {priceData && priceData.length > 0 && (
-            <CandlestickChart priceData={priceData} trades={trades} parserData={firstStrategyData} />
-          )}
           <div className="text-xs text-slate-500 mb-2">共 {trades.length} 笔交易</div>
           <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-96 overflow-y-auto">
             <table className="w-full text-sm">
@@ -1172,6 +1201,8 @@ function DetailsTab({
 }
 
 function DebugTab({ debugData }: { debugData?: Record<string, unknown> }) {
+  const [showAllColumns, setShowAllColumns] = useState(false);
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">规则解析器调试数据</h3>
@@ -1184,13 +1215,34 @@ function DebugTab({ debugData }: { debugData?: Record<string, unknown> }) {
           {Object.entries(debugData).map(([strategyName, data]) => {
             if (!isSerializedDataFrame(data)) return null;
             const records = data.__data__ as Record<string, unknown>[];
-            const columns = records.length > 0 ? Object.keys(records[0]) : [];
+            const allColumns = records.length > 0 ? Object.keys(records[0]) : [];
+            const columns = showAllColumns
+              ? allColumns
+              : allColumns.filter(col => isKeyColumn(col, data));
 
             return (
               <div key={strategyName} className="space-y-2">
-                <h4 className="text-sm font-medium text-slate-400">策略: {strategyName}</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-slate-400">
+                    策略: {strategyName}
+                  </h4>
+                  <label className="flex items-center gap-2 text-xs text-slate-400">
+                    <input
+                      type="checkbox"
+                      checked={showAllColumns}
+                      onChange={(e) => setShowAllColumns(e.target.checked)}
+                      className="rounded"
+                    />
+                    显示所有列
+                  </label>
+                </div>
                 <div className="text-xs text-slate-500 mb-1">
                   {records.length} 条记录, {columns.length} 个字段
+                  {!showAllColumns && allColumns.length > columns.length && (
+                    <span className="ml-2 text-slate-600">
+                      （已过滤 {allColumns.length - columns.length} 个中间步骤列）
+                    </span>
+                  )}
                 </div>
                 <div className="overflow-x-auto rounded-lg border border-slate-700 max-h-64 overflow-y-auto">
                   <table className="w-full text-xs whitespace-nowrap">

@@ -50,7 +50,7 @@ class BacktestTaskService:
                 await conn.execute("""
                     INSERT INTO BacktestTasks
                     (backtest_id, user_id, name, status, config, log_file_path, created_at)
-                    VALUES ($1, $2, $3, 'pending', $4, $5, NOW())
+                    VALUES (?, ?, ?, 'pending', ?, ?, CURRENT_TIMESTAMP)
                 """, backtest_id, user_id, name or f"Backtest {backtest_id}", config_json, log_file_path or "")
 
             logger.info(f"Created backtest task {backtest_id} for user {user_id}")
@@ -242,17 +242,43 @@ class BacktestTaskService:
             db = get_db_adapter()
 
             async with db.pool as conn:
-                result = await conn.execute(
-                    "DELETE FROM BacktestTasks WHERE backtest_id = $1 AND user_id = $2",
+                cursor = await conn.execute(
+                    "DELETE FROM BacktestTasks WHERE backtest_id = ? AND user_id = ?",
                     backtest_id, user_id
                 )
 
-                # Check if any rows were deleted
-                rows_deleted = int(result.split()[-1]) if result else 0
+                # Check if any rows were deleted using cursor.rowcount
+                rows_deleted = cursor.rowcount if cursor else 0
                 return rows_deleted > 0
 
         except Exception as e:
             logger.error(f"Failed to delete backtest task: {e}")
+            return False
+
+    async def delete_backtest(self, backtest_id: str) -> bool:
+        """Delete a backtest by ID (without user check).
+
+        Args:
+            backtest_id: Backtest identifier
+
+        Returns:
+            True if deleted, False otherwise
+        """
+        try:
+            db = get_db_adapter()
+
+            async with db.pool as conn:
+                cursor = await conn.execute(
+                    "DELETE FROM BacktestTasks WHERE backtest_id = ?",
+                    backtest_id
+                )
+
+                # Check if any rows were deleted using cursor.rowcount
+                rows_deleted = cursor.rowcount if cursor else 0
+                return rows_deleted > 0
+
+        except Exception as e:
+            logger.error(f"Failed to delete backtest: {e}")
             return False
 
     async def cleanup_old_backtests(self, user_id: int) -> bool:
@@ -271,7 +297,7 @@ class BacktestTaskService:
                 # Count completed backtests
                 count = await conn.fetchval("""
                     SELECT COUNT(*) FROM BacktestTasks
-                    WHERE user_id = $1 AND status = 'completed'
+                    WHERE user_id = ? AND status = 'completed'
                 """, user_id)
 
                 if count <= self.MAX_COMPLETED_BACKTESTS:
@@ -282,9 +308,9 @@ class BacktestTaskService:
                     DELETE FROM BacktestTasks
                     WHERE id IN (
                         SELECT id FROM BacktestTasks
-                        WHERE user_id = $1 AND status = 'completed'
+                        WHERE user_id = ? AND status = 'completed'
                         ORDER BY created_at ASC
-                        LIMIT $2
+                        LIMIT ?
                     )
                 """, user_id, count - self.MAX_COMPLETED_BACKTESTS)
 
@@ -306,6 +332,14 @@ class BacktestTaskService:
             except:
                 return {}
 
+        # Helper to format datetime (handles both datetime objects and SQLite strings)
+        def format_datetime(val):
+            if not val:
+                return None
+            if isinstance(val, str):
+                return val
+            return val.isoformat()
+
         return {
             "id": row["id"],
             "backtest_id": row["backtest_id"],
@@ -318,9 +352,9 @@ class BacktestTaskService:
             "result_summary": safe_json_loads(row["result_summary"]),
             "error_message": row["error_message"],
             "log_file_path": row["log_file_path"],
-            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
-            "started_at": row["started_at"].isoformat() if row["started_at"] else None,
-            "completed_at": row["completed_at"].isoformat() if row["completed_at"] else None,
+            "created_at": format_datetime(row["created_at"]),
+            "started_at": format_datetime(row["started_at"]),
+            "completed_at": format_datetime(row["completed_at"]),
         }
 
 

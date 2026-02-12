@@ -16,18 +16,11 @@ class BacktestExecutionService:
 
     def initialize_engine(self, backtest_config: Any, data: Any, backtest_id: str = None) -> BacktestEngine:
         """初始化回测引擎"""
-        print(f"[DEBUG] BacktestExecutionService.initialize_engine:")
-        print(f"[DEBUG]   self.session_state.db = {self.session_state.db}")
-        print(f"[DEBUG]   type(self.session_state.db) = {type(self.session_state.db)}")
-
         engine = BacktestEngine(
             config=backtest_config,
             data=data,
-            db_adapter=self.session_state.db,
             backtest_id=backtest_id
         )
-
-        print(f"[DEBUG]   engine.db_adapter = {engine.db_adapter}")
 
         # 注册信号处理器
         engine.register_handler(StrategySignalEvent, self._create_signal_handler(engine))

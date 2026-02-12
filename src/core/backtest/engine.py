@@ -1,11 +1,10 @@
 """Refactored backtest engine.
 
-This is the refactored version of BacktestEngine with separated concerns,
-following dependency injection and single responsibility principles.
+Simplified version without database dependencies for backtesting.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, date
+from datetime import datetime, date
 from typing import Optional, Dict, Any, List, Type
 import pandas as pd
 import numpy as np
@@ -25,21 +24,19 @@ from src.support.log.backtest_debug_logger import BacktestDebugLogger
 
 # Import refactored components
 from .factories import BacktestServiceFactory
-from .services.database_provider import BacktestDatabaseProvider
 from .services.equity_service import EquityService
 from .services.results_service import ResultsService
 from .coordinators.event_coordinator import EventCoordinator
-from .coordinators.order_coordinator import OrderCoordinator
 
-# Import original config (keeping for compatibility)
+# Import config from original location
 from src.core.strategy.backtesting import BacktestConfig
 
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 @dataclass
 class BacktestConfig:
-    """回测配置类 - 保持与原始配置的兼容性"""
+    """回测配置类"""
     start_date: str
     end_date: str
     target_symbol: str
@@ -73,15 +70,15 @@ class BacktestConfig:
     ranking_config: Optional[Dict[str, Any]] = None
 
     def __post_init__(self):
-        """参数验证和兼容性处理"""
-        self.commission_rate = self.commission_rate
+        """参数验证"""
+        self.commission_rate = float(self.commission_rate)
         self.slippage = float(self.slippage)
         self.start_date = self._normalize_date_format(self.start_date)
         self.end_date = self._normalize_date_format(self.end_date)
 
     @staticmethod
     def _normalize_date_format(date_str: str) -> str:
-        """标准化日期格式为 %Y%m%d"""
+        """标准化日期格式"""
         if not date_str:
             return date_str
         for fmt in ('%Y-%m-%d', '%Y/%m/%d', '%Y%m%d'):
@@ -119,14 +116,13 @@ class BacktestConfig:
 
 
 class BacktestEngine:
-    """Refactored backtest engine - orchestrates services using dependency injection.
+    """Refactored backtest engine - simplified without database dependencies.
 
     This version delegates specialized responsibilities to:
     - EquityService: Equity tracking and calculation
     - ResultsService: Results aggregation and metrics
     - EventCoordinator: Event queue management
-    - OrderCoordinator: Order creation and execution
-    - BacktestDatabaseProvider: Database access
+    - BacktestTrader: Direct order execution (no database)
     """
 
     def __init__(
@@ -134,16 +130,14 @@ class BacktestEngine:
         config: BacktestConfig,
         data,
         progress_callback=None,
-        db_adapter=None,
         backtest_id: str = None
     ):
-        """Initialize backtest engine using dependency injection.
+        """Initialize backtest engine.
 
         Args:
             config: BacktestConfig instance
             data: DataFrame or dict of DataFrames with price data
             progress_callback: Optional progress callback function
-            db_adapter: Optional database adapter
             backtest_id: Optional backtest ID
         """
         self.config = config
@@ -177,8 +171,7 @@ class BacktestEngine:
             self.data_dict = {config.target_symbol: data}
             self.data = data
 
-        # Use factory to create services (dependency injection)
-        self.db_provider = BacktestServiceFactory.create_database_provider(db_adapter)
+        # Use factory to create services (no database needed)
         self.indicator_service = BacktestServiceFactory.create_indicator_service()
         self.position_strategy = BacktestServiceFactory.create_position_strategy(
             config, self.debug_logger
@@ -190,6 +183,11 @@ class BacktestEngine:
             self.portfolio_manager, config.commission_rate
         )
 
+        # Create backtest trader (no database dependency)
+        self.backtest_trader = BacktestServiceFactory.create_trader(
+            config.commission_rate
+        )
+
         # Create advanced services
         self.equity_service = BacktestServiceFactory.create_equity_service(
             self.portfolio_manager, config.initial_capital
@@ -198,23 +196,6 @@ class BacktestEngine:
             self.portfolio_manager, self.equity_service
         )
         self.event_coordinator = BacktestServiceFactory.create_event_coordinator()
-
-        # Create trader and order manager
-        self.backtest_trader = BacktestServiceFactory.create_trader(
-            config.commission_rate
-        )
-        self.trade_order_manager = BacktestServiceFactory.create_trade_order_manager(
-            self.db_provider, self.backtest_trader
-        )
-
-        # Create order coordinator
-        self.order_coordinator = BacktestServiceFactory.create_order_coordinator(
-            self.portfolio_manager,
-            self.backtest_trader,
-            self.trade_order_manager,
-            self.position_strategy,
-            config
-        )
 
         # Create rule parser
         self.rule_parser = RuleParser(self.data, self.indicator_service)
@@ -255,11 +236,6 @@ class BacktestEngine:
 
         # Portfolio interface
         self.portfolio = self.portfolio_manager
-
-    @property
-    def db(self):
-        """Get database adapter through provider."""
-        return self.db_provider.db
 
     def register_handler(self, event_type: Type, handler):
         """Register event handler through coordinator.
@@ -331,18 +307,21 @@ class BacktestEngine:
         # Update RuleParser data references
         self.update_rule_parser_data()
 
-        # Filter data by date range
+        # Filter data by date range - support both 'date' column and DatetimeIndex
+        if 'date' in self.data.columns:
+            # Data has 'date' column - filter using it
+            data_dates = pd.to_datetime(self.data['date']).dt.strftime('%Y%m%d')
+        elif isinstance(self.data.index, pd.DatetimeIndex):
+            # Index is already DatetimeIndex
+            data_dates = self.data.index.strftime('%Y%m%d')
+        else:
+            # Try to convert index to datetime
+            data_dates = pd.to_datetime(self.data.index).strftime('%Y%m%d')
+
         start_str = start_date.strftime('%Y%m%d')
         end_str = end_date.strftime('%Y%m%d')
-
-        # Convert timestamps to comparable format
-        if hasattr(self.data.index, 'to_pydatetime'):
-            data_dates = pd.to_datetime(self.data.index).strftime('%Y%m%d')
-        else:
-            data_dates = self.data.index
-
         mask = (data_dates >= start_str) & (data_dates <= end_str)
-        filtered_data = self.data[mask]
+        filtered_data = self.data[mask].copy()
 
         logger.info(
             f"Starting backtest: {len(filtered_data)} data points from "
@@ -369,7 +348,7 @@ class BacktestEngine:
                 self.equity_service.update_equity(idx, price)
 
                 # Generate TradingDayEvent
-                trading_day_event = TradingDayEvent(timestamp=idx, price=price)
+                trading_day_event = TradingDayEvent(timestamp=idx)
                 self.push_event(trading_day_event)
 
                 # Execute strategies
@@ -377,7 +356,8 @@ class BacktestEngine:
                     if hasattr(strategy, 'on_data'):
                         await strategy.on_data(row, idx)
                     elif hasattr(strategy, 'handle_event'):
-                        await strategy.handle_event(trading_day_event)
+                        # handle_event是同步方法，直接调用
+                        strategy.handle_event(self, trading_day_event)
 
                 # Process event queue
                 self.event_coordinator.process_event_queue()
@@ -442,76 +422,132 @@ class BacktestEngine:
         elif event.signal_type == SignalType.REBALANCE:
             self.data.loc[idx, 'signal'] = 3
 
-        # Create order using order coordinator
-        order = self.order_coordinator.create_order_from_signal(event)
-        if order:
+        # Process signal through position strategy
+        self._process_signal_with_position_strategy(event)
+
+    def _process_signal_with_position_strategy(self, event: StrategySignalEvent):
+        """Process signal using position strategy.
+
+        Args:
+            event: StrategySignalEvent
+        """
+        try:
+            if not hasattr(self.position_strategy, 'calculate_position_size'):
+                return
+
+            portfolio_data = {
+                'initial_capital': self.config.initial_capital,
+                'available_cash': self.portfolio_manager.get_available_cash(),
+                'total_equity': self.portfolio_manager.get_total_value()
+            }
+
+            current_position = 0
+            if self.multi_symbol_mode:
+                current_position = self.portfolio_manager.get_position_size(event.symbol)
+            else:
+                current_position = self.portfolio_manager.get_position_size(self.config.target_symbol)
+
+            quantity = self.position_strategy.calculate_position_size(
+                signal_type=event.signal_type,
+                portfolio_data=portfolio_data,
+                current_price=float(event.price),
+                current_position=current_position
+            )
+
+            self.debug_logger.log_position_calculation(
+                index=self.current_index,
+                signal_type=str(event.signal_type),
+                available_cash=portfolio_data['available_cash'],
+                total_equity=portfolio_data['total_equity'],
+                current_position=current_position,
+                calculated_quantity=quantity
+            )
+
+            if quantity > 0:
+                direction = 'BUY'
+            elif quantity < 0:
+                direction = 'SELL'
+                quantity = abs(quantity)
+            else:
+                return
+
+            # Create and execute order
+            order = OrderEvent(
+                symbol=event.symbol,
+                order_type='market',
+                quantity=quantity,
+                direction=direction,
+                price=event.price,
+                timestamp=event.timestamp
+            )
             self.push_event(order)
 
+        except Exception as e:
+            logger.error(f"Failed to process signal: {e}")
+
     def _handle_order_event(self, event: OrderEvent):
-        """Handle order event.
+        """Handle order event - execute directly through trader.
 
         Args:
             event: OrderEvent
         """
         logger.debug(f"Handling order event: {event}")
 
-        # Calculate order amount and commission
-        order_amount = float(event.quantity) * float(event.price)
-        commission = order_amount * self.config.commission_rate
-        total_cost = order_amount + commission
+        try:
+            # Execute order directly through backtest trader
+            fill = self.backtest_trader.execute_order(event)
 
-        # Determine quantity direction
-        quantity = event.quantity if event.direction == 'BUY' else -event.quantity
+            if fill:
+                # Update portfolio
+                if fill.direction == 'buy':
+                    self.portfolio_manager.update_position(
+                        symbol=fill.symbol,
+                        quantity=fill.filled_quantity,
+                        price=fill.fill_price,
+                        commission=fill.commission,
+                        timestamp=fill.timestamp
+                    )
+                elif fill.direction == 'sell':
+                    self.portfolio_manager.update_position(
+                        symbol=fill.symbol,
+                        quantity=-fill.filled_quantity,
+                        price=fill.fill_price,
+                        commission=fill.commission,
+                        timestamp=fill.timestamp
+                    )
 
-        # Update portfolio
-        success = self.portfolio_manager.update_position(
-            symbol=event.symbol,
-            quantity=quantity,
-            price=event.price,
-            commission=commission
-        )
+                # Record trade
+                trade_record = {
+                    'timestamp': self.current_time,
+                    'symbol': event.symbol,
+                    'direction': event.direction,
+                    'price': event.price,
+                    'quantity': event.quantity,
+                    'commission': fill.commission
+                }
+                self.trades.append(trade_record)
 
-        if not success:
-            self.log_error(f"Order execution failed: {event.direction} {event.quantity}@{event.price}")
-            return
+                self.debug_logger.log_trade_executed(
+                    index=self.current_index if self.current_index is not None else 0,
+                    direction=event.direction,
+                    symbol=event.symbol,
+                    quantity=event.quantity,
+                    price=float(event.price),
+                    commission=fill.commission
+                )
 
-        # Record trade
-        trade_record = {
-            'timestamp': self.current_time,
-            'symbol': event.symbol,
-            'direction': event.direction,
-            'price': event.price,
-            'quantity': event.quantity,
-            'commission': commission,
-            'total_cost': total_cost if event.direction == 'BUY' else -total_cost
-        }
-
-        # Add martingale_level if applicable
-        if hasattr(self.position_strategy, 'get_martingale_level'):
-            trade_record['martingale_level'] = self.position_strategy.get_martingale_level(
-                event.symbol
-            )
-
-        self.trades.append(trade_record)
-
-        self.debug_logger.log_trade_executed(
-            index=self.current_index if self.current_index is not None else 0,
-            direction=event.direction,
-            symbol=event.symbol,
-            quantity=event.quantity,
-            price=float(event.price),
-            commission=commission
-        )
+        except Exception as e:
+            logger.error(f"Failed to handle order event: {e}")
+            self.log_error(f"Order execution failed: {str(e)}")
 
     def _handle_fill_event(self, event: FillEvent):
-        """Handle fill event.
+        """Handle fill event (for compatibility).
 
         Args:
             event: FillEvent
         """
         logger.debug(f"Handling fill event: {event}")
         # Fill events are already processed in order handler
-        # This method exists for compatibility with event system
 
     def log_error(self, message: str):
         """Log error message.

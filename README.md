@@ -306,7 +306,7 @@ QuantOL/
 │   │   │   │   ├── rule_evaluator.py         # 表达式评估
 │   │   │   │   └── rule_parser.py            # 门面类 (向后兼容)
 │   │   │   ├── rule_based_strategy.py # 规则策略
-│   │   │   └── position_strategy.py   # 仓位策略
+│   │   │   └── position_strategy.py   # 仓位策略 (固定比例、马丁格尔、凯利公式)
 │   │   ├── backtest/        # 回测引擎 (模块化)
 │   │   │   ├── protocols/    # 协议接口
 │   │   │   ├── services/     # 服务层

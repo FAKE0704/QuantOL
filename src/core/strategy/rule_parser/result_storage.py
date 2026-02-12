@@ -97,10 +97,41 @@ class ResultStorageManager:
             if not hasattr(self.data, 'attrs'):
                 self.data.attrs = {}
             self.data.attrs[f"{col_name}_expr"] = expr
+            # 标记是否为关键表达式
+            self.data.attrs[f"{col_name}_is_key"] = self.is_key_expression(expr)
 
         # 存储结果
         if 0 <= index < len(self.data):
             self.data.at[index, col_name] = bool(result) if is_bool else result
+
+    def is_key_expression(self, expr: str) -> bool:
+        """判断表达式是否为关键中间步骤
+
+        关键表达式定义：
+        1. 函数调用（如 SMA(close,5)、Z_SCORE(...)）
+        2. 比较运算（如 close > SMA(...)）
+        3. 特殊变量（COST、POSITION）
+        4. 包含函数调用的复杂表达式
+
+        非关键表达式：
+        - 仅包含基本列的算术运算（如 close-low、open**5）
+
+        Args:
+            expr: 表达式字符串
+
+        Returns:
+            是否为关键表达式
+        """
+        # 函数调用是关键
+        if re.search(r'[A-Z_]+\(', expr):
+            return True
+        # 比较运算是关键
+        if re.search(r'\s*(>|<|==|>=|<=)\s', expr):
+            return True
+        # 特殊变量是关键
+        if expr in ['COST', 'POSITION']:
+            return True
+        return False
 
     def save_variable_result(
         self,
@@ -124,6 +155,8 @@ class ResultStorageManager:
             if not hasattr(self.data, 'attrs'):
                 self.data.attrs = {}
             self.data.attrs[f"{var_name}_expr"] = var_name
+            # 特殊变量是关键表达式
+            self.data.attrs[f"{var_name}_is_key"] = True
 
         if 0 <= index < len(self.data):
             # 即使result为0或None也存储
@@ -161,6 +194,8 @@ class ResultStorageManager:
             if not hasattr(self.data, 'attrs'):
                 self.data.attrs = {}
             self.data.attrs[f"{col_name}_expr"] = f"{func_name}({args_str})"
+            # 指标函数调用是关键表达式
+            self.data.attrs[f"{col_name}_is_key"] = True
 
         # 确保当前索引有效
         if 0 <= index < len(self.data):
@@ -171,15 +206,20 @@ class ResultStorageManager:
     def _clean_rule_name(self, rule: str) -> str:
         """清理规则表达式用作列名
 
+        只替换真正不能作为 DataFrame 列名的字符（如括号、逗号等），
+        保留运算符符号以增强可读性。
+
         Args:
             rule: 原始规则表达式
 
         Returns:
             清理后的列名
         """
-        # 替换特殊字符为下划线
-        clean_rule = re.sub(r'[^\w\s-]', '_', rule)
-        # 替换空格为下划线
+        # 只替换真正不兼容的字符（括号、大括号、引号、冒号等）
+        # 保留运算符：+ - * / ^ % < > = ! & | ~ 和逗号
+        clean_rule = re.sub(r'[(){}\[\]:"\'`]', '_', rule)
+        # 替换空格为下划线（但保留比较运算符周围的空格）
+        # 实际上，为了 DataFrame 兼容性，所有空格都替换为下划线
         clean_rule = re.sub(r'\s+', '_', clean_rule)
         # 移除多余的下划线
         clean_rule = re.sub(r'_+', '_', clean_rule)

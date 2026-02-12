@@ -13,7 +13,7 @@ class ITaskManager(Protocol):
     - Coordinating between state service, task service, and WebSocket manager
     """
 
-    def submit_backtest(
+    async def submit_backtest(
         self,
         backtest_id: str,
         request: Any,

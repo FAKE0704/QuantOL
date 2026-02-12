@@ -1,23 +1,19 @@
 """Service factory for backtest engine components.
 
-This factory creates all services used by the backtest engine,
-implementing dependency injection pattern.
+Simplified factory without database dependencies.
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from src.core.strategy.indicators import IndicatorService
-from src.core.strategy.position_strategy import PositionStrategyFactory
 from src.core.portfolio.portfolio import PortfolioManager
 from src.core.risk.risk_manager import RiskManager
-from src.core.execution.Trader import BacktestTrader, TradeOrderManager
+from src.core.execution.Trader import BacktestTrader
 from src.support.log.backtest_debug_logger import BacktestDebugLogger
 from src.support.log.logger import logger
 
-from ..services.database_provider import BacktestDatabaseProvider
 from ..services.equity_service import EquityService
 from ..services.results_service import ResultsService
 from ..coordinators.event_coordinator import EventCoordinator
-from ..coordinators.order_coordinator import OrderCoordinator
 
 
 class BacktestServiceFactory:
@@ -26,18 +22,6 @@ class BacktestServiceFactory:
     This factory encapsulates all service creation logic,
     making the BacktestEngine cleaner and more testable.
     """
-
-    @staticmethod
-    def create_database_provider(db_adapter) -> BacktestDatabaseProvider:
-        """Create database provider.
-
-        Args:
-            db_adapter: Database adapter instance
-
-        Returns:
-            BacktestDatabaseProvider instance
-        """
-        return BacktestDatabaseProvider(db_adapter)
 
     @staticmethod
     def create_indicator_service() -> IndicatorService:
@@ -64,7 +48,7 @@ class BacktestServiceFactory:
 
         try:
             if config.position_strategy_type == "fixed_percent":
-                from src.core.strategy.fixed_percent_position_strategy import FixedPercentPositionStrategy
+                from src.core.strategy.position_strategy import FixedPercentPositionStrategy
                 return FixedPercentPositionStrategy(
                     percent=position_params.get("percent", 0.1),
                     use_initial_capital=position_params.get("use_initial_capital", True),
@@ -72,7 +56,7 @@ class BacktestServiceFactory:
                     debug_logger=debug_logger
                 )
             elif config.position_strategy_type == "martingale":
-                from src.core.strategy.fixed_percent_position_strategy import MartingalePositionStrategy
+                from src.core.strategy.position_strategy import MartingalePositionStrategy
                 return MartingalePositionStrategy(
                     base_percent=position_params.get("base_percent", 5.0) / 100,
                     multiplier=position_params.get("multiplier", 2.0),
@@ -80,16 +64,20 @@ class BacktestServiceFactory:
                     min_lot_size=min_lot_size,
                     debug_logger=debug_logger
                 )
-            else:
-                # Fallback to old version
-                return PositionStrategyFactory.create_strategy(
-                    config.position_strategy_type,
-                    config.initial_capital,
-                    config.position_strategy_params
+            elif config.position_strategy_type == "kelly":
+                from src.core.strategy.position_strategy import KellyPositionStrategy
+                return KellyPositionStrategy(
+                    win_rate=position_params.get("win_rate", 0.5),
+                    win_loss_ratio=position_params.get("win_loss_ratio", 2.0),
+                    max_percent=position_params.get("max_percent", 0.25),
+                    min_lot_size=min_lot_size,
+                    debug_logger=debug_logger
                 )
+            else:
+                raise ValueError(f"未知的仓位策略类型: {config.position_strategy_type}。支持的类型: fixed_percent, martingale, kelly")
         except Exception as e:
             logger.error(f"Position strategy creation failed: {e}, using default")
-            from src.core.strategy.fixed_percent_position_strategy import FixedPercentPositionStrategy
+            from src.core.strategy.position_strategy import FixedPercentPositionStrategy
             return FixedPercentPositionStrategy(
                 percent=0.1,
                 use_initial_capital=True,
@@ -140,23 +128,6 @@ class BacktestServiceFactory:
         return BacktestTrader(commission_rate=commission_rate)
 
     @staticmethod
-    def create_trade_order_manager(db_provider, trader) -> TradeOrderManager:
-        """Create trade order manager.
-
-        Args:
-            db_provider: Database provider
-            trader: BacktestTrader instance
-
-        Returns:
-            TradeOrderManager instance
-
-        Note:
-            If db_provider has no adapter configured, will pass None to TradeOrderManager.
-        """
-        adapter = db_provider.get_adapter()
-        return TradeOrderManager(adapter, trader)
-
-    @staticmethod
     def create_equity_service(portfolio, initial_capital: float) -> EquityService:
         """Create equity service.
 
@@ -192,35 +163,7 @@ class BacktestServiceFactory:
         return EventCoordinator()
 
     @staticmethod
-    def create_order_coordinator(
-        portfolio,
-        trader,
-        trade_order_manager,
-        position_strategy,
-        config
-    ) -> OrderCoordinator:
-        """Create order coordinator.
-
-        Args:
-            portfolio: Portfolio instance
-            trader: BacktestTrader instance
-            trade_order_manager: TradeOrderManager instance
-            position_strategy: Position strategy instance
-            config: BacktestConfig instance
-
-        Returns:
-            OrderCoordinator instance
-        """
-        return OrderCoordinator(
-            portfolio=portfolio,
-            trader=trader,
-            trade_order_manager=trade_order_manager,
-            position_strategy=position_strategy,
-            config=config
-        )
-
-    @staticmethod
-    def create_ranking_service(config, indicator_service, data_dict, portfolio_manager):
+    def create_ranking_service(config, indicator_service, data_dict, portfolio_manager) -> Tuple[Optional[Any], Optional[Any]]:
         """Create cross-sectional ranking service if enabled.
 
         Args:
@@ -256,7 +199,7 @@ class BacktestServiceFactory:
         return ranking_service, ranking_strategy
 
     @staticmethod
-    def create_rebalance_period_service(config):
+    def create_rebalance_period_service(config) -> Optional[Any]:
         """Create rebalance period service if enabled.
 
         Args:

@@ -15,25 +15,34 @@ try:
 except Exception as e:
     raise RuntimeError(f"日志文件不可写: {log_path}. 错误: {str(e)}")
 
+# 自定义Formatter，安全处理缺失的connection_id字段
+class SafeFormatter(logging.Formatter):
+    def format(self, record):
+        # 确保connection_id字段存在
+        if not hasattr(record, 'connection_id'):
+            record.connection_id = 'N/A'
+        return super().format(record)
+
+# 创建文件处理器
 file_handler = logging.FileHandler(log_path)
 file_handler.setLevel(logging.DEBUG)  # 确保捕获warning及以上级别日志
-file_handler.setFormatter(logging.Formatter(
+file_handler.setFormatter(SafeFormatter(
     '[%(asctime)s] [%(levelname)s] [%(module)s:%(lineno)d] [conn:%(connection_id)s] %(message)s'
 ))
 
-# 创建控制台处理器
+# 创建控制台处理器（PM2已添加时间戳，不需要重复）
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(logging.Formatter(
-    '[%(asctime)s] [%(levelname)s] [%(module)s] %(message)s'
+    '[%(levelname)s] [%(module)s] %(message)s'
 ))
 console_handler.setLevel(logging.DEBUG)  # 确保捕获所有调试日志
 
-# 添加处理器（仅当无Handler时添加）
-# 确保handler只添加一次
+# 添加处理器
 logger.handlers.clear()  # 先清除所有handler
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
-# 日志系统状态检查函数
+
+
 def check_logger_status():
     """手动检查日志系统状态"""
     status = {
@@ -47,14 +56,6 @@ def check_logger_status():
     logger.warning("Logger状态检查: %s", status, extra={'connection_id': 'SYSTEM'})
     return status
 
-
-# 添加追踪ID的过滤器
-class ConnectionFilter(logging.Filter):
-    def filter(self, record):
-        record.connection_id = getattr(record, 'connection_id', 'N/A')
-        return True
-        
-logger.addFilter(ConnectionFilter())
 
 def _init_logger(self):
     """兼容旧版初始化方法"""

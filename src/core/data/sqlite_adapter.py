@@ -1,3 +1,4 @@
+import re
 import aiosqlite
 import pandas as pd
 import chinese_calendar as calendar
@@ -23,14 +24,22 @@ class SQLiteConnectionWrapper:
     def __init__(self, conn: aiosqlite.Connection):
         self._conn = conn
 
+    def _convert_query(self, query: str) -> str:
+        """Convert PostgreSQL query syntax to SQLite syntax."""
+        # Convert parameter placeholders: $1, $2 -> ?
+        query = re.sub(r'\$\d+', '?', query)
+        return query
+
     async def fetchval(self, query: str, *args):
         """Execute query and return first value of first row."""
+        query = self._convert_query(query)
         cursor = await self._conn.execute(query, args)
         row = await cursor.fetchone()
         return row[0] if row else None
 
     async def fetchrow(self, query: str, *args):
         """Execute query and return first row as dict."""
+        query = self._convert_query(query)
         cursor = await self._conn.execute(query, args)
         row = await cursor.fetchone()
         if row:
@@ -40,6 +49,7 @@ class SQLiteConnectionWrapper:
 
     async def fetch(self, query: str, *args):
         """Execute query and return all rows as list of dicts."""
+        query = self._convert_query(query)
         cursor = await self._conn.execute(query, args)
         rows = await cursor.fetchall()
         if rows and cursor.description:
@@ -49,6 +59,7 @@ class SQLiteConnectionWrapper:
 
     async def execute(self, query: str, *args):
         """Execute query and return cursor."""
+        query = self._convert_query(query)
         # aiosqlite expects parameters as a list
         # Convert tuple to list to avoid any confusion
         params = list(args) if args else []
@@ -134,41 +145,39 @@ class SQLiteAdapter(DatabaseAdapter):
         logger.info(f"开始初始化SQLiteAdapter实例 #{self._instance_id}")
 
         if self._initialized:
-            logger.info(f"实例 #{self._instance_id} 已初始化，跳过")
-            return
+            logger.info(f"实例 #{self._instance_id} 已初始化，跳过连接池创建")
+        else:
+            async with self._pool_lock:
+                if self._initialized:
+                    logger.info(f"实例 #{self._instance_id} 在锁检查时已初始化，跳过连接池创建")
+                else:
+                    try:
+                        # 确保数据目录存在
+                        data_dir = os.path.dirname(self.db_path)
+                        if data_dir:
+                            os.makedirs(data_dir, exist_ok=True)
+                            logger.info(f"确保数据目录存在: {data_dir}")
 
-        async with self._pool_lock:
-            if self._initialized:
-                logger.info(f"实例 #{self._instance_id} 在锁检查时已初始化，跳过")
-                return
+                        logger.info(f"正在创建SQLite数据库连接池: {self.db_path}")
 
-            try:
-                # 确保数据目录存在
-                data_dir = os.path.dirname(self.db_path)
-                if data_dir:
-                    os.makedirs(data_dir, exist_ok=True)
-                    logger.info(f"确保数据目录存在: {data_dir}")
+                        # 创建连接池
+                        for i in range(self._max_connections):
+                            conn = await aiosqlite.connect(self.db_path)
+                            await self._configure_connection(conn)
+                            self.pools.append(conn)
+                            logger.debug(f"创建连接 {i+1}/{self._max_connections}")
 
-                logger.info(f"正在创建SQLite数据库连接池: {self.db_path}")
+                        self._initialized = True
+                        logger.info(f"SQLite数据库连接池初始化成功: {self.db_path} (连接数: {len(self.pools)})")
 
-                # 创建连接池
-                for i in range(self._max_connections):
-                    conn = await aiosqlite.connect(self.db_path)
-                    await self._configure_connection(conn)
-                    self.pools.append(conn)
-                    logger.debug(f"创建连接 {i+1}/{self._max_connections}")
+                    except Exception as e:
+                        logger.error(f"SQLite数据库初始化失败: {str(e)}")
+                        import traceback
+                        logger.error(f"详细错误信息: {traceback.format_exc()}")
+                        raise
 
-                # 创建表结构
-                await self._init_db_tables()
-                self._initialized = True
-
-                logger.info(f"SQLite数据库连接池初始化成功: {self.db_path} (连接数: {len(self.pools)})")
-
-            except Exception as e:
-                logger.error(f"SQLite数据库初始化失败: {str(e)}")
-                import traceback
-                logger.error(f"详细错误信息: {traceback.format_exc()}")
-                raise
+        # 表创建始终执行（使用 CREATE TABLE IF NOT EXISTS，幂等操作）
+        await self._init_db_tables()
 
     async def _configure_connection(self, conn: aiosqlite.Connection) -> None:
         """配置数据库连接参数"""
@@ -336,6 +345,10 @@ class SQLiteAdapter(DatabaseAdapter):
         # 处理RETURNING子句（SQLite不支持）
         if 'RETURNING' in query:
             query = query.split('RETURNING')[0]
+
+        # 处理参数占位符：将 $1, $2 等转换为 ? (SQLite使用?)
+        import re
+        query = re.sub(r'\$\d+', '?', query)
 
         return query
 

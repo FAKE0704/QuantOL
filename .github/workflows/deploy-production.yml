@@ -20,7 +20,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd /home/user0704/QuantOL
-            ./scripts/deploy-backend.sh
+            ./scripts/deploy/deploy-backend.sh
 
   # Job 2: 部署前端（私有仓库）
   deploy-frontend:
@@ -40,4 +40,4 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            /home/user0704/QuantOL/scripts/deploy-frontend.sh
+            /home/user0704/QuantOL/scripts/deploy/deploy-frontend.sh

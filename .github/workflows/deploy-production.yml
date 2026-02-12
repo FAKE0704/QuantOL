@@ -35,7 +35,7 @@ jobs:
           port: 8086
           script: |
             cd /home/user0704/QuantOL
-            ./scripts/deploy/deploy-backend.sh
+            bash scripts/deploy/deploy-backend.sh
 
   # Job 2: 部署前端（私有仓库）
   deploy-frontend:
@@ -58,4 +58,5 @@ jobs:
           port: 8086
           debug: true
           script: |
-            /home/user0704/QuantOL/scripts/deploy/deploy-frontend.sh
+            cd /home/user0704/QuantOL
+            bash scripts/deploy/deploy-frontend.sh

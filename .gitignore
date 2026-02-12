@@ -238,8 +238,10 @@ src/core/logs/
 *.sqlite-shm
 *.sqlite-wal
 
+# 数据目录（本地数据库文件）
+data/
+
 # Tushare缓存文件
-data/tushare/
 *.pkl
 !src/**/*.pkl  # 保留代码中的pkl文件
 

@@ -1,8 +1,8 @@
 /**
- * QuantOL PM2 生产环境配置
+ * QuantOL PM2 开发环境配置
  *
- * 启动: pm2 start ecosystem.config.js
- * 或: pm2 start ecosystem.config.js --env production
+ * 启动: pm2 start ecosystem.dev.config.js
+ * 或: pm2 start ecosystem.dev.config.js --env development
  */
 const path = require('path');
 
@@ -24,11 +24,11 @@ module.exports = {
       watch: false,
       max_memory_restart: '1G',
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: 'development',
         PORT: 8000,
       },
-      error_file: './logs/pm2-backend-error.log',
-      out_file: './logs/pm2-backend-out.log',
+      error_file: './logs/pm2-backend-dev-error.log',
+      out_file: './logs/pm2-backend-dev-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       merge_logs: false,
       time: true,
@@ -38,7 +38,7 @@ module.exports = {
     {
       name: 'quantol-nextjs',
       script: 'node_modules/.bin/next',
-      args: 'start',
+      args: 'dev',
       cwd: frontendPath,
       interpreter: 'none',
       instances: 1,
@@ -48,11 +48,11 @@ module.exports = {
       ignore_watch: ['node_modules', '.next', 'logs'],
       max_memory_restart: '500M',
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: 'development',
         PORT: 3000,
       },
-      error_file: './logs/pm2-nextjs-error.log',
-      out_file: './logs/pm2-nextjs-out.log',
+      error_file: './logs/pm2-nextjs-dev-error.log',
+      out_file: './logs/pm2-nextjs-dev-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       merge_logs: false,
       time: true,
@@ -71,12 +71,12 @@ module.exports = {
       watch: false,
       max_memory_restart: '2G',
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: 'development',
         STREAMLIT_SERVER_PORT: 8501,
         STREAMLIT_SERVER_URL: 'http://localhost:8501',
       },
-      error_file: './logs/pm2-streamlit-error.log',
-      out_file: './logs/pm2-streamlit-out.log',
+      error_file: './logs/pm2-streamlit-dev-error.log',
+      out_file: './logs/pm2-streamlit-dev-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       merge_logs: false,
       time: true,
@@ -93,10 +93,10 @@ module.exports = {
       autorestart: true,
       watch: false,
       env: {
-        NODE_ENV: 'production',
+        NODE_ENV: 'development',
       },
-      error_file: './logs/pm2-nginx-error.log',
-      out_file: './logs/pm2-nginx-out.log',
+      error_file: './logs/pm2-nginx-dev-error.log',
+      out_file: './logs/pm2-nginx-dev-out.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss',
       merge_logs: false,
       time: true,

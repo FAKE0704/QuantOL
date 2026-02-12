@@ -35,12 +35,8 @@ restart_or_start() {
 restart_or_start quantol-backend
 restart_or_start quantol-streamlit
 
-# Nginx may need special handling (requires root)
-if pm2 describe quantol-nginx >/dev/null 2>&1; then
-    pm2 restart quantol-nginx
-else
-    echo "⚠️  Nginx not running in PM2. Skip or configure manually."
-fi
+# Nginx
+restart_or_start quantol-nginx
 
 # Save PM2 process list
 pm2 save

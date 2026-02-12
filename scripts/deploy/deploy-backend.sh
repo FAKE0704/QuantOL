@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# Add uv to PATH
-export PATH="$HOME/.local/bin:$PATH"
+# Add uv and npm global binaries to PATH
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$HOME/.local/share/npm/bin:$PATH"
 
 echo "🚀 Deploying QuantOL Backend..."
 

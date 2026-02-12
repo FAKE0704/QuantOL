@@ -114,11 +114,7 @@ cp .env.example .env
 ```
 
 6. **启动应用**
-```bash
-# 一键启动所有服务
-./start.sh
-```
-
+- use pm2 to start
 启动后访问：- 新版界面: http://localhost:8087
 - Streamlit: http://localhost:8087/app
 

@@ -30,8 +30,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: FAKE0704/QuantOL-frontend
-          token: ${{ secrets.GH_TOKEN }}  # PAT 访问私有仓库
+          token: ${{ secrets.GH_TOKEN }}
           ref: main
+          persist-credentials: false
 
       - name: Deploy frontend to server
         uses: appleboy/ssh-action@v1.0.0

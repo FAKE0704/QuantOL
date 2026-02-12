@@ -1,0 +1,43 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # Job 1: 部署后端（公开仓库）
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v4
+
+      - name: Deploy backend to server
+        uses: tmate/action-ssh@v20
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            cd /home/user0704/QuantOL
+            ./scripts/deploy-backend.sh
+
+  # Job 2: 部署前端（私有仓库）
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frontend (private)
+        uses: actions/checkout@v4
+        with:
+          repository: FAKE0704/QuantOL-frontend
+          token: ${{ secrets.GH_TOKEN }}  # PAT 访问私有仓库
+          ref: main
+
+      - name: Deploy frontend to server
+        uses: tmate/action-ssh@v20
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            /home/user0704/QuantOL/scripts/deploy-frontend.sh

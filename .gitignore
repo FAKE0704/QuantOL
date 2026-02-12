@@ -268,3 +268,8 @@ landing-page/
 # 备份文件
 *.bak
 *.backup
+
+# Frontend build artifacts (for when cloning locally)
+.next/
+out/
+node_modules/.next/

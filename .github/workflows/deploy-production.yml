@@ -12,13 +12,25 @@ jobs:
       - name: Checkout backend
         uses: actions/checkout@v4
 
-      - name: Deploy backend to server
+      - name: Test SSH Connection
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           debug: true
+          script: |
+            echo "Connection successful!"
+            whoami
+            pwd
+            ls -la
+
+      - name: Deploy backend to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd /home/user0704/QuantOL
             ./scripts/deploy/deploy-backend.sh

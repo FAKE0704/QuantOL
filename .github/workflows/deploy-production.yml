@@ -18,6 +18,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          debug: true
           script: |
             cd /home/user0704/QuantOL
             ./scripts/deploy/deploy-backend.sh
@@ -40,5 +41,6 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          debug: true
           script: |
             /home/user0704/QuantOL/scripts/deploy/deploy-frontend.sh

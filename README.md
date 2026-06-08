@@ -515,6 +515,48 @@ limitations under the License.
 - [AkShare](https://github.com/akfamily/akshare) - 多市场数据接口
 - [Tushare](https://tushare.pro/) - 专业金融数据接口
 
+## 🌐 Web 前端
+
+本项目包含一个基于 Next.js 的前端界面，位于 `web/` 目录。
+
+### 前端功能
+
+- ✅ 回测配置和执行
+- ✅ 回测结果查看
+- ✅ 策略管理和配置
+- ✅ K线图表展示
+- ✅ 数据源配置
+- ✅ 参数优化功能
+
+### 前端快速启动
+
+```bash
+# 进入前端目录
+cd web
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 访问 http://localhost:3000
+```
+
+### 前端环境变量
+
+创建 `web/.env` 文件：
+
+```bash
+# 后端 API 地址（默认通过 Nginx 代理，留空即可）
+PYTHON_API_URL=
+
+# 或直接连接后端（开发环境）
+# PYTHON_API_URL=http://localhost:8000
+```
+
+---
+
 ## 📞 联系方式
 
 如有问题或建议，请通过以下方式联系：

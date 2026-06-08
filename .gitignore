@@ -220,16 +220,12 @@ $RECYCLE.BIN/
 *.swo
 *~
 
-# 日志文件（已在 Django 部分定义 *.log，这里补充目录）
-src/support/database.log
-src/support/logs/*.log
-logs/*.log
-
-
 # 日志文件
 *.log
 logs/
 src/core/logs/
+src/support/logs/
+src/support/database.log
 
 # 数据库文件
 *.db
@@ -254,8 +250,10 @@ data/
 # 配置文件中的敏感信息
 src/support/config/user_settings.json
 
-# Node.js / Next.js (landing-page) - Frontend is now in separate private repo
-landing-page/
+# Node.js / Next.js (web/ directory)
+node_modules/
+.next/
+out/
 
 # 其他敏感文件
 **/*.key
@@ -270,11 +268,6 @@ landing-page/
 # 备份文件
 *.bak
 *.backup
-
-# Frontend build artifacts (for when cloning locally)
-.next/
-out/
-node_modules/.next/
 
 # Local deployment scripts
 deploy-to-prod.sh

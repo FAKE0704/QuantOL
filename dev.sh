@@ -39,18 +39,18 @@ fi
 
 # 启动前端开发模式（后台运行）
 echo -e "${YELLOW}[2/3] 启动前端开发模式 (端口: 3000)...${NC}"
-cd landing-page
-npm run dev > ../logs/landing-page-dev.log 2>&1 &
-LANDING_PID=$!
-echo $LANDING_PID > ../logs/landing-page.pid
+cd ../QuantOL-frontend
+npm run dev > ../QuantOL/logs/nextjs-dev.log 2>&1 &
+FRONTEND_PID=$!
+echo $FRONTEND_PID > ../QuantOL/logs/nextjs.pid
 sleep 5
-if ps -p $LANDING_PID > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ 前端开发模式已启动 (PID: $LANDING_PID, 端口: 3000)${NC}"
+if ps -p $FRONTEND_PID > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ 前端开发模式已启动 (PID: $FRONTEND_PID, 端口: 3000)${NC}"
 else
-    echo -e "${RED}✗ 前端启动失败，请检查日志: logs/landing-page-dev.log${NC}"
-    tail -20 ../logs/landing-page-dev.log
+    echo -e "${RED}✗ 前端启动失败，请检查日志: logs/nextjs-dev.log${NC}"
+    tail -20 ../QuantOL/logs/nextjs-dev.log
 fi
-cd ..
+cd ../QuantOL
 
 # 启动 Nginx 反向代理
 echo -e "${YELLOW}[3/3] 启动 Nginx 反向代理 (端口: 8087)...${NC}"

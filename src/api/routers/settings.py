@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from src.core.auth import AuthService
 from src.database import get_db_adapter
+from src.support.log.logger import logger
 
 # Router
 router = APIRouter()
@@ -34,6 +35,23 @@ class DataSourceRequest(BaseModel):
 
 class DataSourceResponse(BaseModel):
     """Data source configuration response model."""
+
+    success: bool
+    message: str
+    data: Optional[dict] = None
+
+
+class OKXConfigRequest(BaseModel):
+    """OKX API configuration request model."""
+
+    api_key: str = Field(..., description="OKX API key")
+    secret_key: str = Field(..., description="OKX API secret key")
+    passphrase: str = Field(..., description="OKX API passphrase")
+    is_demo: bool = Field(True, description="Use demo trading environment")
+
+
+class OKXConfigResponse(BaseModel):
+    """OKX API configuration response model."""
 
     success: bool
     message: str
@@ -78,8 +96,6 @@ async def get_data_source_config(
 
     Returns the user's configured data source and associated credentials (like Tushare token).
     """
-    from src.support.log.logger import logger
-
     db = get_db_adapter()
     await db.initialize()
 
@@ -137,8 +153,6 @@ async def update_data_source_config(
 
     Validates that required credentials (like Tushare token) are provided when needed.
     """
-    from src.support.log.logger import logger
-
     db = get_db_adapter()
     await db.initialize()
 
@@ -202,4 +216,176 @@ async def update_data_source_config(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save configuration: {str(e)}"
+        )
+
+
+# ==================== OKX API Configuration ====================
+
+
+@router.get("/okx")
+async def get_okx_config(
+    current_user: dict = Depends(get_current_user),
+):
+    """Get user's OKX API configuration.
+
+    Returns whether the user has configured OKX API credentials.
+    Does not return the actual secret key for security.
+    """
+    db = get_db_adapter()
+    await db.initialize()
+
+    user_id = current_user["user_id"]
+
+    try:
+        async with db.pool as conn:
+            query = """
+                SELECT okx_api_key, okx_passphrase, okx_is_demo
+                FROM UserSettings
+                WHERE user_id = ?
+            """
+            row = await conn.fetchrow(query, user_id)
+
+            if row and row["okx_api_key"]:
+                return {
+                    "success": True,
+                    "message": "OKX configuration found",
+                    "data": {
+                        "has_config": True,
+                        "api_key_preview": f"{row['okx_api_key'][:8]}..." if len(row["okx_api_key"]) > 8 else "***",
+                        "passphrase_preview": f"{row['okx_passphrase'][:2]}***" if row["okx_passphrase"] else None,
+                        "is_demo": bool(row["okx_is_demo"]),
+                    }
+                }
+            else:
+                return {
+                    "success": True,
+                    "message": "No OKX configuration found",
+                    "data": {
+                        "has_config": False,
+                        "api_key_preview": None,
+                        "passphrase_preview": None,
+                        "is_demo": True,
+                    }
+                }
+    except Exception as e:
+        logger.error(f"Failed to get OKX config: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve OKX configuration: {str(e)}"
+        )
+
+
+@router.put("/okx")
+async def update_okx_config(
+    request: OKXConfigRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """Update user's OKX API configuration.
+
+    Stores the API credentials securely in the database.
+    """
+    db = get_db_adapter()
+    await db.initialize()
+
+    user_id = current_user["user_id"]
+
+    # Validate required fields
+    if not request.api_key or not request.secret_key or not request.passphrase:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="API key, secret key, and passphrase are all required"
+        )
+
+    try:
+        async with db.pool as conn:
+            # Check if user settings exist
+            check_query = "SELECT id FROM UserSettings WHERE user_id = ?"
+            existing = await conn.fetchval(check_query, user_id)
+
+            current_time = datetime.now().isoformat()
+
+            if existing:
+                # Update existing settings
+                update_query = """
+                    UPDATE UserSettings
+                    SET okx_api_key = ?, okx_secret_key = ?, okx_passphrase = ?, okx_is_demo = ?, updated_at = ?
+                    WHERE user_id = ?
+                """
+                await conn.execute(
+                    update_query,
+                    request.api_key,
+                    request.secret_key,
+                    request.passphrase,
+                    1 if request.is_demo else 0,
+                    current_time,
+                    user_id
+                )
+                logger.info(f"Updated OKX config for user {user_id}")
+            else:
+                # Insert new settings with OKX config
+                insert_query = """
+                    INSERT INTO UserSettings
+                    (user_id, data_source, okx_api_key, okx_secret_key, okx_passphrase, okx_is_demo, created_at, updated_at)
+                    VALUES (?, 'baostock', ?, ?, ?, ?, ?, ?)
+                """
+                await conn.execute(
+                    insert_query,
+                    user_id,
+                    request.api_key,
+                    request.secret_key,
+                    request.passphrase,
+                    1 if request.is_demo else 0,
+                    current_time,
+                    current_time
+                )
+                logger.info(f"Created OKX config for user {user_id}")
+
+            return {
+                "success": True,
+                "message": "OKX configuration saved successfully",
+                "data": {
+                    "has_config": True,
+                    "is_demo": request.is_demo
+                }
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update OKX config: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save OKX configuration: {str(e)}"
+        )
+
+
+@router.delete("/okx")
+async def delete_okx_config(
+    current_user: dict = Depends(get_current_user),
+):
+    """Delete user's OKX API configuration."""
+    db = get_db_adapter()
+    await db.initialize()
+
+    user_id = current_user["user_id"]
+
+    try:
+        async with db.pool as conn:
+            update_query = """
+                UPDATE UserSettings
+                SET okx_api_key = NULL, okx_secret_key = NULL, okx_passphrase = NULL, okx_is_demo = NULL, updated_at = ?
+                WHERE user_id = ?
+            """
+            await conn.execute(update_query, datetime.now().isoformat(), user_id)
+            logger.info(f"Deleted OKX config for user {user_id}")
+
+            return {
+                "success": True,
+                "message": "OKX configuration deleted",
+                "data": None
+            }
+    except Exception as e:
+        logger.error(f"Failed to delete OKX config: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete OKX configuration: {str(e)}"
         )
